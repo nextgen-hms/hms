@@ -1,5 +1,5 @@
 "use client";
-
+import toast from "react-hot-toast";
 import { usePatient } from "@/contexts/PatientIdContext";
 import { useEffect, useState } from "react";
 export default function PatientForm() {
@@ -13,48 +13,78 @@ export default function PatientForm() {
   const [clinicNo, setClinicNo] = useState<string>("");
   const { patientId, setPatientId } = usePatient();
  const  [Ischecked,setIsChecked]=useState(false);
+ const [doctors,setDoctors]=useState([]);
   useEffect(() => {
-    if (!patientId) return;
-    setpId(patientId);
-    getPatientVisitInfo();
-   
-  }, [patientId]);
+  if(!pId) return;
+   getPatientInfo();
+  }, []);
 
-  async function getPatientInfo() {
-    
-    const res = await fetch(`api/patient/${patientId}`);
+ useEffect(() => {
+
+    async function fetchDoctors() {
+      const res = await fetch("api/doctor/getAllDoctors");
+      const docs = await res.json();
+      console.log(docs);
+      setDoctors(docs);
+    }
+   
+    fetchDoctors();
+  }, []);
+   async function getPatientInfo() {
+    const res = await fetch(`api/patient/${pId}`);
     const data = await res.json();
-    console.log(data);
-    
-    setPatientName(data.patientName);
+
+    setPatientName(data.patient_name);
     setAge(data.age);
     setGender(data.gender);
+    if (data.patient_name) toast.success("patient Found");
+    getPatientVisitInfo(data.patient_name, data.age);
   }
-  async function getPatientVisitInfo() {
-    
-    const res = await fetch(`api/visit/${patientId}`);
-    const data = await res.json();
-    console.log(data);
-    setPatientName(data.patientName);
-    setAge(data.age);
-    setGender(data.gender);
-    setVisitReason(data.visitReason);
-    setDoctor(data.doctor);
-    setVisitType(data.VisitType);
-    setClinicNo(data.clinicNo);
-    setIsChecked(data.status === "seen" ? true : false );
+  async function getPatientVisitInfo(patient_name: string, age: string) {
+    if (patient_name && age) {
+      const res = await fetch(`api/visit/${pId}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error("no visit dound for today");
+        return;
+      }
+      console.log(data);
+      if (res.ok) {
+        console.log(data);
+        if (data.clinic_number) {
+          setVisitReason(data.visitReason);
+          setDoctor(data.doctor_id);
+          setVisitType(data.visit_type);
+          setClinicNo(data.clinic_number || " ");
+          setVisitReason(data.reason);
+        } else {
+          toast.error("no visit dound for today");
+          
+          setVisitReason("");
+          setVisitType("");
+          setDoctor("");
+        }
+      }
+    }
   }
   async function UpdateInfo() {
     const res = await fetch("api/visit", {
       method: "PATCH",
       body: JSON.stringify({
-        clinicNo: clinicNo,
-        visitReason: visitReason,
-        doctor: doctor,
-        VisitType: VisitType,
-         status:(Ischecked === true ? "seen" : "waiting")
+        clinic_number: clinicNo,
+        reason: visitReason,
+        doctor_id: doctor,
+        visit_type: VisitType,
+        status: "waiting",
+        patient_id: patientId,
       }),
     });
+    if (res.ok) {
+      toast.success(`P000${patientId} info updated `);
+    } else {
+      toast.error(`P000${patientId} info  not updated `);
+    }
   }
 
  
@@ -76,6 +106,7 @@ export default function PatientForm() {
                 if (e.key === "Enter") {
                   setPatientId(pId)
                   e.preventDefault();
+                  getPatientInfo();
                 }
               }}
             />
@@ -150,9 +181,14 @@ export default function PatientForm() {
               value={doctor}
               onChange={(e) => setDoctor(e.target.value)}
             >
-              <option value="" hidden>Select Doctor</option>
-              <option value="doctor1">Dr Bablu - Gynecologist</option>
-              <option value="doctor2">Dr saad - Cardiologist</option>
+              <option value="" disabled hidden>
+                Select Doctor
+              </option>
+              {doctors.map((d: any) => (
+                <option key={d.doctor_id} value={d.doctor_id}>
+                  {d.doctor_name}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex flex-col  ">
