@@ -23,7 +23,7 @@ export default function Receptionist({
   clinicalDetails: React.ReactNode;
   sidebar: React.ReactNode;
 }) {
-  const [selectedTab, setSelectedTab] = useState("Queue Management");
+  const [selectedTab, setSelectedTab] = useState("queue");
   const { patientId } = usePatient();
   const { activeTab } = useSidebar();
   console.log(activeTab);
@@ -63,47 +63,38 @@ export default function Receptionist({
         }}
       />
 
-      {/* <div className=" border-1 border-black/30  flex items-center justify-center">
+       <div className=" border-1 border-black/30  flex items-center justify-center">
         <div className="relative h-[7dvh] w-[7dvh]">
           <Image src="/logo.png" alt="Clinic Logo" fill sizes="7dvh"></Image>
         </div>
         <h1 className="text-3xl font-bold text-green-800/80">
           Dr Bablu Clinic
         </h1>
-      </div> */}
+      </div> 
       {/* Receptionist Header */}
-      {/* <div className=" border-1  border-black/30  flex items-center justify-center">
+       <div className=" border-1  border-black/30  flex items-center justify-center">
         <h1 className="text-2xl p-4 font-bold text-green-800/80">
           Receptionist View
         </h1>
-      </div> */}
+      </div> 
       {/* container containg  qeue and tabs and their implemntations */}
       <div
         id="container-containing-queue-and-tabs"
         className="flex h-full w-full"
       >
        
-          <div className="flex w-full h-full">
-            {/* Sidebar */}
-            <div>{sidebar}</div>
-
-            {/* Main content */}
-            <div className="flex-1">
-              {activeTab === "Queue Management" && queueManagement}
-              {activeTab === "Patient Registration" && patientRegistration}
-              {activeTab === "Patient Vitals" && patientVitals}
-              {activeTab === "Clinical Details" && clinicalDetails}
-            </div>
-          </div>
-       
+         
+               <div id="Queue" className="">
+          {queue}
+        </div>
 
         {/* queue paralell route */}
 
         {/* div containing tabs and their implemetations */}
-        {/* <div className=" p-2 rounded-2xl border-black/30 flex   w-full h-full">
+        <div className=" p-2 rounded-2xl border-black/30 flex flex-col  w-full h-full">
           <div
             id="tab"
-            className=" w-[16%]  p-2 border-2 border-black/30 flex-col   rounded-4xl flex items-center space-y-5 bg-gray-300 "
+            className=" w-[60%] p-2  border-2 border-black/30   rounded-4xl flex items-center  bg-gray-300 "
           >
             <button
               className={`  px-4    text-center ${
@@ -150,7 +141,7 @@ export default function Receptionist({
 
           </div>
 
-          <div id="tab-paralell-routes" className="relative w-[90%] ">
+          <div id="tab-paralell-routes" className="relative  ">
             <div className="absolute top-2  left-50">
             
             </div>
@@ -160,10 +151,8 @@ export default function Receptionist({
             {selectedTab === "clinicalDetails" ? clinicalDetails : null}
           </div>
          
-        </div> */}
-        <div id="Queue" className="">
-          {queue}
         </div>
+
       </div>
     </div>
   );

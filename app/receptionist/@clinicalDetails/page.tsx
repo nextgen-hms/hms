@@ -5,7 +5,7 @@ import { register } from "module";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import Gynaecologist from "./Gynacologist/Gynaecologist";
-import { ClinicalDetailsProvider } from "@/contexts/ClinicalDetailsContext";
+
 export default function PatientRegistration() {
   const [pId, setpId] = useState<string>("");
   const [specialization, setSpecialization] = useState<string>("Gynaecologist");
@@ -58,10 +58,10 @@ export default function PatientRegistration() {
       </div>
       {specialization === "Gynaecologist" ? (
         <div  >
-          <ClinicalDetailsProvider>
+         
 
             <Gynaecologist patientId={patientId}></Gynaecologist>
-          </ClinicalDetailsProvider>
+          
             {/* <RepeatableFrom></RepeatableFrom> */}
           </div>   
       ) : null}
