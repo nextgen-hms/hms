@@ -4,46 +4,44 @@ import { usePatient } from "@/contexts/PatientIdContext";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import Select from "react-select";
 
+// Types
 type Prescription = {
-  patientId: string;
-  orderDate: string;
+  order_date: string;
   category: string;
-  generic: string;
-  brandName: string;
-  dose: string;
-  frequency: string;
-  duration: string;
+  generic_name: string;
+  brand_name: string;
+  dosage_value: number;
+  dosage_unit: string;
+  instructions: string;
+  prescribed_quantity: number;
+  dispensed_quantity: number;
+  frequency: number;
+  duration: number;
   unit: string;
-  prescribedBy: string;
-  quantity: string;
+  prescribed_by: string;
+  dispensed_by: string;
 };
 
 type Medicine = {
   category: string;
   generic: string;
   brandName: string;
-  dose: string;
+  dosage_value: number;
+  dosage_unit: string;
 };
 
-type OptionType = {
-  value: string;
-  label: string;
-};
-
-const categoryOptions: OptionType[] = [
-  { value: "iron", label: "Iron" },
-  { value: "antibiotic", label: "Antibiotic" },
-  { value: "sugar", label: "Sugar" },
-  { value: "drugs", label: "Drugs" },
-];
+type OptionType = { value: string; label: string };
 
 type FormValues = {
   prescriptions: {
     category: OptionType | null;
     generic: OptionType | null;
     brandName: OptionType | null;
-    dose: OptionType | null;
-    quantity: number;
+    dosage_value: number;
+    dosage_unit: OptionType | null;
+    instructions: string;
+    prescribed_quantity: number;
+    dispensed_quantity: number;
     frequency: number;
     duration: number;
     unit: OptionType | null;
@@ -55,41 +53,25 @@ export default function PharmacyOrder() {
   const [pId, setpId] = useState<string>("");
   const [previousData, setPreviousData] = useState<Prescription[]>([]);
   const [medicineCategory, setMedicineCategory] = useState<Medicine[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<OptionType[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
 
-  const { control, handleSubmit, setValue } = useForm<FormValues>({
+  const { control, handleSubmit, register } = useForm<FormValues>({
     defaultValues: {
       prescriptions: [
         {
           category: null,
           generic: null,
           brandName: null,
-          dose: null,
-          quantity: 1,
+          dosage_value: 0,
+          dosage_unit: null,
+          instructions: "",
+          prescribed_quantity: 1,
+          dispensed_quantity: 0,
           frequency: 1,
           duration: 1,
           unit: null,
         },
-         {
-          category: null,
-          generic: null,
-          brandName: null,
-          dose: null,
-          quantity: 1,
-          frequency: 1,
-          duration: 1,
-          unit: null,
-        },
-         {
-          category: null,
-          generic: null,
-          brandName: null,
-          dose: null,
-          quantity: 1,
-          frequency: 1,
-          duration: 1,
-          unit: null,
-        }
       ],
     },
   });
@@ -99,18 +81,44 @@ export default function PharmacyOrder() {
     name: "prescriptions",
   });
 
-  // Fetch previous prescriptions
-  async function getPreviousPrescriptions() {
-    const res = await fetch(`/api/perscription/${patientId}`);
-    const resdata = await res.json();
-    setPreviousData(resdata.prescriptions);
+  // Fetch categories
+  async function getMedicineCategories() {
+    try {
+      const res = await fetch("api/medicine/category");
+      const data = await res.json();
+      const options = data.map((d: any) => ({
+        value: d.category,
+        label: d.category,
+      }));
+      setCategoryOptions(options);
+    } catch (err) {
+      console.log(err);
+    }
   }
 
-  // Fetch medicine by category
+  // Fetch previous prescriptions
+  async function getPreviousPrescriptions() {
+    try {
+      const res = await fetch(`/api/prescription/${patientId}`);
+      const resdata = await res.json();
+      resdata.forEach((d: any) => {
+        d.order_date = d.order_date?.split("T")[0];
+      });
+      setPreviousData(resdata);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  // Fetch medicines by category
   async function getMedicineByCategory(category: string) {
-    const res = await fetch(`/api/medicine/category/${category}`);
-    const data = await res.json();
-    setMedicineCategory(data);
+    try {
+      const res = await fetch(`/api/medicine/category/${category}`);
+      const data = await res.json();
+      setMedicineCategory(data);
+    } catch (err) {
+      console.log(err);
+    }
   }
 
   // On patient change
@@ -121,19 +129,24 @@ export default function PharmacyOrder() {
     }
   }, [patientId]);
 
+  // On mount, fetch categories
+  useEffect(() => {
+    getMedicineCategories();
+  }, []);
+
   // On category change
   useEffect(() => {
     if (selectedCategory) getMedicineByCategory(selectedCategory);
   }, [selectedCategory]);
 
+  // Submit
   const onSubmit = async (data: FormValues) => {
-    if(!patientId) return;
-    const res=await fetch(`api/medicine/${patientId}`,{
-           method:"POST",
-           body:JSON.stringify(data)
-    })
+    if (!patientId) return;
+    const res = await fetch(`api/prescription/${patientId}`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
     console.log(await res.json());
-    
   };
 
   return (
@@ -146,7 +159,7 @@ export default function PharmacyOrder() {
         <input
           id="pid"
           type="text"
-          placeholder="Enter existing Patient Id"
+          placeholder="Enter Patient Id"
           className="w-[40%] p-2 bg-gray-200 rounded-2xl"
           value={pId}
           onChange={(e) => setpId(e.target.value)}
@@ -169,34 +182,40 @@ export default function PharmacyOrder() {
               <th className="border px-2 py-1">Order Date</th>
               <th className="border px-2 py-1">Category</th>
               <th className="border px-2 py-1">Generic</th>
-              <th className="border px-2 py-1">Brand Name</th>
-              <th className="border px-2 py-1">Dose</th>
-              <th className="border px-2 py-1">Quantity</th>
+              <th className="border px-2 py-1">Brand</th>
+              <th className="border px-2 py-1">Dosage Value</th>
+              <th className="border px-2 py-1">Dosage Unit</th>
+              <th className="border px-2 py-1">Instructions</th>
               <th className="border px-2 py-1">Frequency</th>
               <th className="border px-2 py-1">Duration</th>
-              <th className="border px-2 py-1">Unit</th>
+              <th className="border px-2 py-1">Prescribed Qty</th>
+              <th className="border px-2 py-1">Dispensed Qty</th>
               <th className="border px-2 py-1">Prescribed By</th>
+              <th className="border px-2 py-1">Dispensed By</th>
             </tr>
           </thead>
           <tbody>
             {previousData.length > 0 ? (
               previousData.map((d, i) => (
                 <tr key={i}>
-                  <td className="border px-2 py-1">{d.orderDate}</td>
+                  <td className="border px-2 py-1">{d.order_date}</td>
                   <td className="border px-2 py-1">{d.category}</td>
-                  <td className="border px-2 py-1">{d.generic}</td>
-                  <td className="border px-2 py-1">{d.brandName}</td>
-                  <td className="border px-2 py-1">{d.dose}</td>
-                  <td className="border px-2 py-1">{d.quantity}</td>
+                  <td className="border px-2 py-1">{d.generic_name}</td>
+                  <td className="border px-2 py-1">{d.brand_name}</td>
+                  <td className="border px-2 py-1">{d.dosage_value}</td>
+                  <td className="border px-2 py-1">{d.dosage_unit}</td>
+                  <td className="border px-2 py-1">{d.instructions}</td>
                   <td className="border px-2 py-1">{d.frequency}</td>
                   <td className="border px-2 py-1">{d.duration}</td>
-                  <td className="border px-2 py-1">{d.unit}</td>
-                  <td className="border px-2 py-1">{d.prescribedBy}</td>
+                  <td className="border px-2 py-1">{d.prescribed_quantity}</td>
+                  <td className="border px-2 py-1">{d.dispensed_quantity}</td>
+                  <td className="border px-2 py-1">{d.prescribed_by}</td>
+                  <td className="border px-2 py-1">{d.dispensed_by}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={10} className="text-center">
+                <td colSpan={13} className="text-center">
                   No data available
                 </td>
               </tr>
@@ -216,9 +235,12 @@ export default function PharmacyOrder() {
               <tr>
                 <th className="border px-2 py-1">Category</th>
                 <th className="border px-2 py-1">Generic</th>
-                <th className="border px-2 py-1">Brand Name</th>
-                <th className="border px-2 py-1">Dose</th>
-                <th className="border px-2 py-1">Quantity</th>
+                <th className="border px-2 py-1">Brand</th>
+                <th className="border px-2 py-1">Dosage Value</th>
+                <th className="border px-2 py-1">Dosage Unit</th>
+                <th className="border px-2 py-1">Instructions</th>
+                <th className="border px-2 py-1">Prescribed Qty</th>
+                <th className="border px-2 py-1">Dispensed Qty</th>
                 <th className="border px-2 py-1">Frequency</th>
                 <th className="border px-2 py-1">Duration</th>
                 <th className="border px-2 py-1">Unit</th>
@@ -283,38 +305,65 @@ export default function PharmacyOrder() {
                     />
                   </td>
 
-                  {/* Dose */}
-                 <td>
-  <Controller
-    name={`prescriptions.${index}.dose`}
-    control={control}
-    render={({ field }) => {
-      // Get unique dose values
-      const uniqueDoses = Array.from(
-        new Set(medicineCategory.map((m) => m.dose))
-      ).map((dose) => ({
-        value: dose,
-        label: dose,
-      }));
-
-      return (
-        <Select
-          {...field}
-          options={uniqueDoses}
-          placeholder="Dose"
-        />
-      );
-    }}
-  />
-</td>
-
-                  {/* Quantity */}
+                  {/* Dosage Value */}
                   <td>
                     <input
                       type="number"
-                      className="w-full text-center border-1  border-black/20 py-1.5"
-                      {...control.register(
-                        `prescriptions.${index}.quantity` as const
+                      className="w-full text-center border border-black/20 py-1.5"
+                      {...register(
+                        `prescriptions.${index}.dosage_value` as const
+                      )}
+                    />
+                  </td>
+
+                  {/* Dosage Unit */}
+                  <td>
+                    <Controller
+                      name={`prescriptions.${index}.dosage_unit`}
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          {...field}
+                          options={[
+                            { value: "mg", label: "mg" },
+                            { value: "ml", label: "ml" },
+                            { value: "tablet", label: "Tablet" },
+                          ]}
+                          placeholder="Unit"
+                        />
+                      )}
+                    />
+                  </td>
+
+                  {/* Instructions */}
+                  <td>
+                    <input
+                      type="text"
+                      className="w-full border border-black/20 py-1.5 px-2"
+                      {...register(
+                        `prescriptions.${index}.instructions` as const
+                      )}
+                    />
+                  </td>
+
+                  {/* Prescribed Qty */}
+                  <td>
+                    <input
+                      type="number"
+                      className="w-full text-center border border-black/20 py-1.5"
+                      {...register(
+                        `prescriptions.${index}.prescribed_quantity` as const
+                      )}
+                    />
+                  </td>
+
+                  {/* Dispensed Qty */}
+                  <td>
+                    <input
+                      type="number"
+                      className="w-full text-center border border-black/20 py-1.5"
+                      {...register(
+                        `prescriptions.${index}.dispensed_quantity` as const
                       )}
                     />
                   </td>
@@ -323,10 +372,8 @@ export default function PharmacyOrder() {
                   <td>
                     <input
                       type="number"
-                      className="w-full text-center border-1  border-black/20 py-1.5"
-                      {...control.register(
-                        `prescriptions.${index}.frequency` as const
-                      )}
+                      className="w-full text-center border border-black/20 py-1.5"
+                      {...register(`prescriptions.${index}.frequency` as const)}
                     />
                   </td>
 
@@ -334,10 +381,8 @@ export default function PharmacyOrder() {
                   <td>
                     <input
                       type="number"
-                      className="w-full text-center border-1  border-black/20 py-1.5"
-                      {...control.register(
-                        `prescriptions.${index}.duration` as const
-                      )}
+                      className="w-full text-center border border-black/20 py-1.5"
+                      {...register(`prescriptions.${index}.duration` as const)}
                     />
                   </td>
 
@@ -360,10 +405,10 @@ export default function PharmacyOrder() {
                   </td>
 
                   {/* Remove Row */}
-                  <td className="grid place-items-center p-1.5 border-1  border-black/20">
+                  <td className="grid place-items-center p-1.5 border border-black/20">
                     <button
                       type="button"
-                      className="px-2  bg-red-500 text-white rounded"
+                      className="px-2 bg-red-500 text-white rounded"
                       onClick={() => remove(index)}
                     >
                       Remove
@@ -374,7 +419,7 @@ export default function PharmacyOrder() {
             </tbody>
           </table>
 
-          {/* Add Row Button */}
+          {/* Add Row + Submit */}
           <div className="mt-4">
             <button
               type="button"
@@ -383,8 +428,11 @@ export default function PharmacyOrder() {
                   category: null,
                   generic: null,
                   brandName: null,
-                  dose: null,
-                  quantity: 1,
+                  dosage_value: 0,
+                  dosage_unit: null,
+                  instructions: "",
+                  prescribed_quantity: 1,
+                  dispensed_quantity: 0,
                   frequency: 1,
                   duration: 1,
                   unit: null,

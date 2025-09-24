@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PatientContextProvider } from "@/contexts/PatientIdContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
+import { Toaster } from "react-hot-toast";
 // import { Geist, Geist_Mono } from "next/font/google";
 // import { Edu_NSW_ACT_Cursive } from "next/font/google";
 // import { Dancing_Script } from "next/font/google";
@@ -48,6 +49,59 @@ export default function RootLayout({
       >
         <SidebarProvider>
         <PatientContextProvider>
+
+          <Toaster
+                position="top-right" // top-right, top-center, bottom-left, etc.
+                toastOptions={{
+                  // Default styles for all toasts
+                  style: {
+                    background: "#333",
+                    color: "#fff",
+                    borderRadius: "12px",
+                    padding: "12px 16px",
+                  },
+                  // Styles for success toasts
+                  success: {
+                    style: {
+                      background: "green",
+                    },
+                    iconTheme: {
+                      primary: "white",
+                      secondary: "green",
+                    },
+                  },
+                  // Styles for error toasts
+                  error: {
+                    style: {
+                      background: "red",
+                    },
+                    iconTheme: {
+                      primary: "white",
+                      secondary: "red",
+                    },
+                  },
+                }}
+              />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         {children}
         </PatientContextProvider>
         </SidebarProvider>

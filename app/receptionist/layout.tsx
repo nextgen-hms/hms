@@ -30,38 +30,7 @@ export default function Receptionist({
   return (
     <div className="flex flex-col h-[100vh] w-[100vw] ">
       {/* Clinic Header */}
-      <Toaster
-        position="top-right" // top-right, top-center, bottom-left, etc.
-        toastOptions={{
-          // Default styles for all toasts
-          style: {
-            background: "#333",
-            color: "#fff",
-            borderRadius: "12px",
-            padding: "12px 16px",
-          },
-          // Styles for success toasts
-          success: {
-            style: {
-              background: "green",
-            },
-            iconTheme: {
-              primary: "white",
-              secondary: "green",
-            },
-          },
-          // Styles for error toasts
-          error: {
-            style: {
-              background: "red",
-            },
-            iconTheme: {
-              primary: "white",
-              secondary: "red",
-            },
-          },
-        }}
-      />
+    
 
        <div className=" border-1 border-black/30  flex items-center justify-center">
         <div className="relative h-[7dvh] w-[7dvh]">

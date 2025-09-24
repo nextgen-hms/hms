@@ -1,0 +1,50 @@
+import { query } from "@/database/db";
+import { NextRequest, NextResponse } from "next/server";
+
+
+
+export async function GET(req:NextRequest,{params}:{params:{patientId:string}}){
+  const id=(await params).patientId;
+  console.log(id);
+  
+ try {
+  const res= await query(`SELECT 
+    p.prescription_id,
+    pm.prescription_medicine_id,
+    m.category,
+    m.generic_name,
+    m.brand_name,
+    m.dosage_value,
+    m.dosage_unit,
+    m.form,
+    pm.frequency,
+	pm.duration,
+  pm.prescribed_quantity,
+  pm.dispensed_quantity,
+    pm.instructions,
+    d.doctor_name AS prescribed_by,
+    s.name AS dispensed_by,
+    p.created_at::date AS order_date
+FROM prescription p
+JOIN prescription_medicines pm 
+  ON p.prescription_id = pm.prescription_id
+JOIN visit v 
+  ON v.visit_id = p.visit_id
+JOIN medicine m 
+  ON m.medicine_id = pm.medicine_id
+JOIN doctor d 
+  ON d.doctor_id = p.doctor_id
+JOIN staff s 
+  ON s.staff_id = pm.dispensed_by
+WHERE v.patient_id = $1;
+;`,[id])
+  return NextResponse.json(res.rows,{status:200})
+ } catch (err) {
+  console.error(err);
+  return NextResponse.json({error:err},{status:500})
+ }
+
+
+
+
+}
