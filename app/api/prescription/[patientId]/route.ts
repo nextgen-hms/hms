@@ -8,7 +8,8 @@ export async function GET(req:NextRequest,{params}:{params:{patientId:string}}){
   console.log(id);
   
  try {
-  const res= await query(`SELECT 
+  const res= await query(`SELECT
+    v.visit_id,
     p.prescription_id,
     pm.prescription_medicine_id,
     m.category,
@@ -18,26 +19,25 @@ export async function GET(req:NextRequest,{params}:{params:{patientId:string}}){
     m.dosage_unit,
     m.form,
     pm.frequency,
-	pm.duration,
-  pm.prescribed_quantity,
-  pm.dispensed_quantity,
+    pm.duration,
+    pm.prescribed_quantity,
+    pm.dispensed_quantity,
     pm.instructions,
     d.doctor_name AS prescribed_by,
     s.name AS dispensed_by,
     p.created_at::date AS order_date
-FROM prescription p
-JOIN prescription_medicines pm 
-  ON p.prescription_id = pm.prescription_id
-JOIN visit v 
-  ON v.visit_id = p.visit_id
-JOIN medicine m 
-  ON m.medicine_id = pm.medicine_id
-JOIN doctor d 
-  ON d.doctor_id = p.doctor_id
-JOIN staff s 
-  ON s.staff_id = pm.dispensed_by
-WHERE v.patient_id = $1;
+FROM visit v
+JOIN prescription p ON v.visit_id = p.visit_id
+JOIN prescription_medicines pm ON p.prescription_id = pm.prescription_id
+JOIN medicine m ON m.medicine_id = pm.medicine_id
+JOIN doctor d ON d.doctor_id = p.doctor_id
+LEFT JOIN staff s ON s.staff_id = pm.dispensed_by
+WHERE v.patient_id = $1
+ORDER BY v.visit_id DESC;  -- This should show both visit 36 and visit 1
+
 ;`,[id])
+
+
   return NextResponse.json(res.rows,{status:200})
  } catch (err) {
   console.error(err);
