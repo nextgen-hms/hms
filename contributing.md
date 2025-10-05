@@ -88,7 +88,7 @@ psql -U postgres -p 5432
 ---
 
 #### d) Create the Database
-## For Datbase details refer to - [Database Schema Documentation](database.md) - Complete database structure
+## For Datbase details refer to - [Database Schema Documentation](DATABASE.md) - Complete database structure
 Inside the `psql` shell:
 ```sql
 CREATE DATABASE hims;
