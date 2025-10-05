@@ -158,21 +158,7 @@ You should now see the tables inside the `hims` database. If you imported `seed.
 
 ---
 
-#### i) Configure Environment Variables
 
-Create a `.env.local` file in the project root:
-```bash
-cp .env.example .env.local
-```
-
-Update the database connection string:
-```env
-DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/hims"
-```
-
-Replace `YOUR_PASSWORD` with your PostgreSQL password.
-
----
 
 ### 4. Install Project Dependencies
 
