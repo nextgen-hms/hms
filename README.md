@@ -200,7 +200,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for de
 
 - [Database Schema Documentation](./DATABASE.md) - Complete database structure
 - [Contributing Guide](./CONTRIBUTING.md) - Setup and contribution guidelines
-- [API Documentation](./docs/api_documentation.md) - API endpoints reference_not updated yet
+- [ARCHITECTURE](./ARCHITECTURE.md) - Architecture and Folder Structure
 
 ---
 
