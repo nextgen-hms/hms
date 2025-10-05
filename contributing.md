@@ -188,12 +188,6 @@ git checkout -b feature/awesome-feature
 ### 7. Test Your Changes
 
 Before committing, make sure:
-
-- The project builds without errors:
-  ```bash
-  npm run build
-  ```
-
 - The app runs correctly:
   ```bash
   npm run dev
