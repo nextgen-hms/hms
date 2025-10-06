@@ -162,8 +162,15 @@ You should now see the tables inside the `hims` database. If you imported `seed.
 
 ### 4. Install Project Dependencies
 
+This project uses **pnpm** as the package manager. If you don't have pnpm installed:
+
 ```bash
-npm install
+npm install -g pnpm
+```
+
+Then install dependencies:
+```bash
+pnpm install
 ```
 
 ---
@@ -190,7 +197,7 @@ git checkout -b feature/awesome-feature
 Before committing, make sure:
 - The app runs correctly:
   ```bash
-  npm run dev
+  pnpm dev
   ```
 
 - Database changes (if any) are reflected in updated `schema.sql` or `seed.sql`.
@@ -311,6 +318,7 @@ If you have questions, feel free to open a discussion or contact the maintainers
 
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [Next.js Documentation](https://nextjs.org/docs)
+- [pnpm Documentation](https://pnpm.io/)
 - [Database Schema Reference](./docs/database_documentation.md)
 
 ---
