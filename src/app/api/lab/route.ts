@@ -2,6 +2,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/database/db";
 
+export async function GET(req:NextRequest){
+  const client =await pool.connect();
+  try{
+    const res=await client.query("select * from lab_test");
+    if(res.rows.length <= 0){
+      throw new Error("Failed to Get Lab test from DB");
+    }
+    return NextResponse.json(res.rows,{status:200});
+  }
+  catch(err){
+    console.error(err);
+    return NextResponse.json({error:err},{status:500})
+  }
+  finally{
+    client.release();
+  }
+
+}
+
+
 // POST: create a new lab order
 export async function POST(req: NextRequest) {
   try {
