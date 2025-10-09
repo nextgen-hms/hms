@@ -5,9 +5,12 @@ import {
 } from "@/contexts/PatientIdContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { Button } from "@/src/components/ui/Button";
+import { logoutUser } from "@/src/features/Login/api";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
+import {redirect} from "next/navigation";
 export default function Receptionist({
   queue,
   queueManagement,
@@ -26,7 +29,11 @@ export default function Receptionist({
   const [selectedTab, setSelectedTab] = useState("queue");
   const { patientId } = usePatient();
   const { activeTab } = useSidebar();
+  const [user,setUser]=useState<any>();
+
   console.log(activeTab);
+ 
+ 
   return (
     <div className="flex flex-col h-[100vh] w-[100vw] ">
       {/* Clinic Header */}
@@ -39,6 +46,10 @@ export default function Receptionist({
         <h1 className="text-3xl font-bold text-green-800/80">
           Dr Bablu Clinic
         </h1>
+        <Button onClick={async ()=> {
+                  await logoutUser()
+                  redirect("/")
+                  }} className="absolute right-2">Logout</Button>
       </div> 
       {/* Receptionist Header */}
        <div className=" border-1  border-black/30  flex items-center justify-center">

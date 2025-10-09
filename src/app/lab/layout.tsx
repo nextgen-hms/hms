@@ -2,7 +2,9 @@
 import { PatientContextProvider } from "@/contexts/PatientIdContext";
 import Image from "next/image";
 import { useState } from "react";
-
+import {redirect} from "next/navigation";
+import { Button } from "@/src/components/ui/Button";
+import { logoutUser } from "@/src/features/Login/api";
 export default function LabTechnician({
   sampleCollection,
   testResults,
@@ -24,6 +26,10 @@ export default function LabTechnician({
         <h1 className="text-3xl font-bold text-green-800/80">
           Dr Bablu Clinic
         </h1>
+        <Button onClick={async ()=> {
+                  await logoutUser()
+                  redirect("/")
+                  }} className="absolute right-2">Logout</Button>
       </div>
 
       {/* Lab Technician Header */}
