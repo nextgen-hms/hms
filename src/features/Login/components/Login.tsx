@@ -1,4 +1,3 @@
-// app/login/components/Login.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -27,7 +26,8 @@ const motivationalQuotes: Quote[] = [
   { text: "Keep shining—your effort will speak louder than words.", icon: Sparkles },
   { text: "Hard work beats talent when talent doesn’t work hard.", icon: Heart },
 ];
-export  function Login() {
+
+export function Login() {
   const {
     userCode, name, designation, password, showPassword,
     isLoading, error, setUserCode, setName, setDesignation,
@@ -35,13 +35,26 @@ export  function Login() {
   } = useLogin();
 
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
   const CurrentIcon = motivationalQuotes[currentQuoteIndex].icon;
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentQuoteIndex((prev) => (prev + 1) % motivationalQuotes.length);
     }, 4000);
     return () => clearInterval(interval);
   }, []);
+
+  // ✅ Validate password before login
+  const handleLogin = () => {
+    if (password.length < 8) {
+      setPasswordError("Password must be at least 8 characters long.");
+      return;
+    }
+    setPasswordError(null);
+    verifyUserLogin();
+  };
 
   return (
     <div className="flex min-h-screen w-full bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 items-center justify-center p-4">
@@ -64,9 +77,9 @@ export  function Login() {
           <h2 className="font-bold text-3xl text-gray-800 mb-2">Welcome Back!</h2>
           <p className="text-sm text-gray-500 mb-6">Sign in to access your dashboard</p>
 
-          {error && (
+          {(error || passwordError) && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-              {error}
+              {error || passwordError}
             </div>
           )}
 
@@ -107,9 +120,11 @@ export  function Login() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && verifyUserLogin()}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
                 placeholder="Password"
-                className="w-full h-12 px-4 pl-11 pr-11 text-gray-700 text-sm bg-gray-50 border border-gray-200 rounded-xl"
+                className={`w-full h-12 px-4 pl-11 pr-11 text-gray-700 text-sm bg-gray-50 border rounded-xl ${
+                  passwordError ? "border-red-400" : "border-gray-200"
+                }`}
               />
               <Lock className="absolute left-3.5 top-3.5 h-5 w-5 text-gray-400" />
               <button
@@ -123,7 +138,7 @@ export  function Login() {
 
             <Link href="/receptionist" className="mt-2">
               <button
-                onClick={verifyUserLogin}
+                onClick={handleLogin}
                 disabled={isLoading}
                 className="w-full h-12 text-white font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all shadow-lg disabled:opacity-50"
               >

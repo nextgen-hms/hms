@@ -5,7 +5,7 @@ import {Pool} from 'pg';
       user:'postgres',
       host:'localhost',
       database:'hms',
-      password:'123',
+      password:'admin',
       port:5432,
     }
 );

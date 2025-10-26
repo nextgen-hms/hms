@@ -5,8 +5,10 @@ import { SignJWT } from "jose";
 const secret = new TextEncoder().encode(process.env.JWT_SECRET || "supersecurekey");
 export async function POST(req:NextRequest){
     const body=await req.json();
-     const {user_code,password}=body;
+     var {user_code,password}=body;
      const client=await pool.connect();
+     user_code = user_code.toUpperCase();
+
      let role;
      let res;
      try{
