@@ -1,6 +1,13 @@
-// features/pharmacy/pharmacyOrder/index.ts
+export {default as Retail} from "./components/PharmacyPOS";
 
-export { default as Retail } from "./components/Retail";
-export * from "./hooks/useRetail";
-export * from "./api";
-export * from "./types";
+// Export types
+export * from './types';
+
+// Export hooks
+export * from './hooks/index';
+
+// Export utilities
+export * from './utils';
+
+// Export API functions
+export * as api from './api';
