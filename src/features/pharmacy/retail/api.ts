@@ -11,7 +11,7 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api';
 /**
  * Search medicines by barcode, SKU, or name
  */
-export const searchMedicines = async (
+export const searchMedicines = async ( 
   query: string,
   type: 'barcode' | 'sku' | 'name' = 'name'
 ): Promise<ApiResponse<SearchResponse>> => {

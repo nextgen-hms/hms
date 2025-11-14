@@ -23,7 +23,7 @@ export interface CartItem {
   medicine: Medicine;
   quantity: number;
   subQuantity: number;
-  unitPrice: number;
+  price: number;
   discountPercent: number;
   discountAmount: number;
   lineTotal: number;

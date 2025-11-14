@@ -68,7 +68,8 @@ console.log(results);
         value={query}
         onChange={(e) => onSearch(e.target.value)}
         onKeyDown={handleKeyDown}
-        onFocus={() => results.length > 0 && setShowResults(true)} // but we should set showresults false
+        onFocus={() => results.length > 0 && setShowResults(true)}
+        onBlur={()=>setTimeout(()=>setShowResults(false),1500)}
         placeholder={placeholder}
         className="
           w-full 
@@ -108,10 +109,12 @@ console.log(results);
           "
         >
 
-          {results.map((medicine, index) => (
-            <div
+          {results.map((medicine, index) => {
+            const expiryDate=new Date(medicine.expiry_date!).toISOString().split("T")[0];
+            return <div
               key={medicine.id}
-              onClick={() => handleSelect(medicine)}
+              onClick={() =>{ handleSelect(medicine)
+                console.log('clicked'); }}
               onMouseEnter={() => setFocusedIndex(index)}
               className={`
                 px-[15px] py-[12px] 
@@ -135,10 +138,10 @@ console.log(results);
                 <span className="font-mono">[{medicine.sub_units_per_unit}]</span>
                 + </span>
                   <span className="font-mono">Sub: {medicine.stock_sub_quantity}]</span>
-                <span className="font-mono">[Expiry: {medicine.expiry_date}]</span>
+                <span className="font-mono">[Expiry: {expiryDate}]</span>
               </div>
             </div>
-          ))}
+})}
         </div>
       )}
     </div>

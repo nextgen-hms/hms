@@ -23,10 +23,12 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   const [lastTransactionId, setLastTransactionId] = useState<string | null>(null);
 
   const handlePayNow = async () => {
+   
+    
     if (cart.length === 0) return alert('Cart is empty');
 
     if (payment.dueAmount > 0 && !window.confirm(`Due amount $${payment.dueAmount.toFixed(2)}. Continue?`)) return;
-
+   
     setIsProcessing(true);
     try {
       const transaction = {
@@ -36,7 +38,8 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         cashier: 'Current User',
         status: 'completed' as const,
       };
-
+      console.log(transaction);
+      
       const response = await submitTransaction(transaction);
       if (response.success && response.data) {
         setLastTransactionId(response.data.id);
@@ -64,6 +67,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         cashier: 'Current User',
         status: 'held' as const,
       };
+     
       const response = await holdTransaction(transaction);
       if (response.success && response.data) {
         alert(`Transaction held successfully! Hold ID: ${response.data.holdId}`);

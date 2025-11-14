@@ -38,11 +38,10 @@ export async function POST(request: NextRequest) {
         change_amount,
         discount_percent,
         discount_amount,
-        customer_name,
-        customer_phone,
+        customer_id,
         is_prescription_sale,
         prescription_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,$14)
       RETURNING sale_id, sale_timestamp
     `, [
       transaction.visitId || null,
@@ -56,20 +55,19 @@ export async function POST(request: NextRequest) {
       transaction.payment.changeAmount,
       transaction.payment.adjustmentPercent,
       transaction.payment.adjustment,
-      transaction.customer?.name || null,
-      transaction.customer?.phone || null,
+     1,
       !!transaction.prescriptionId,
       transaction.prescriptionId || null
     ]);
 
     const saleId = saleResult.rows[0].sale_id;
     const saleTimestamp = saleResult.rows[0].sale_timestamp;
-
+     
+     
     // Insert sale details
     for (const item of transaction.items) {
-      const discountAmount = (item.quantity * item.unitPrice * item.discountPercent) / 100;
-      const lineTotal = (item.quantity * item.unitPrice) - discountAmount;
-
+      const discountAmount = (item.quantity * item.price * item.discountPercent) / 100;
+      const lineTotal = (item.quantity * item.price) - discountAmount;         
       await client.query(`
         INSERT INTO pharmacy_sale_detail (
           sale_id,
@@ -87,10 +85,10 @@ export async function POST(request: NextRequest) {
         item.medicine.medicine_id,
         item.quantity,
         item.subQuantity,
-        item.unitPrice,
+        item.price,
         item.discountPercent,
         discountAmount,
-        item.unitPrice,
+        item.price,
         lineTotal
       ]);
     }

@@ -24,6 +24,8 @@ export const useMedicineSearch = () => {
       console.log(response);
       
       if (response.success && response.data) {
+        console.log(response);
+        
         setResults(response.data.medicines);
       } else {
         setError(response.error || 'Search failed');

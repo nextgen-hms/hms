@@ -1,7 +1,7 @@
 "use client"
 import { useState, useCallback } from 'react';
 import { CartItem, Medicine } from '../types';
-import { calculateLineTotal} from '../utils';
+import { calculateLineTotal, validateStockClientSide as validateStock} from '../utils';
 import { v4 as uuidv4 } from 'uuid';
 
 export const useCart = () => {

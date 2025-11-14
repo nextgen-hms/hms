@@ -40,7 +40,8 @@ const PharmacyPOS: React.FC = () => {
       setCustomPrice(undefined);
       setCustomPrice(medicine.price);
       setItemSearched(medicine);
-      setSearchQuery(`${medicine.brand_name} ${medicine.dosage_value} ${medicine.dosage_unit} ${medicine.form} [QTY :${medicine.stock_quantity} + Sub :${medicine.sub_units_per_unit}] [Expiry:${medicine.expiry_date}]`);
+      const expiryDate=new Date(medicine.expiry_date!).toISOString().split("T")[0];
+      setSearchQuery(`${medicine.brand_name} ${medicine.dosage_value} ${medicine.dosage_unit} ${medicine.form} [QTY :${medicine.stock_quantity} + Sub :${medicine.sub_units_per_unit}] [Expiry:${expiryDate}]`);
      // clearResults();
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to add item');
