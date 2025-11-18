@@ -10,7 +10,7 @@ export function Input({
   return (
     <input
       type={type}
-      value={value ?? ""}
+    
       {...props}
       className={cn(
         "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-all",

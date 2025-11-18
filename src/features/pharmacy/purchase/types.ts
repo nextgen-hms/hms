@@ -1,28 +1,19 @@
-// features/pharmacy/medicinePurchase/types.ts
 
-export type MedicineRow = {
-  medicine_id: string;
-  qty: string;
-  unit_cost: string;
-  batch_no: string;
-  expiry_date: string;
-};
+export type  Party={
+    party_id:number,
+    name:string,
+    contact_number:string,
+    address:string,
+    created_at:string
+}
 
-export type MedicinePurchaseFormType = {
-  party_id: string;
-  invoice_no: string;
-  payment_status: "Paid" | "Unpaid" | "Partial";
-  medicines: MedicineRow[];
-};
-
-export type Party = {
-  party_id: string;
-  name: string;
-};
-
-export type Medicine = {
-  medicine_id: string;
-  brand_name: string;
-  generic_name: string;
-  category: string;
-};
+export type PurchaseForm={
+    party:string,
+    medicine:string,
+    quantity:number,
+    sub_quantity:number,
+    unit_cost:number,
+    sub_unit_cost:number,
+    batch_number:number,
+    expiry_date:string
+}

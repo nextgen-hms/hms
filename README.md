@@ -213,7 +213,9 @@ This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE
 ## 👥 Team
 
 Built with ❤️ for the healthcare community.
-
+Our core team 
+Bablu
+Faiq
 ---
 
 ## 📞 Support
