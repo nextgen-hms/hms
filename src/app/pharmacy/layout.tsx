@@ -14,7 +14,7 @@ export default function Pharmacist({
     returnMedicine:React.ReactNode;
     purchase:React.ReactNode;
 }) {
-  const [selectedTab, setSelectedTab] = useState("retail");
+  const [selectedTab, setSelectedTab] = useState("purchases");
 
   return (
     <div className="flex flex-col h-screen w-full "> 
