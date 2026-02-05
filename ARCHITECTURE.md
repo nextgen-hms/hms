@@ -48,12 +48,11 @@ HMS follows a **feature-based modular architecture** with clear separation of co
 
 ### Core Design Goals
 
-- **🔌 Offline-First**: Full functionality without internet
-- **📊 Data Integrity**: Database-level constraints and triggers
-- **⚡ Performance**: Optimized queries and database indexes
-- **🎨 Simplicity**: Clean, intuitive UI for healthcare staff
-- **🔐 Security**: Role-based access and audit trails
-- **📈 Scalability**: Modular architecture for future growth
+- **📊 Data Integrity**: Database-level constraints, triggers, and transactions ensuring medical data reliability.
+- **⚡ Performance**: Optimized queries, efficient indexing, and leveraging Server-Side Rendering (SSR).
+- **🎨 Simplicity**: A clean, intuitive interface optimized for healthcare professional workflows.
+- **🔐 Security**: Granular Role-Based Access Control (RBAC) and exhaustive audit trails.
+- **📈 Scalability**: A modular design that supports adding new medical specialties and modules with ease.
 
 ---
 
@@ -61,35 +60,32 @@ HMS follows a **feature-based modular architecture** with clear separation of co
 
 ### 1. **Feature-Based Organization**
 
-Each major module (Doctor, Pharmacy, Lab, Reception) is self-contained with:
-- UI Components
-- Business Logic
-- API Routes
-- Type Definitions
+All domain-specific code is logically grouped under `src/features`. Each module (e.g., Doctor, Pharmacy, laboratory) encapsulates its own:
+- **UI Components**: Specialized React components for that domain.
+- **Hooks**: Custom React hooks for data management and UI logic.
+- **Business Logic**: Core functional algorithms and validation rules.
+- **Types**: Module-specific TypeScript interfaces.
 
 ### 2. **Database-First Approach**
 
-Heavy business logic in PostgreSQL:
-- **Triggers** for automatic stock updates
-- **Views** for complex reporting
-- **Functions** for reusable logic
-- **Constraints** for data integrity
+We treat the database as a "smart" layer rather than just storage:
+- **Triggers**: Handle automated tasks like stock synchronization and sequential numbering.
+- **Functions**: Encapsulate complex logic like stock availability checks.
+- **Views**: Provide pre-filtered and computed data for dashboards (e.g., low stock).
+- **Referential Integrity**: Strict use of foreign keys to prevent orphan records.
 
-### 3. **Type Safety**
+### 3. **Full-Stack Type Safety**
 
-End-to-end type safety with TypeScript:
-- Database types from schema
-- API request/response types
-- React component prop types
-- Form validation with Zod
+End-to-end reliability is enforced via:
+- **TypeScript**: Shared types used by both API routes and frontend components.
+- **Zod**: Robust runtime validation for all incoming API data and form inputs.
 
-### 4. **Server-Side Rendering**
+### 4. **Modern Framework Utilization**
 
-Leveraging Next.js 15 features:
-- React Server Components (RSC)
-- Server Actions for mutations
-- Streaming for better UX
-- Automatic code splitting
+Built on Next.js 15.5.0, utilizing:
+- **App Router**: For modern routing and layout patterns.
+- **React Server Components (RSC)**: To minimize client-side bundle sizes.
+- **Server Actions**: For secure, direct communication between the UI and backend logic.
 
 ---
 
@@ -99,32 +95,32 @@ Leveraging Next.js 15 features:
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Next.js | 15.5.0 | React framework with App Router |
-| React | 19.1.0 | UI library |
-| TypeScript | 5.x | Type safety |
-| TailwindCSS | 4.x | Utility-first styling |
-| Radix UI | Latest | Accessible component primitives |
-| Lucide React | 0.541.0 | Icon library |
-| React Hook Form | 7.62.0 | Form management |
-| Zod | 4.1.7 | Schema validation |
-| React Hot Toast | 2.6.0 | Notifications |
+| Next.js | 15.5.0 | Core framework and Routing |
+| React | 19.1.0 | UI Layer |
+| TypeScript | 5.x | Static typing and reliability |
+| TailwindCSS | 4.x | Design system and styling |
+| Radix UI | Latest | Accessible UI primitives |
+| Lucide React | 0.541.0 | Iconography |
+| React Hook Form | 7.62.0 | Form state and validation management |
+| Zod | 4.1.7 | Data schema validation |
+| React Hot Toast | 2.6.0 | User feedback and notifications |
 
 ### **Backend Stack**
 
 | Technology | Purpose |
 |------------|---------|
-| Next.js API Routes | RESTful endpoints |
-| PostgreSQL | Primary database |
-| pg | PostgreSQL client |
-| Server Actions | Form mutations |
+| Next.js API Routes | Serverless REST endpoints |
+| PostgreSQL | Primary relational database |
+| pg (node-postgres) | High-performance DB adapter |
+| Server Actions | Secure mutation handler |
 
-### **Development Tools**
+### **Development Workflow Tools**
 
 | Tool | Purpose |
 |------|---------|
-| ESLint | Code linting |
-| TypeDoc | API documentation |
-| pnpm | Package management |
+| ESLint | Code quality and linting |
+| TypeDoc | Automated API documentation generation |
+| pnpm/pnpm | Modern package management |
 
 ---
 
@@ -133,714 +129,156 @@ Leveraging Next.js 15 features:
 ```
 hms/
 ├── src/
-│   ├── app/                      # Next.js App Router
-│   │   ├── (auth)/              # Authentication routes
-│   │   │   ├── login/
-│   │   │   └── register/
-│   │   ├── api/                 # API routes
-│   │   │   ├── patients/
-│   │   │   ├── prescriptions/
-│   │   │   ├── pharmacy/
-│   │   │   └── laboratory/
-│   │   ├── dashboard/           # Main dashboard
-│   │   ├── doctor/              # Doctor module routes
-│   │   ├── pharmacy/            # Pharmacy module routes
-│   │   ├── lab/                 # Laboratory module routes
-│   │   ├── receptionist/        # Reception module routes
-│   │   ├── layout.tsx           # Root layout
-│   │   └── globals.css          # Global styles
+│   ├── app/                      # Next.js App Router (Entry points & Layouts)
+│   │   ├── (auth)/              # Login and Register flows
+│   │   ├── api/                 # API Routes (clinical, inventory, patient, transactions, etc.)
+│   │   ├── dashboard/           # Main stats and overview pages
+│   │   ├── doctor/              # Doctor workspace and patient consultation views
+│   │   ├── lab/                 # Laboratory management and result entry
+│   │   ├── pharmacy/            # POS and pharmacy-specific views
+│   │   ├── receptionist/        # Patient registration and intake management
+│   │   ├── layout.tsx           # Main application layout wrapper
+│   │   └── globals.css          # Global Tailwind styles
 │   │
-│   └── features/                # Feature modules
-│       ├── doctor/              # Doctor feature
-│       │   ├── components/      # UI components
-│       │   ├── hooks/           # Custom hooks
-│       │   ├── types/           # Type definitions
-│       │   └── utils/           # Helper functions
-│       ├── pharmacy/            # Pharmacy feature
-│       │   ├── components/
-│       │   ├── hooks/
-│       │   ├── types/
-│       │   └── utils/
-│       ├── laboratory/          # Lab feature
-│       │   ├── components/
-│       │   ├── hooks/
-│       │   ├── types/
-│       │   └── utils/
-│       ├── reception/           # Reception feature
-│       │   ├── components/
-│       │   ├── hooks/
-│       │   ├── types/
-│       │   └── utils/
-│       └── shared/              # Shared components
-│           ├── components/      # Reusable UI
-│           ├── lib/             # Utility functions
-│           ├── hooks/           # Global hooks
-│           └── types/           # Global types
+│   ├── features/                # Domain-Specific Logic (The "Heart" of HMS)
+│   │   ├── Login/               # Authentication UI and logic
+│   │   ├── doctor/              # Consultation tools, Vitals, Prescription logic
+│   │   ├── laboratory/          # Test catalog, Order processing, Results
+│   │   ├── pharmacy/            # Medicine batches, Sales POS, Inventory sync
+│   │   ├── reception/           # Patient records, Visit queuing, Billing
+│   │   └── shared/              # Reusable modules (Alerts, Tables, Modals)
+│   │
+│   ├── components/              # Shared architectural UI components
+│   ├── contexts/                # Global state (AuthContext, ThemeContext)
+│   ├── hooks/                   # Generic system-wide hooks (useFetch, useDebounce)
+│   ├── lib/                     # Low-level utilities (Postgres Client, Date formatting)
+│   ├── styles/                  # Shared theme and animation definitions
+│   └── types/                   # Central TypeScript definition store
 │
-├── database/                    # Database layer
-│   ├── db.ts                   # Database connection
-│   ├── migrations/             # SQL migrations
-│   └── schema.prisma           # Database schema (future)
-│
-├── contexts/                   # React contexts
-│   └── AuthContext.tsx         # Authentication state
-│
-├── public/                     # Static assets
-│   └── images/
-│
-├── docs/                       # Documentation
-│   └── api_documentation.md
-│
-├── .vscode/                    # VS Code settings
-├── DATABASE.md                 # Database documentation
-├── ARCHITECTURE.md             # This file
-├── contributing.md             # Contribution guide
-├── README.md                   # Project overview
-├── components.json             # shadcn/ui config
-├── next.config.ts              # Next.js config
-├── tailwind.config.ts          # Tailwind config
-├── tsconfig.json               # TypeScript config
-└── package.json                # Dependencies
+├── database/                    # Connection setup and SQL migrations
+├── documentation/               # Detailed architectural and user guides
+├── public/                      # Static assets (brand logos, SVG icons)
+├── DATABASE.md                 # Table-level schema documentation
+└── package.json                # Project manifest and scripts
 ```
 
 ---
 
 ## 🔄 Data Flow Architecture
 
-### **1. User Interaction Flow**
+### **1. General Interaction Flow**
 
 ```
-User Action (UI)
-      ↓
-Form Submission / Button Click
-      ↓
-Server Action / API Route
-      ↓
-Database Query (PostgreSQL)
-      ↓
-Database Triggers (Auto-update stocks, logs)
-      ↓
-Response to Client
-      ↓
-UI Update (Optimistic or Re-validation)
-      ↓
-Toast Notification
+User Action → React View (Client) 
+  → Server Action / API Route (Server) 
+  → Zod Validation (Clean Data)
+  → DB Client (SQL Execution)
+  → PostgreSQL Triggers (Auto-Logic)
+  → Response → UI State Update
 ```
 
-### **2. Pharmacy Transaction Flow**
+### **2. Inventory Synchronization Flow (Pharmacy)**
 
-Example: Medicine Sale
+Example: Record a New Sale
+1. Pharmacist selects medicine and specific **Batch**.
+2. Form posts to `/api/dispense`.
+3. `pharmacy_sale_detail` is updated with raw data.
+4. **Trigger**: `fn_tg_sale_detail_to_txn` automatically creates a record in `medicine_transaction`.
+5. **Trigger**: `fn_tg_stockquantity_generic` calculates new inventory for both the specific `medicine_batch` and the overall `medicine` record.
+6. The UI reflects the new stock levels instantly via revalidation.
 
-```
-1. Receptionist creates bill
-      ↓
-2. API: POST /api/pharmacy/sales
-      ↓
-3. Database: INSERT into medicine_sales
-      ↓
-4. Trigger: after_medicine_sale_insert
-      ↓
-5. Function: update_stock_quantity(-quantity)
-      ↓
-6. Update: medicines.quantity_in_stock
-      ↓
-7. Log: medicine_transactions (sale record)
-      ↓
-8. Response: { success: true, transaction_id }
-      ↓
-9. UI: Show success + Update stock display
-```
+### **3. Clinical Consultation Flow**
 
-### **3. Doctor Prescription Flow**
-
-```
-1. Doctor selects patient from queue
-      ↓
-2. Record vitals (optional)
-      ↓
-3. Create prescription with:
-   - Selected medicines
-   - Lab test orders
-   - Clinical notes
-      ↓
-4. API: POST /api/prescriptions
-      ↓
-5. Database:
-   - INSERT prescription
-   - INSERT prescription_medicines
-   - INSERT lab_orders
-      ↓
-6. Update visit status to 'completed'
-      ↓
-7. Patient moves to pharmacy/lab
-```
+1. Receptionist initiates a `visit` entry.
+2. Doctor workspace updates via dynamic queue (`/api/queue`).
+3. Doctor records `patient_vitals` and writes a `prescription`.
+4. Stored Procedure `update_and_log_visit_status` atomicity updates visit status and creates an audit log entry.
+5. Patient appears in Pharmacy/Lab lists for fulfillment.
 
 ---
 
 ## 🗄️ Database Architecture
 
-### **Entity Relationship Overview**
+The system uses a highly relational PostgreSQL schema optimized for clinical accuracy.
 
-```
-┌──────────────┐        ┌──────────────┐        ┌──────────────┐
-│   Patients   │◄───────│    Visits    │────────►│ Prescriptions│
-└──────────────┘        └──────────────┘        └──────────────┘
-                              │                          │
-                              │                          │
-                              ▼                          ▼
-                        ┌──────────────┐        ┌──────────────┐
-                        │    Vitals    │        │ Prescription │
-                        └──────────────┘        │  Medicines   │
-                                                └──────────────┘
-                                                        │
-                                                        ▼
-                                                ┌──────────────┐
-                                                │  Medicines   │◄──┐
-                                                └──────────────┘   │
-                                                        │          │
-                        ┌───────────────────────────────┘          │
-                        │                                          │
-                        ▼                                          │
-                ┌──────────────┐                          ┌──────────────┐
-                │ Medicine     │                          │  Medicine    │
-                │ Purchases    │                          │  Sales       │
-                └──────────────┘                          └──────────────┘
-                        │                                          │
-                        └───────────►┌──────────────┐◄────────────┘
-                                     │ Medicine     │
-                                     │ Transactions │
-                                     └──────────────┘
-```
+### **Core Schema Entities (38 Tables)**
 
-### **Key Database Components**
+**Patient & Visits Layer:**
+- `patient`: Master demographic data.
+- `visit`: Encounter tracking and workflow status.
+- `patient_vitals`: Indexed vital sign readings per visit.
+- `visit_status_history`: Exhaustive audit of patient movement.
 
-#### **Tables (29 Total)**
+**Clinical & Laboratory Layer:**
+- `prescription`, `prescription_medicines`: Electronic prescribing core.
+- `lab_test`, `lab_test_parameters`: Diagnostic configuration.
+- `lab_order`, `lab_test_results`, `lab_result`, `lab_result_approvals`: Full lab workflow including verification.
 
-**Patient Management:**
-- `patients` - Patient demographics
-- `visits` - OPD/IPD visit records
-- `vitals` - Patient vital signs
+**Pharmacy & Inventory Layer:**
+- `medicine`: Global medicine catalog.
+- `medicine_batch`: Expiry-based unit tracking with specific costs.
+- `medicine_transaction`: Unified ledger for all stock movement (sale, purchase, return).
+- `medicine_purchase`, `medicine_purchase_detail`: Supply chain management.
+- `pharmacy_sale`, `pharmacy_sale_detail`: Point of Sale (POS) operations.
+- `pharmacy_customer`, `party`: Entity management.
 
-**Clinical:**
-- `prescriptions` - Doctor prescriptions
-- `prescription_medicines` - Medicines in prescription
-- `obstetric_history` - Pregnancy history
-- `obstetric_pregnancy` - Current pregnancy details
-- `menstrual_history` - Menstrual cycle data
-
-**Pharmacy:**
-- `medicines` - Medicine catalog
-- `medicine_purchases` - Stock purchases
-- `medicine_sales` - Medicine sales
-- `medicine_purchase_returns` - Returns to supplier
-- `medicine_sale_returns` - Customer returns
-- `medicine_transactions` - Complete audit trail
-- `suppliers` - Supplier information
-
-**Laboratory:**
-- `lab_tests` - Test catalog
-- `lab_orders` - Test orders
-- `lab_results` - Test results
-
-**Financial:**
-- `bills` - Patient bills
-- `ledger_entries` - Financial ledger
-
-**Administration:**
-- `doctors` - Doctor information
-- `users` - System users
-
-#### **Database Functions**
-
-1. **generate_daily_clinic_number()**
-   - Creates sequential clinic numbers for each day
-   - Format: YYYYMMDD-001, YYYYMMDD-002, etc.
-
-2. **update_stock_quantity()**
-   - Updates medicine stock on transactions
-   - Called by triggers automatically
-
-3. **create_transaction_log()**
-   - Records all inventory movements
-   - Maintains complete audit trail
-
-#### **Database Triggers**
-
-**Stock Management Triggers:**
-```sql
--- Automatic stock updates
-after_medicine_purchase_insert → Increase stock
-after_medicine_sale_insert → Decrease stock
-after_purchase_return_insert → Decrease stock
-after_sale_return_insert → Increase stock
-```
-
-**Audit Trail Triggers:**
-```sql
--- Transaction logging
-after_purchase_transaction → Log to medicine_transactions
-after_sale_transaction → Log to medicine_transactions
-```
-
-**Data Integrity Triggers:**
-```sql
--- Ensure data consistency
-before_visit_update → Track status changes
-before_prescription_update → Prevent unauthorized edits
-```
-
-#### **Database Views**
-
-1. **daily_sales_summary**
-   - Daily pharmacy revenue
-   - Total items sold
-   - Payment summaries
-
-2. **current_stock_levels**
-   - Real-time inventory
-   - Reorder alerts
-   - Expiry warnings
-
-3. **patient_ledger**
-   - Outstanding balances
-   - Payment history
-   - Credit status
-
----
-
-## 🎨 Frontend Architecture
-
-### **Component Hierarchy**
-
-```
-App Layout (Root)
-├── Auth Layout (Login/Register)
-│   ├── Login Form
-│   └── Register Form
-│
-├── Dashboard Layout (Protected)
-│   ├── Sidebar Navigation
-│   ├── Header (User Profile)
-│   └── Main Content
-│       ├── Dashboard Cards
-│       └── Quick Actions
-│
-├── Doctor Module
-│   ├── Patient Queue
-│   ├── Prescription Form
-│   │   ├── Vitals Input
-│   │   ├── Medicine Selector
-│   │   ├── Lab Test Selector
-│   │   └── Clinical Notes
-│   └── Visit History
-│
-├── Pharmacy Module
-│   ├── Medicine Catalog
-│   ├── Sales Interface
-│   ├── Purchase Manager
-│   ├── Stock Overview
-│   └── Returns Handler
-│
-├── Laboratory Module
-│   ├── Test Catalog
-│   ├── Order Management
-│   ├── Results Entry
-│   └── Report Generator
-│
-└── Reception Module
-    ├── Patient Registration
-    ├── Appointment Manager
-    └── Billing Interface
-```
-
-### **State Management Strategy**
-
-**1. Server State (Database)**
-- Managed by Next.js data fetching
-- Revalidation on mutations
-- Optimistic updates where appropriate
-
-**2. Client State (React)**
-- Form state: React Hook Form
-- UI state: React useState
-- Auth state: React Context
-
-**3. URL State**
-- Search params for filters
-- Dynamic routes for resources
-
-### **Component Design Patterns**
-
-**Composition Pattern:**
-```tsx
-// Shared components for reusability
-<Card>
-  <CardHeader>
-    <CardTitle>Patient Details</CardTitle>
-  </CardHeader>
-  <CardContent>
-    {/* Content */}
-  </CardContent>
-</Card>
-```
-
-**Render Props Pattern:**
-```tsx
-// Flexible data display
-<DataTable
-  data={patients}
-  columns={columns}
-  renderRow={(patient) => <PatientRow patient={patient} />}
-/>
-```
-
-**Custom Hooks Pattern:**
-```tsx
-// Reusable logic
-const { patients, loading, error } = usePatients()
-const { createPrescription } = usePrescription()
-```
+**Specialized Modules:**
+- **POS Operations**: `pos_session`, `pos_held_transaction`, `pos_audit_log`, `pos_receipt_config`.
+- **Returns**: `purchase_return`, `sale_return` (with detail tables).
+- **Billing**: `bill`, `bill_item`.
+- **OB/GYN**: `obstetric_history`, `current_pregnancy`, `menstrual_history`, `para_details`.
 
 ---
 
 ## 🔌 API Layer
 
-### **API Architecture**
+Organized into domain-specific clusters under `src/app/api`:
 
-**RESTful Design:**
-```
-GET    /api/patients           - List patients
-GET    /api/patients/:id       - Get patient details
-POST   /api/patients           - Create patient
-PUT    /api/patients/:id       - Update patient
-DELETE /api/patients/:id       - Delete patient
-```
-
-**Nested Resources:**
-```
-GET    /api/patients/:id/visits        - Patient visits
-GET    /api/visits/:id/prescription    - Visit prescription
-POST   /api/prescriptions              - Create prescription
-GET    /api/pharmacy/medicines         - List medicines
-POST   /api/pharmacy/sales             - Record sale
-```
-
-### **API Response Format**
-
-**Success Response:**
-```typescript
-{
-  success: true,
-  data: {
-    // Response data
-  },
-  message: "Operation successful"
-}
-```
-
-**Error Response:**
-```typescript
-{
-  success: false,
-  error: {
-    code: "VALIDATION_ERROR",
-    message: "Invalid input data",
-    details: {
-      // Field-specific errors
-    }
-  }
-}
-```
-
-### **Server Actions**
-
-Used for form mutations:
-```typescript
-// app/actions/patients.ts
-'use server'
-
-export async function createPatient(formData: FormData) {
-  // Validation
-  const validated = patientSchema.parse(formData)
-  
-  // Database operation
-  const patient = await db.insert(...)
-  
-  // Revalidate
-  revalidatePath('/patients')
-  
-  return { success: true, data: patient }
-}
-```
+| Domain | Key Endpoints | Purpose |
+|--------|---------------|---------|
+| **Clinical** | `clinicalDetails`, `prescription`, `patientVitals` | Handled doctor-patient encounter data |
+| **Inventory** | `medicine`, `inventory`, `transactions`, `dispense` | Pharmacy POS and warehouse logic |
+| **Patient** | `patient`, `visit`, `queue` | Demographic and queuing management |
+| **Administrative** | `receptionist`, `doctor`, `party`, `login` | Staff accounts and supplier management |
+| **Integrations** | `print`, `email`, `hardware` | External services and device communication |
 
 ---
 
 ## 🧩 Feature Modules
 
-### **Doctor Module**
-
-**Responsibilities:**
-- Patient queue management
-- Clinical consultation workflow
-- Prescription creation
-- Vital signs recording
-- Medical history review
-
-**Key Components:**
-- `PatientQueue` - Daily clinic list
-- `VitalsForm` - Vital signs input
-- `PrescriptionForm` - Medicine & test ordering
-- `HistoryViewer` - Previous visits
-
-### **Pharmacy Module**
-
-**Responsibilities:**
-- Medicine inventory management
-- Sales transactions
-- Purchase order processing
-- Stock level monitoring
-- Return handling
-
-**Key Components:**
-- `MedicineCatalog` - Medicine list & search
-- `SalesInterface` - Bill creation
-- `PurchaseForm` - Stock purchasing
-- `StockDashboard` - Inventory overview
-
-### **Laboratory Module**
-
-**Responsibilities:**
-- Test catalog management
-- Order processing
-- Sample tracking
-- Results entry
-- Report generation
-
-**Key Components:**
-- `TestCatalog` - Available tests
-- `OrderQueue` - Pending tests
-- `ResultsForm` - Results entry
-- `ReportGenerator` - PDF reports
-
-### **Reception Module**
-
-**Responsibilities:**
-- Patient registration
-- Visit creation
-- Appointment scheduling
-- Billing operations
-
-**Key Components:**
-- `PatientForm` - Registration
-- `VisitForm` - Visit creation
-- `BillingInterface` - Invoice generation
+- **Doctor Module**: Clinical consultations, vital signs history, and intelligent e-prescribing.
+- **Pharmacy Module**: Dual-level stock tracking (Aggregate + Batch), POS billing, and supplier return management.
+- **Laboratory Module**: Multi-parameter test results, automated reference range checks, and multi-stage verification.
+- **Reception Module**: Efficient patient intake, visit life-cycle management, and visit-based billing.
 
 ---
 
 ## 🔐 Security Architecture
 
-### **Authentication & Authorization**
-
-**Planned Implementation:**
-```
-┌─────────────────────────────────────┐
-│         User Authentication         │
-│  (JWT Tokens + HTTP-Only Cookies)   │
-└─────────────────────────────────────┘
-              ↓
-┌─────────────────────────────────────┐
-│      Role-Based Access Control      │
-│  (Admin, Doctor, Pharmacist, etc.)  │
-└─────────────────────────────────────┘
-              ↓
-┌─────────────────────────────────────┐
-│       Feature-Level Permissions     │
-│   (Read, Write, Update, Delete)     │
-└─────────────────────────────────────┘
-```
-
-### **Data Security**
-
-1. **Database Security:**
-   - Parameterized queries (no SQL injection)
-   - Row-level security (RLS) planned
-   - Encrypted backups
-
-2. **API Security:**
-   - CORS configuration
-   - Rate limiting (planned)
-   - Input validation (Zod)
-
-3. **Frontend Security:**
-   - XSS prevention (React default)
-   - CSRF tokens (planned)
-   - Secure cookie handling
-
-### **Audit Trail**
-
-All critical operations logged:
-```typescript
-{
-  user_id: number,
-  action: 'CREATE' | 'UPDATE' | 'DELETE',
-  resource_type: 'PRESCRIPTION' | 'MEDICINE' | 'PATIENT',
-  resource_id: number,
-  changes: Record<string, any>,
-  timestamp: Date,
-  ip_address: string
-}
-```
+- **Auth Layer**: JWT-secured sessions with HTTP-only tokens for persistent, safe logins.
+- **SQL Safety**: 100% usage of parameterized queries through `node-postgres` to prevent injection attacks.
+- **Audit Engine**: Triggers on critical tables (`visit_status_history`, `medicine_transaction`) ensure no data movement is undocumented.
+- **Validation**: Schema-level sanitization using Zod on every API request.
 
 ---
 
 ## 🚀 Deployment Architecture
 
-### **Offline-First Desktop Application**
-
-```
-┌──────────────────────────────────────────────┐
-│          Electron Application                │
-│  ┌────────────────────────────────────────┐  │
-│  │       Next.js Frontend + API           │  │
-│  └────────────────────────────────────────┘  │
-│                    ↕                         │
-│  ┌────────────────────────────────────────┐  │
-│  │      Local PostgreSQL Database         │  │
-│  └────────────────────────────────────────┘  │
-└──────────────────────────────────────────────┘
-              ↕ (Daily Sync)
-┌──────────────────────────────────────────────┐
-│          Cloud Backup Service                │
-│  (PostgreSQL + Object Storage for backups)   │
-└──────────────────────────────────────────────┘
-```
-
-### **Development Environment**
-
-```bash
-# Local development
-pnpm dev          # Next.js dev server on localhost:3000
-                  # PostgreSQL on localhost:5432
-```
-
-### **Production Build**
-
-```bash
-# Build for production
-pnpm build        # Next.js optimized build
-
-# Electron packaging
-electron-builder  # Windows/Mac/Linux installers
-```
+Optimized for high-performance hospital environments:
+- **Server-Side Render**: Optimized data fetching to handle the clinical overhead.
+- **Node.js Runtime**: Scalable Next.js deployment.
+- **PostgreSQL Persistence**: Centralized, robust database instance for high transactional integrity.
 
 ---
 
 ## ⚡ Performance Considerations
 
-### **Database Optimization**
-
-1. **Indexes:**
-   ```sql
-   -- Critical indexes
-   CREATE INDEX idx_patients_search ON patients(name, phone);
-   CREATE INDEX idx_visits_date ON visits(visit_date);
-   CREATE INDEX idx_medicines_active ON medicines(is_active);
-   ```
-
-2. **Query Optimization:**
-   - Use database views for complex reports
-   - Limit result sets with pagination
-   - Eager loading for related data
-
-3. **Connection Pooling:**
-   ```typescript
-   const pool = new Pool({
-     max: 20,
-     idleTimeoutMillis: 30000,
-     connectionTimeoutMillis: 2000,
-   })
-   ```
-
-### **Frontend Optimization**
-
-1. **Code Splitting:**
-   - Automatic with Next.js App Router
-   - Dynamic imports for heavy components
-
-2. **Image Optimization:**
-   - Next.js Image component
-   - Lazy loading
-
-3. **Caching Strategy:**
-   - Static pages: ISR (Incremental Static Regeneration)
-   - Dynamic data: SWR with revalidation
-   - Client-side: React Query (planned)
-
-### **Bundle Size**
-
-Current optimizations:
-- Tree-shaking with TailwindCSS
-- Minification in production
-- Compression (gzip/brotli)
-
-Target bundle sizes:
-- First Load JS: < 200 KB
-- Route JS: < 50 KB
-- Total CSS: < 50 KB
+- **Indexing Strategy**: High-performance indexes on `patient_name`, `visit_date`, and medicine `barcode`.
+- **Real-Time Calculation**: Offloading heavy stock arithmetic to DB triggers.
+- **Resource Streaming**: Implementation of Next.js streaming for complex laboratory report generation.
 
 ---
 
-## 🔮 Future Architecture Enhancements
+**Built with pride for the HMS team** 🏥
 
-### **Phase 2: Multi-Location Support**
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Central Cloud Server                  │
-│              (PostgreSQL + Redis + API)                  │
-└─────────────────────────────────────────────────────────┘
-         ↕              ↕              ↕
-┌───────────────┐ ┌───────────────┐ ┌───────────────┐
-│  Location A   │ │  Location B   │ │  Location C   │
-│  (Electron)   │ │  (Electron)   │ │  (Electron)   │
-└───────────────┘ └───────────────┘ └───────────────┘
-```
-
-### **Phase 3: Mobile Application**
-
-- React Native app
-- Offline-first with SQLite
-- Sync with central server
-
-### **Phase 4: Advanced Features**
-
-- Real-time notifications (WebSocket)
-- Advanced analytics (Grafana)
-- Machine learning (Python microservices)
-- HL7 integration for lab equipment
-
----
-
-## 📚 Additional Resources
-
-- [Database Schema](./DATABASE.md) - Detailed database documentation
-- [Contributing Guide](./contributing.md) - Development setup
-- [API Documentation](./docs/api_documentation.md) - API reference
-
----
-
-## 🤝 Contributing to Architecture
-
-When proposing architectural changes:
-
-1. **Create an Issue** - Discuss the change first
-2. **Document Impact** - How it affects existing code
-3. **Performance Analysis** - Benchmark if needed
-4. **Security Review** - Consider security implications
-5. **Update Documentation** - Keep this file current
-
----
-
-**Built with care for the healthcare community** 🏥
-
-*Last Updated: October 2025*
+*Last Updated: February 2026*

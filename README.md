@@ -1,206 +1,104 @@
 # 🏥 Hospital Management System (HMS)
 
-A comprehensive **Hospital Management System** built with **Next.js** and **PostgreSQL**, designed as an **offline-first** solution for small to medium-sized healthcare facilities. The system handles patient registration, clinical workflows, pharmacy operations, and laboratory management with a focus on simplicity and reliability.
+> **A State-of-the-Art, Data-First Healthcare Management Platform**
+
+HMS is a comprehensive, enterprise-grade **Hospital Management System** built with **Next.js 15** and **PostgreSQL**. Designed for modern healthcare facilities, it streamlines patient registration, clinical consultations, pharmacy inventory, and laboratory workflows with a focus on data integrity, type safety, and visual excellence.
 
 ---
 
-## 🎯 Project Vision
+## 🚀 Project Vision
 
-This HMS is designed to digitize and streamline hospital operations while maintaining **offline capabilities** for areas with unreliable internet connectivity. The system uses a **local central database** with daily synchronization to cloud backup, ensuring data integrity and accessibility.
+Our mission is to provide a robust, high-performance digital backbone for healthcare providers. HMS replaces fragmented systems with a unified, **database-driven architecture** that ensures clinical accuracy and operational efficiency. By leveraging modern web standards and deep PostgreSQL logic, we deliver a system that is as reliable as it is simple to use.
 
 ---
 
 ## ✨ Key Features
 
-### 🩺 **Patient Registration & Management**
-- Complete patient demographic information tracking
-- OPD (Outpatient Department) and IPD (Inpatient Department) visit management
-- Patient history and medical records
-- Visit status tracking with audit trails
+### 🩺 **Patient Lifecycle Management**
+- **Dynamic Registration**: Capture complete demographic and medical history.
+- **OPD/IPD Workflows**: Seamless management of Outpatient and Inpatient encounters.
+- **Visit Queuing**: Real-time patient queuing with daily sequential numbering.
+- **Audit Compliance**: Exhaustive timestamped history for every visit status change.
 
-### 👨‍⚕️ **Doctor's Clinical Module**
-- Daily clinic queue with sequential numbering
-- Visit-based prescription management
-- Laboratory test ordering
-- Patient vital signs recording
-- Obstetric and gynecology tracking (pregnancy, menstrual history, para details)
-- Visit history and clinical notes
+### 👨‍⚕️ **Clinical Excellence**
+- **E-Prescribing**: Precise medicine and laboratory test ordering integrated with inventory.
+- **Specialized OB/GYN**: Dedicated tracking for obstetric history, menstrual cycles, and pregnancy details.
+- **Vitals Tracking**: Longitudinal monitoring of patient growth and physiological signs.
+- **Clinical Notes**: Rich documentation for consultations and medical assessments.
 
-### 💊 **Pharmacy Management**
-- Comprehensive medicine inventory control
-- **Real-time stock management** with automated updates
-- Purchase order processing with supplier management
-- Medicine dispensing with automatic stock deduction
-- Sales and purchase return handling
-- Batch and expiry date tracking
-- Complete transaction audit trail
-- Daily sales reporting
+### 💊 **Advanced Pharmacy & Inventory**
+- **Batch-Level Tracking**: Specific unit management with expiry monitoring and cost-basis tracking.
+- **Real-Time Sync**: Automated inventory updates via dual-update database triggers.
+- **POS Operations**: Streamlined retail interface with integrated inventory deduction.
+- **Supply Chain**: Manage purchase orders, supplier relations, and multi-tier return flows.
 
-### 🔬 **Laboratory Management**
-- Lab test catalog and pricing
-- Test ordering (from prescriptions or walk-in)
-- Sample collection with tracking
-- Results entry and validation
-- Report generation and approval workflow
-- Integration-ready for lab analyzers
-
-### 📊 **Financial Management**
-- Patient billing with itemized invoices
-- Payment tracking
-- Ledger entries for all transactions
-- Revenue reporting
+### 🔬 **Laboratory Information System (LIS)**
+- **Parameter Management**: Granular control over test components and reference ranges.
+- **Workflow Automation**: From order collection to multi-stage result verification.
+- **Report Generation**: Professional, validated PDF reports for patients and doctors.
 
 ---
 
-## 🏗️ System Architecture
+## 📚 Documentation Index
 
-### **Offline-First Design**
-- **Local PostgreSQL database** as the central data store
-- Fully functional without internet connectivity
-- **Daily cloud synchronization** for backup and multi-location access
-- Electron desktop application for Windows/Mac/Linux
+For detailed technical and operational information, please refer to the following guides:
 
-### **Database Features**
-- **Automated Triggers** for stock management and transaction logging
-- **Database Views** for reporting (daily sales, stock levels, patient ledger)
-- **Stored Procedures** for complex business logic
-- **Audit Trails** for all critical operations
-- **Data Integrity** through constraints and relationships
+### **Core Reference**
+- [📘 Documentation Index](./documentation/README.md) - High-level overview of all technical manuals.
+- [🏗️ Architecture Guide](./ARCHITECTURE.md) - Deep dive into system design and project structure.
+- [🗄️ Database Reference](./DATABASE.md) - Complete schema, triggers, and stored functions map.
+- [📝 Contributing Guide](./contributing.md) - Guidelines for setting up, coding styles, and PRs.
 
----
+### **Technical Deep Dives**
+- [🎨 Frontend Architecture](./documentation/frontend.md) - Component patterns, hooks, and state management.
+- [🧩 Feature Modules](./documentation/features.md) - Breakdown of Doctor, Pharmacy, Lab, and Reception logic.
+- [⚙️ Setup & Development](./documentation/setup.md) - Step-by-step local environment configuration.
 
-## 📦 Core Modules
-
-### 1️⃣ **Patient Registration**
-Manages patient demographics, contact information, and medical history. Supports both OPD and emergency visits with unique daily clinic numbers.
-
-### 2️⃣ **Doctor's Clinical Menu**
-Streamlines clinical workflow with:
-- Patient queue management
-- Vital signs recording
-- Prescription creation with medicines and lab tests
-- Specialized obstetric and gynecology forms
-- Visit status updates with change tracking
-
-### 3️⃣ **Pharmacy**
-Complete pharmacy operations including:
-- Medicine catalog management
-- Automated inventory control
-- Purchase and sales transactions
-- Return processing (both to supplier and from customers)
-- Real-time stock quantity updates via database triggers
-- Comprehensive transaction history
-
-### 4️⃣ **Laboratory**
-Laboratory information system with:
-- Test catalog and pricing
-- Order management
-- Sample tracking
-- Results entry
-- Report generation
-- Quality control workflows
+### **Project Management**
+- [🌐 Project Context](./documentation/context.md) - Functional overview and feature dependencies.
+- [🚀 Technical Roadmap](./documentation/next_steps.md) - Future phases and optimization goals.
+- [📈 Progress Logs](./documentation/progress.md) - Daily development milestones and change logs.
 
 ---
 
 ## 🛠️ Technology Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | Next.js, React, TypeScript |
-| **Styling** | TailwindCSS |
-| **Desktop App** | Electron (with auto-updates) |
-| **Database** | PostgreSQL |
-| **API Layer** | Next.js API Routes |
-| **Deployment** | Local (Electron) + Cloud (Vercel for staging) |
+| Layer | Technology | Version | Purpose |
+|-------|------------|---------|---------|
+| **Framework** | Next.js | 15.5.0 | Core App Router & SSR |
+| **UI Library** | React | 19.1.0 | Modern Component Architecture |
+| **Language** | TypeScript | 5.x | End-to-end Type Safety |
+| **Styling** | TailwindCSS | 4.x | Utility-first Design System |
+| **Database** | PostgreSQL | 16+ | Primary Relational Engine |
+| **Validation** | Zod | 4.x | Schema-driven Data Integrity |
+| **Forms** | React Hook Form| 7.x | Performant Form Management |
 
 ---
 
-## 📊 Database Design Highlights
+## 📊 Database at a Glance
 
-### **29 Tables** covering:
-- Patient management (patients, visits, vitals)
-- Medical records (prescriptions, lab orders, obstetric history)
-- Pharmacy (medicines, purchases, sales, returns, transactions)
-- Laboratory (tests, orders, results)
-- Financial (bills, ledger entries)
-- Administration (doctors, staff, suppliers)
+The HMS core is powered by a robust PostgreSQL schema designed for high transactional integrity:
 
-### **6 Functions** including:
-- Daily clinic number generation
-- Stock quantity management
-- Transaction logging
-
-### **15 Triggers** for:
-- Automatic stock updates on all inventory movements
-- Transaction audit trail creation
-- Data consistency enforcement
-
-### **5 Unique Constraints** ensuring:
-- One prescription per visit
-- One pregnancy record per visit
-- One vital signs record per visit
-- One obstetric history per patient
+- **38 Tables**: Categorized into Clinical, Inventory, Financial, and Administration modules.
+- **10 Functions**: Handling clinic numbering, stock availability, and complex arithmetic.
+- **6 Advanced Triggers**: Ensuring real-time synchronization between sales, purchases, and batch quantities.
+- **1 Stored Procedure**: Managing atomic visit status transitions and logs.
+- **2 Reporting Views**: `v_daily_sales_summary` and `v_low_stock_medicines`.
 
 ---
 
-## 🎨 Design Philosophy
+## 🏁 Project Status & Roadmap
 
-1. **Simplicity First** - Intuitive interfaces designed for medical staff with varying tech proficiency
-2. **Data Integrity** - Automated triggers and constraints prevent data inconsistencies
-3. **Offline Reliability** - Full functionality without internet dependency
-4. **Audit Compliance** - Complete transaction history and change tracking
-5. **Performance** - Optimized queries and indexes for fast operations
-6. **Scalability** - Modular architecture supporting future enhancements
+### **Current Phase: Core Stability**
+- ✅ Refined medicine batch inventory synchronization.
+- ✅ Consolidated clinical workflow status tracking.
+- ✅ Validated Laboratory parameter-level reporting.
+- ✅ Corrected schema-wide typos and normalized relations.
 
----
-
-## 🚀 Project Status
-
-**Current Version:** In Development  
-**Target Users:** Small to medium-sized hospitals, clinics, and healthcare centers  
-**Deployment Model:** Offline-first with optional cloud sync
-
----
-
-## 📋 Roadmap
-
-### **Phase 1** (Current)
-- ✅ Patient registration and management
-- ✅ Doctor's clinical module
-- ✅ Pharmacy inventory and sales
-- ✅ Laboratory management
-- ✅ Basic billing
-
-### **Phase 2** (Planned)
-- 🔄 Enhanced reporting and analytics
-- 🔄 Insurance integration
-- 🔄 Advanced billing features
-- 🔄 User roles and permissions
-
-### **Phase 3** (Future)
-- 📅 Patient portal for online reports
-- 📅 Mobile application (React Native)
-- 📅 HL7 integration for lab analyzers
-- 📅 Telemedicine capabilities
-- 📅 Multi-location support
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines on:
-- Setting up the development environment
-- Database configuration
-- Code standards
-- Pull request process
-
----
-
-## 📄 Documentation
-
-- [Database Schema Documentation](./DATABASE.md) - Complete database structure
-- [Contributing Guide](./CONTRIBUTING.md) - Setup and contribution guidelines
-- [ARCHITECTURE](./ARCHITECTURE.md) - Architecture and Folder Structure
+### **Next Objectives**
+1. **Premium POS UI**: Enhancing the pharmacy retail interface with animations and HSL-based themes.
+2. **Advanced Permissions**: Implementing granular role-based access for different hospital departments.
+3. **Insurance Integration**: Mapping billing entities to healthcare insurance providers.
 
 ---
 
@@ -210,19 +108,13 @@ This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE
 
 ---
 
-## 👥 Team
+## 👥 The Team
 
-Built with ❤️ for the healthcare community.
-Our core team 
-Bablu
-Faiq
----
+Built with ❤️ for the global healthcare community.
 
-## 📞 Support
-
-For questions, issues, or suggestions:
-- Open an [Issue](https://github.com/bubblu2264326/hms/issues)
-- Start a [Discussion](https://github.com/bubblu2264326/hms/discussions)
+**Core Contributors:**
+- **Bablu**
+- **Faiq**
 
 ---
 

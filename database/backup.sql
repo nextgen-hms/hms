@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict SmZn1a8RTZ4hMhu9f45ucMyrd1InIYP7DNgict3HIyNDaxLRxbzzj8lh9JMat7Z
+\restrict H40Cj5qSRfhsBiLMtuV6Q9k2h7AJnUYH0Ya8DoSShZO8R1zj373IdCrXYVq2Y0y
 
--- Dumped from database version 17.5
--- Dumped by pg_dump version 18.0
+-- Dumped from database version 18.1 (Ubuntu 18.1-1.pgdg24.04+2)
+-- Dumped by pg_dump version 18.1 (Ubuntu 18.1-1.pgdg24.04+2)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -23,42 +23,39 @@ SET row_security = off;
 -- Name: check_stock_available(integer, integer, integer); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.check_stock_available(p_medicine_id integer, p_requested_qty integer, p_requested_sub_qty integer DEFAULT 0) RETURNS boolean
+CREATE FUNCTION public.check_stock_available(required_medicine_id integer, required_quantity integer, required_sub_quantity integer) RETURNS boolean
     LANGUAGE plpgsql
     AS $$
-DECLARE
-    v_stock_qty INTEGER;
-    v_sub_qty INTEGER;
-    v_sub_units_per_unit INTEGER;
-    v_total_available_sub_units INTEGER;
-    v_total_requested_sub_units INTEGER;
-BEGIN
-    SELECT 
-        stock_quantity, 
-        stock_sub_quantity, 
-        sub_units_per_unit
-    INTO 
-        v_stock_qty, 
-        v_sub_qty, 
-        v_sub_units_per_unit
-    FROM medicine
-    WHERE medicine_id = p_medicine_id;
-    
-    -- Handle medicines without sub-units
-    IF v_sub_units_per_unit IS NULL OR v_sub_units_per_unit = 0 THEN
-        v_sub_units_per_unit := 1;
-    END IF;
-    
-    -- Convert everything to sub-units for comparison
-    v_total_available_sub_units := (v_stock_qty * v_sub_units_per_unit) + COALESCE(v_sub_qty, 0);
-    v_total_requested_sub_units := (p_requested_qty * v_sub_units_per_unit) + COALESCE(p_requested_sub_qty, 0);
-    
-    RETURN v_total_available_sub_units >= v_total_requested_sub_units;
-END;
+declare
+   available_quantity integer := 0;
+   available_sub_quantity integer :=0;
+   f_sub_units_per_unit integer :=0;
+   total_available_sub_unit integer :=0;
+   total_requested_sub_unit integer :=0;
+   r record;
+begin
+   select COALESCE(sub_units_per_unit,1) into  f_sub_units_per_unit from medicine where medicine_id=required_medicine_id;
+  --i want to fetch all entries from medicine_batch which is not expired and check the stock avlaibility 
+   --step 1 convert input into only subunits
+   total_requested_sub_unit:=(required_quantity * f_sub_units_per_unit)+required_sub_quantity;
+   --step 2 convert and summ alll avlaaible subunits 
+   --step 3 then compare them
+   
+   for r in 
+        select quantity,sub_quantity from medicine_batch where medicine_id=required_medicine_id and expiry_date > NOW()
+   loop 
+       available_quantity:=available_quantity+coalesce(r.quantity,0);
+	   available_sub_quantity:=available_sub_quantity+coalesce(r.sub_quantity,0);
+   end loop;
+    total_available_sub_unit:=(available_quantity * f_sub_units_per_unit)+(available_sub_quantity );
+
+
+    return total_available_sub_unit >= total_requested_sub_unit;
+end;
 $$;
 
 
-ALTER FUNCTION public.check_stock_available(p_medicine_id integer, p_requested_qty integer, p_requested_sub_qty integer) OWNER TO postgres;
+ALTER FUNCTION public.check_stock_available(required_medicine_id integer, required_quantity integer, required_sub_quantity integer) OWNER TO postgres;
 
 --
 -- Name: fn_tg_purchase_detail_to_txn(); Type: FUNCTION; Schema: public; Owner: postgres
@@ -534,7 +531,7 @@ CREATE TABLE public.bill (
     total_amount numeric(10,2),
     payment_status character varying(100),
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT bill_payment_status_check CHECK (((payment_status)::text = ANY ((ARRAY['Paid'::character varying, 'Unpaid'::character varying, 'Partial'::character varying])::text[])))
+    CONSTRAINT bill_payment_status_check CHECK (((payment_status)::text = ANY (ARRAY[('Paid'::character varying)::text, ('Unpaid'::character varying)::text, ('Partial'::character varying)::text])))
 );
 
 
@@ -703,8 +700,8 @@ CREATE TABLE public.lab_order (
     results_entered_by integer,
     finalized_at timestamp without time zone,
     finalized_by integer,
-    CONSTRAINT lab_order_status_check CHECK (((status)::text = ANY ((ARRAY['Pending'::character varying, 'Performed'::character varying, 'Completed'::character varying])::text[]))),
-    CONSTRAINT lab_order_urgency_check CHECK (((urgency)::text = ANY ((ARRAY['STAT'::character varying, 'Urgent'::character varying, 'Routine'::character varying, 'Timed'::character varying])::text[])))
+    CONSTRAINT lab_order_status_check CHECK (((status)::text = ANY (ARRAY[('Pending'::character varying)::text, ('Performed'::character varying)::text, ('Completed'::character varying)::text]))),
+    CONSTRAINT lab_order_urgency_check CHECK (((urgency)::text = ANY (ARRAY[('STAT'::character varying)::text, ('Urgent'::character varying)::text, ('Routine'::character varying)::text, ('Timed'::character varying)::text])))
 );
 
 
@@ -945,6 +942,50 @@ CREATE TABLE public.medicine (
 ALTER TABLE public.medicine OWNER TO postgres;
 
 --
+-- Name: medicine_batch; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.medicine_batch (
+    batch_id integer NOT NULL,
+    medicine_id integer,
+    stock_quantity integer,
+    stock_sub_quantity integer,
+    purchase_price numeric(10,2),
+    purchase_sub_unit_price numeric(10,2),
+    sale_price numeric(10,2),
+    sale_sub_unit_price numeric(10,2),
+    expiry_date date,
+    batch_number text,
+    received_date timestamp without time zone DEFAULT now(),
+    party_id integer
+);
+
+
+ALTER TABLE public.medicine_batch OWNER TO postgres;
+
+--
+-- Name: medicine_batch_batch_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.medicine_batch_batch_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.medicine_batch_batch_id_seq OWNER TO postgres;
+
+--
+-- Name: medicine_batch_batch_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.medicine_batch_batch_id_seq OWNED BY public.medicine_batch.batch_id;
+
+
+--
 -- Name: medicine_medicine_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -979,7 +1020,7 @@ CREATE TABLE public.medicine_purchase (
     payment_status character varying(100),
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     created_by integer,
-    CONSTRAINT medicine_purchase_payment_status_check CHECK (((payment_status)::text = ANY ((ARRAY['Paid'::character varying, 'Unpaid'::character varying, 'Partial'::character varying])::text[])))
+    CONSTRAINT medicine_purchase_payment_status_check CHECK (((payment_status)::text = ANY (ARRAY[('Paid'::character varying)::text, ('Unpaid'::character varying)::text, ('Partial'::character varying)::text])))
 );
 
 
@@ -995,9 +1036,9 @@ CREATE TABLE public.medicine_purchase_detail (
     medicine_id integer NOT NULL,
     quantity integer NOT NULL,
     unit_cost numeric(10,2),
-    batch_no character varying(50),
-    expiry_date date,
-    sub_quantity integer DEFAULT 0
+    sub_quantity integer DEFAULT 0,
+    sub_unit_cost numeric(10,1) DEFAULT 0,
+    batch_id integer
 );
 
 
@@ -1063,7 +1104,8 @@ CREATE TABLE public.medicine_transaction (
     ref_sale_return integer,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     sub_quantity integer DEFAULT 0,
-    CONSTRAINT medicine_transaction_txn_type_check CHECK (((txn_type)::text = ANY ((ARRAY['purchase'::character varying, 'sale'::character varying, 'purchase_return'::character varying, 'sale_return'::character varying, 'adjustment'::character varying])::text[])))
+    batch_id integer,
+    CONSTRAINT medicine_transaction_txn_type_check CHECK (((txn_type)::text = ANY (ARRAY[('purchase'::character varying)::text, ('sale'::character varying)::text, ('purchase_return'::character varying)::text, ('sale_return'::character varying)::text, ('adjustment'::character varying)::text])))
 );
 
 
@@ -1193,7 +1235,7 @@ CREATE TABLE public.para_details (
     complications text,
     notes text,
     gestational_age_weeks integer,
-    CONSTRAINT para_details_gender_check CHECK (((gender)::text = ANY ((ARRAY['Male'::character varying, 'Female'::character varying])::text[])))
+    CONSTRAINT para_details_gender_check CHECK (((gender)::text = ANY (ARRAY[('Male'::character varying)::text, ('Female'::character varying)::text])))
 );
 
 
@@ -1271,7 +1313,7 @@ CREATE TABLE public.patient (
     cnic character varying(20),
     address text,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT patient_gender_check CHECK (((gender)::text = ANY ((ARRAY['Male'::character varying, 'Female'::character varying, 'Other'::character varying])::text[])))
+    CONSTRAINT patient_gender_check CHECK (((gender)::text = ANY (ARRAY[('Male'::character varying)::text, ('Female'::character varying)::text, ('Other'::character varying)::text])))
 );
 
 
@@ -1313,7 +1355,7 @@ CREATE TABLE public.patient_vitals (
     height integer,
     recorded_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     blood_group character varying(20),
-    CONSTRAINT patient_vitals_blood_group_check CHECK (((blood_group)::text = ANY ((ARRAY['A+'::character varying, 'A-'::character varying, 'B+'::character varying, 'B-'::character varying, 'O+'::character varying, 'O-'::character varying, 'AB+'::character varying, 'AB-'::character varying])::text[])))
+    CONSTRAINT patient_vitals_blood_group_check CHECK (((blood_group)::text = ANY (ARRAY[('A+'::character varying)::text, ('A-'::character varying)::text, ('B+'::character varying)::text, ('B-'::character varying)::text, ('O+'::character varying)::text, ('O-'::character varying)::text, ('AB+'::character varying)::text, ('AB-'::character varying)::text])))
 );
 
 
@@ -1405,8 +1447,8 @@ CREATE TABLE public.pharmacy_sale (
     prescription_id integer,
     notes text,
     customer_id integer,
-    CONSTRAINT pharmacy_sale_payment_type_check CHECK (((payment_type)::text = ANY ((ARRAY['CASH'::character varying, 'CARD'::character varying, 'INSURANCE'::character varying, 'MOBILE'::character varying, 'SPLIT'::character varying])::text[]))),
-    CONSTRAINT pharmacy_sale_status_check CHECK (((status)::text = ANY ((ARRAY['Completed'::character varying, 'Returned'::character varying, 'Cancelled'::character varying])::text[])))
+    CONSTRAINT pharmacy_sale_payment_type_check CHECK (((payment_type)::text = ANY (ARRAY[('CASH'::character varying)::text, ('CARD'::character varying)::text, ('INSURANCE'::character varying)::text, ('MOBILE'::character varying)::text, ('SPLIT'::character varying)::text]))),
+    CONSTRAINT pharmacy_sale_status_check CHECK (((status)::text = ANY (ARRAY[('Completed'::character varying)::text, ('Returned'::character varying)::text, ('Cancelled'::character varying)::text])))
 );
 
 
@@ -1417,17 +1459,18 @@ ALTER TABLE public.pharmacy_sale OWNER TO postgres;
 --
 
 CREATE TABLE public.pharmacy_sale_detail (
-    id integer NOT NULL,
+    pharmacy_sale_detail_id integer CONSTRAINT pharmacy_sale_detail_id_not_null NOT NULL,
     sale_id integer NOT NULL,
     medicine_id integer NOT NULL,
-    qty integer NOT NULL,
-    unit_price numeric(10,2),
-    total_price numeric(10,2),
+    quantity integer CONSTRAINT pharmacy_sale_detail_qty_not_null NOT NULL,
+    unit_sale_price numeric(10,2),
+    line_total numeric(10,2),
     discount_percent numeric(5,2) DEFAULT 0,
     discount_amount numeric(10,2) DEFAULT 0,
-    original_price numeric(10,2),
+    sub_unit_sale_price numeric(10,2),
     sub_quantity integer DEFAULT 0,
-    CONSTRAINT check_total_price CHECK ((total_price = (((qty)::numeric * unit_price) - discount_amount)))
+    batch_id integer,
+    CONSTRAINT check_total_price CHECK ((line_total = (((quantity)::numeric * unit_sale_price) - discount_amount)))
 );
 
 
@@ -1452,46 +1495,7 @@ ALTER SEQUENCE public.pharmacy_sale_detail_id_seq OWNER TO postgres;
 -- Name: pharmacy_sale_detail_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.pharmacy_sale_detail_id_seq OWNED BY public.pharmacy_sale_detail.id;
-
-
---
--- Name: pharmacy_sale_payment; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.pharmacy_sale_payment (
-    payment_id integer NOT NULL,
-    sale_id integer NOT NULL,
-    payment_type character varying(50) NOT NULL,
-    amount numeric(10,2) NOT NULL,
-    payment_reference character varying(100),
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT sale_payment_type_check CHECK (((payment_type)::text = ANY ((ARRAY['CASH'::character varying, 'CARD'::character varying, 'INSURANCE'::character varying, 'MOBILE'::character varying])::text[])))
-);
-
-
-ALTER TABLE public.pharmacy_sale_payment OWNER TO postgres;
-
---
--- Name: pharmacy_sale_payment_payment_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.pharmacy_sale_payment_payment_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.pharmacy_sale_payment_payment_id_seq OWNER TO postgres;
-
---
--- Name: pharmacy_sale_payment_payment_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.pharmacy_sale_payment_payment_id_seq OWNED BY public.pharmacy_sale_payment.payment_id;
+ALTER SEQUENCE public.pharmacy_sale_detail_id_seq OWNED BY public.pharmacy_sale_detail.pharmacy_sale_detail_id;
 
 
 --
@@ -1570,7 +1574,7 @@ CREATE TABLE public.pos_held_transaction (
     total_amount numeric(10,2),
     status character varying(20) DEFAULT 'held'::character varying,
     notes text,
-    CONSTRAINT pos_held_status_check CHECK (((status)::text = ANY ((ARRAY['held'::character varying, 'retrieved'::character varying, 'cancelled'::character varying])::text[])))
+    CONSTRAINT pos_held_status_check CHECK (((status)::text = ANY (ARRAY[('held'::character varying)::text, ('retrieved'::character varying)::text, ('cancelled'::character varying)::text])))
 );
 
 
@@ -1700,7 +1704,7 @@ CREATE TABLE public.pos_session (
     total_sales_count integer DEFAULT 0,
     notes text,
     status character varying(20) DEFAULT 'open'::character varying,
-    CONSTRAINT pos_session_status_check CHECK (((status)::text = ANY ((ARRAY['open'::character varying, 'closed'::character varying])::text[])))
+    CONSTRAINT pos_session_status_check CHECK (((status)::text = ANY (ARRAY[('open'::character varying)::text, ('closed'::character varying)::text])))
 );
 
 
@@ -1758,7 +1762,9 @@ CREATE TABLE public.prescription_medicines (
     dispensed_quantity integer,
     dispensed_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    prescribed_sub_quantity integer DEFAULT 0,
+    dispensed_sub_quantity integer DEFAULT 0
 );
 
 
@@ -1832,8 +1838,10 @@ CREATE TABLE public.purchase_return_detail (
     return_id integer NOT NULL,
     medicine_id integer NOT NULL,
     quantity integer NOT NULL,
-    unit_cost numeric(10,2) NOT NULL,
-    sub_quantity integer DEFAULT 0
+    sub_quantity integer DEFAULT 0,
+    returned_unit_price numeric(10,2),
+    returned_sub_unit_price numeric(10,2),
+    batch_id integer
 );
 
 
@@ -1906,8 +1914,11 @@ CREATE TABLE public.sale_return_detail (
     id integer NOT NULL,
     return_id integer NOT NULL,
     medicine_id integer NOT NULL,
-    qty integer NOT NULL,
-    unit_price numeric(10,2)
+    returned_quantity integer CONSTRAINT sale_return_detail_qty_not_null NOT NULL,
+    returned_unit_price numeric(10,2),
+    batch_id integer,
+    returned_sub_quantity integer,
+    returned_sub_unit_price numeric(10,2)
 );
 
 
@@ -1971,7 +1982,7 @@ CREATE TABLE public.staff (
     contact_number character varying(20),
     email character varying(100),
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT staff_role_check CHECK (((role)::text = ANY ((ARRAY['Receptionist'::character varying, 'Lab_Technician'::character varying, 'Admin'::character varying, 'Cashier'::character varying, 'Pharmacist'::character varying, 'Nurse'::character varying])::text[])))
+    CONSTRAINT staff_role_check CHECK (((role)::text = ANY (ARRAY[('Receptionist'::character varying)::text, ('Lab_Technician'::character varying)::text, ('Admin'::character varying)::text, ('Cashier'::character varying)::text, ('Pharmacist'::character varying)::text, ('Nurse'::character varying)::text])))
 );
 
 
@@ -2062,41 +2073,6 @@ CREATE VIEW public.v_low_stock_medicines AS
 ALTER VIEW public.v_low_stock_medicines OWNER TO postgres;
 
 --
--- Name: v_medicine_pos; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.v_medicine_pos AS
- SELECT m.medicine_id,
-    m.generic_name,
-    m.brand_name,
-    m.category,
-    m.dosage_value,
-    m.dosage_unit,
-    m.form,
-    m.price,
-    m.stock_quantity,
-    m.barcode,
-    m.sku,
-    m.manufacturer,
-    m.requires_prescription,
-    m.search_vector,
-    m.sub_unit_price,
-    m.sub_units_per_unit,
-    m.sub_unit,
-    m.stock_sub_quantity,
-    m.allow_sub_unit_sale,
-    mpd_earliest.expiry_date
-   FROM (public.medicine m
-     LEFT JOIN ( SELECT medicine_purchase_detail.medicine_id,
-            min(medicine_purchase_detail.expiry_date) AS expiry_date
-           FROM public.medicine_purchase_detail
-          WHERE (medicine_purchase_detail.quantity > 0)
-          GROUP BY medicine_purchase_detail.medicine_id) mpd_earliest ON ((m.medicine_id = mpd_earliest.medicine_id)));
-
-
-ALTER VIEW public.v_medicine_pos OWNER TO postgres;
-
---
 -- Name: visit; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -2110,8 +2086,8 @@ CREATE TABLE public.visit (
     status character varying(50),
     reason text,
     is_deleted boolean DEFAULT false,
-    CONSTRAINT visit_status_check CHECK (((status)::text = ANY ((ARRAY['waiting'::character varying, 'seen_by_doctor'::character varying, 'medicines_dispensed'::character varying, 'lab_tests_done'::character varying, 'payment_done'::character varying, 'completed'::character varying, 'admitted'::character varying, 'discharged'::character varying])::text[]))),
-    CONSTRAINT visit_visit_type_check CHECK (((visit_type)::text = ANY ((ARRAY['OPD'::character varying, 'Emergency'::character varying])::text[])))
+    CONSTRAINT visit_status_check CHECK (((status)::text = ANY (ARRAY[('waiting'::character varying)::text, ('seen_by_doctor'::character varying)::text, ('medicines_dispensed'::character varying)::text, ('lab_tests_done'::character varying)::text, ('payment_done'::character varying)::text, ('completed'::character varying)::text, ('admitted'::character varying)::text, ('discharged'::character varying)::text]))),
+    CONSTRAINT visit_visit_type_check CHECK (((visit_type)::text = ANY (ARRAY[('OPD'::character varying)::text, ('Emergency'::character varying)::text])))
 );
 
 
@@ -2128,7 +2104,7 @@ CREATE TABLE public.visit_status_history (
     updated_by_doctor integer,
     updated_by_staff integer,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT visit_status_history_status_check CHECK (((status)::text = ANY ((ARRAY['waiting'::character varying, 'seen_by_doctor'::character varying, 'medicines_dispensed'::character varying, 'lab_tests_done'::character varying, 'payment_done'::character varying, 'admitted'::character varying, 'discharged'::character varying])::text[])))
+    CONSTRAINT visit_status_history_status_check CHECK (((status)::text = ANY (ARRAY[('waiting'::character varying)::text, ('seen_by_doctor'::character varying)::text, ('medicines_dispensed'::character varying)::text, ('lab_tests_done'::character varying)::text, ('payment_done'::character varying)::text, ('admitted'::character varying)::text, ('discharged'::character varying)::text])))
 );
 
 
@@ -2249,6 +2225,13 @@ ALTER TABLE ONLY public.medicine ALTER COLUMN medicine_id SET DEFAULT nextval('p
 
 
 --
+-- Name: medicine_batch batch_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.medicine_batch ALTER COLUMN batch_id SET DEFAULT nextval('public.medicine_batch_batch_id_seq'::regclass);
+
+
+--
 -- Name: medicine_purchase purchase_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -2326,17 +2309,10 @@ ALTER TABLE ONLY public.pharmacy_sale ALTER COLUMN sale_id SET DEFAULT nextval('
 
 
 --
--- Name: pharmacy_sale_detail id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: pharmacy_sale_detail pharmacy_sale_detail_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.pharmacy_sale_detail ALTER COLUMN id SET DEFAULT nextval('public.pharmacy_sale_detail_id_seq'::regclass);
-
-
---
--- Name: pharmacy_sale_payment payment_id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.pharmacy_sale_payment ALTER COLUMN payment_id SET DEFAULT nextval('public.pharmacy_sale_payment_payment_id_seq'::regclass);
+ALTER TABLE ONLY public.pharmacy_sale_detail ALTER COLUMN pharmacy_sale_detail_id SET DEFAULT nextval('public.pharmacy_sale_detail_id_seq'::regclass);
 
 
 --
@@ -2730,7 +2706,7 @@ COPY public.lab_test_results (result_id, order_id, parameter_id, result_value, i
 --
 
 COPY public.medicine (medicine_id, generic_name, brand_name, category, dosage_value, dosage_unit, form, stock_quantity, price, created_at, barcode, sku, manufacturer, min_stock_level, max_stock_level, is_active, requires_prescription, search_vector, sub_unit, sub_units_per_unit, sub_unit_price, allow_sub_unit_sale, stock_sub_quantity) FROM stdin;
-1	Paracetamol	Panadol	Analgesic	500.00	mg	Tablet	200	15.00	2025-09-07 13:04:08.818759	\N	\N	\N	10	1000	t	f	'analges':3B 'panadol':2A 'paracetamol':1A	\N	0	\N	f	0
+1	Paracetamol	Panadol	Analgesic	500.00	mg	Tablet	197	15.00	2025-09-07 13:04:08.818759	\N	\N	\N	10	1000	t	f	'analges':3B 'panadol':2A 'paracetamol':1A	\N	0	\N	f	0
 2	Amoxicillin	Amoxil	Antibiotic	250.00	mg	Capsule	150	25.00	2025-09-07 13:04:08.818759	\N	\N	\N	10	1000	t	f	'amoxicillin':1A 'amoxil':2A 'antibiot':3B	\N	0	\N	f	0
 3	Cefixime	Suprax	Antibiotic	200.00	mg	Tablet	100	40.00	2025-09-07 13:04:08.818759	\N	\N	\N	10	1000	t	f	'antibiot':3B 'cefixim':1A 'suprax':2A	\N	0	\N	f	0
 4	Ibuprofen	Brufen	Analgesic	400.00	mg	Tablet	120	20.00	2025-09-07 13:04:08.818759	\N	\N	\N	10	1000	t	f	'analges':3B 'brufen':2A 'ibuprofen':1A	\N	0	\N	f	0
@@ -2750,6 +2726,14 @@ COPY public.medicine (medicine_id, generic_name, brand_name, category, dosage_va
 20	Metoprolol	Lopressor	Antihypertensive	50.00	mg	Tablet	80	40.00	2025-09-07 13:04:08.818759	\N	\N	\N	10	1000	t	f	'antihypertens':3B 'lopressor':2A 'metoprolol':1A	\N	0	\N	f	0
 12	Prednisolone	Prednisone	Steroid	10.00	mg	Tablet	39	60.00	2025-09-07 13:04:08.818759	\N	\N	\N	10	1000	t	f	'prednisolon':1A 'prednison':2A 'steroid':3B	\N	0	\N	f	0
 17	Azithromycin	Zithromax	Antibiotic	500.00	mg	Tablet	85	65.00	2025-09-07 13:04:08.818759	\N	\N	\N	10	1000	t	f	'antibiot':3B 'azithromycin':1A 'zithromax':2A	\N	0	\N	f	0
+\.
+
+
+--
+-- Data for Name: medicine_batch; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.medicine_batch (batch_id, medicine_id, stock_quantity, stock_sub_quantity, purchase_price, purchase_sub_unit_price, sale_price, sale_sub_unit_price, expiry_date, batch_number, received_date, party_id) FROM stdin;
 \.
 
 
@@ -2775,27 +2759,27 @@ COPY public.medicine_purchase (purchase_id, party_id, invoice_no, invoice_timest
 -- Data for Name: medicine_purchase_detail; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.medicine_purchase_detail (id, purchase_id, medicine_id, quantity, unit_cost, batch_no, expiry_date, sub_quantity) FROM stdin;
-1	1	1	50	12.00	B101	2026-05-01	0
-2	1	2	30	20.00	B102	2025-12-01	0
-3	2	3	40	35.00	B201	2026-03-15	0
-4	2	4	25	18.00	B202	2025-11-30	0
-5	3	5	20	45.00	B301	2026-01-20	0
-6	3	6	15	30.00	B302	2025-10-10	0
-7	4	7	10	220.00	B401	2026-08-05	0
-8	4	8	18	60.00	B402	2026-02-28	0
-9	5	9	30	15.00	B501	2025-09-15	0
-10	5	10	25	40.00	B502	2025-12-20	0
-11	6	11	50	18.00	B601	2026-04-01	0
-12	6	12	30	55.00	B602	2026-06-10	0
-13	7	13	40	28.00	B701	2025-11-05	0
-14	7	14	20	15.00	B702	2025-10-15	0
-15	8	15	35	60.00	B801	2026-03-01	0
-16	8	16	25	12.00	B802	2025-12-05	0
-17	9	17	30	65.00	B901	2026-01-15	0
-18	9	18	20	70.00	B902	2026-05-10	0
-19	10	19	25	25.00	B1001	2026-07-01	0
-20	10	20	40	35.00	B1002	2026-06-20	0
+COPY public.medicine_purchase_detail (id, purchase_id, medicine_id, quantity, unit_cost, sub_quantity, sub_unit_cost, batch_id) FROM stdin;
+1	1	1	50	12.00	0	0.0	\N
+2	1	2	30	20.00	0	0.0	\N
+3	2	3	40	35.00	0	0.0	\N
+4	2	4	25	18.00	0	0.0	\N
+5	3	5	20	45.00	0	0.0	\N
+6	3	6	15	30.00	0	0.0	\N
+7	4	7	10	220.00	0	0.0	\N
+8	4	8	18	60.00	0	0.0	\N
+9	5	9	30	15.00	0	0.0	\N
+10	5	10	25	40.00	0	0.0	\N
+11	6	11	50	18.00	0	0.0	\N
+12	6	12	30	55.00	0	0.0	\N
+13	7	13	40	28.00	0	0.0	\N
+14	7	14	20	15.00	0	0.0	\N
+15	8	15	35	60.00	0	0.0	\N
+16	8	16	25	12.00	0	0.0	\N
+17	9	17	30	65.00	0	0.0	\N
+18	9	18	20	70.00	0	0.0	\N
+19	10	19	25	25.00	0	0.0	\N
+20	10	20	40	35.00	0	0.0	\N
 \.
 
 
@@ -2803,37 +2787,40 @@ COPY public.medicine_purchase_detail (id, purchase_id, medicine_id, quantity, un
 -- Data for Name: medicine_transaction; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.medicine_transaction (txn_id, medicine_id, txn_type, quantity, amount_per_unit, ref_purchase_id, ref_sale_id, ref_purchase_return, ref_sale_return, created_at, sub_quantity) FROM stdin;
-1	1	purchase	50	12.00	1	\N	\N	\N	2025-09-07 13:13:16.605281	0
-2	2	purchase	30	20.00	1	\N	\N	\N	2025-09-07 13:13:16.605281	0
-3	3	purchase	40	35.00	2	\N	\N	\N	2025-09-07 13:13:16.605281	0
-4	4	purchase	25	18.00	2	\N	\N	\N	2025-09-07 13:13:16.605281	0
-5	5	purchase	20	45.00	3	\N	\N	\N	2025-09-07 13:13:16.605281	0
-6	1	sale	5	12.00	\N	1	\N	\N	2025-09-07 13:13:16.605281	0
-7	2	sale	10	20.00	\N	1	\N	\N	2025-09-07 13:13:16.605281	0
-8	3	sale	5	28.00	\N	3	\N	\N	2025-09-07 13:13:16.605281	0
-9	4	sale	6	18.00	\N	2	\N	\N	2025-09-07 13:13:16.605281	0
-10	5	sale	3	45.00	\N	5	\N	\N	2025-09-07 13:13:16.605281	0
-11	1	purchase_return	10	12.00	\N	\N	1	\N	2025-09-07 13:13:16.605281	0
-12	2	purchase_return	5	20.00	\N	\N	1	\N	2025-09-07 13:13:16.605281	0
-13	3	purchase_return	8	35.00	\N	\N	2	\N	2025-09-07 13:13:16.605281	0
-14	4	purchase_return	6	18.00	\N	\N	2	\N	2025-09-07 13:13:16.605281	0
-15	5	purchase_return	4	45.00	\N	\N	3	\N	2025-09-07 13:13:16.605281	0
-16	1	sale_return	1	12.00	\N	\N	\N	7	2025-09-07 13:13:16.605281	0
-17	2	sale_return	2	20.00	\N	\N	\N	8	2025-09-07 13:13:16.605281	0
-18	3	sale_return	2	28.00	\N	\N	\N	1	2025-09-07 13:13:16.605281	0
-19	4	sale_return	1	18.00	\N	\N	\N	1	2025-09-07 13:13:16.605281	0
-20	5	sale_return	3	45.00	\N	\N	\N	5	2025-09-07 13:13:16.605281	0
-21	6	adjustment	5	30.00	\N	\N	\N	\N	2025-09-07 13:13:16.605281	0
-23	12	sale	1	60.00	\N	20	\N	\N	2025-09-28 08:27:55.720514	0
-25	12	sale_return	1	60.00	\N	\N	\N	15	2025-09-28 09:58:14.126306	0
-26	12	sale	1	60.00	\N	21	\N	\N	2025-09-28 09:58:46.935709	0
-27	12	sale	1	60.00	\N	21	\N	\N	2025-09-28 09:58:46.935709	0
-28	12	sale_return	1	60.00	\N	\N	\N	17	2025-09-28 11:38:45.219157	0
-29	12	sale	1	60.00	\N	22	\N	\N	2025-09-28 11:38:53.023284	0
-30	12	sale_return	1	60.00	\N	\N	\N	18	2025-09-28 11:39:06.23702	0
-31	17	sale	2	65.00	\N	23	\N	\N	2025-10-02 16:15:43.973502	0
-32	17	sale_return	2	65.00	\N	\N	\N	19	2025-10-02 16:16:04.805063	0
+COPY public.medicine_transaction (txn_id, medicine_id, txn_type, quantity, amount_per_unit, ref_purchase_id, ref_sale_id, ref_purchase_return, ref_sale_return, created_at, sub_quantity, batch_id) FROM stdin;
+1	1	purchase	50	12.00	1	\N	\N	\N	2025-09-07 13:13:16.605281	0	\N
+2	2	purchase	30	20.00	1	\N	\N	\N	2025-09-07 13:13:16.605281	0	\N
+3	3	purchase	40	35.00	2	\N	\N	\N	2025-09-07 13:13:16.605281	0	\N
+4	4	purchase	25	18.00	2	\N	\N	\N	2025-09-07 13:13:16.605281	0	\N
+5	5	purchase	20	45.00	3	\N	\N	\N	2025-09-07 13:13:16.605281	0	\N
+6	1	sale	5	12.00	\N	1	\N	\N	2025-09-07 13:13:16.605281	0	\N
+7	2	sale	10	20.00	\N	1	\N	\N	2025-09-07 13:13:16.605281	0	\N
+8	3	sale	5	28.00	\N	3	\N	\N	2025-09-07 13:13:16.605281	0	\N
+9	4	sale	6	18.00	\N	2	\N	\N	2025-09-07 13:13:16.605281	0	\N
+10	5	sale	3	45.00	\N	5	\N	\N	2025-09-07 13:13:16.605281	0	\N
+11	1	purchase_return	10	12.00	\N	\N	1	\N	2025-09-07 13:13:16.605281	0	\N
+12	2	purchase_return	5	20.00	\N	\N	1	\N	2025-09-07 13:13:16.605281	0	\N
+13	3	purchase_return	8	35.00	\N	\N	2	\N	2025-09-07 13:13:16.605281	0	\N
+14	4	purchase_return	6	18.00	\N	\N	2	\N	2025-09-07 13:13:16.605281	0	\N
+15	5	purchase_return	4	45.00	\N	\N	3	\N	2025-09-07 13:13:16.605281	0	\N
+16	1	sale_return	1	12.00	\N	\N	\N	7	2025-09-07 13:13:16.605281	0	\N
+17	2	sale_return	2	20.00	\N	\N	\N	8	2025-09-07 13:13:16.605281	0	\N
+18	3	sale_return	2	28.00	\N	\N	\N	1	2025-09-07 13:13:16.605281	0	\N
+19	4	sale_return	1	18.00	\N	\N	\N	1	2025-09-07 13:13:16.605281	0	\N
+20	5	sale_return	3	45.00	\N	\N	\N	5	2025-09-07 13:13:16.605281	0	\N
+21	6	adjustment	5	30.00	\N	\N	\N	\N	2025-09-07 13:13:16.605281	0	\N
+23	12	sale	1	60.00	\N	20	\N	\N	2025-09-28 08:27:55.720514	0	\N
+25	12	sale_return	1	60.00	\N	\N	\N	15	2025-09-28 09:58:14.126306	0	\N
+26	12	sale	1	60.00	\N	21	\N	\N	2025-09-28 09:58:46.935709	0	\N
+27	12	sale	1	60.00	\N	21	\N	\N	2025-09-28 09:58:46.935709	0	\N
+28	12	sale_return	1	60.00	\N	\N	\N	17	2025-09-28 11:38:45.219157	0	\N
+29	12	sale	1	60.00	\N	22	\N	\N	2025-09-28 11:38:53.023284	0	\N
+30	12	sale_return	1	60.00	\N	\N	\N	18	2025-09-28 11:39:06.23702	0	\N
+31	17	sale	2	65.00	\N	23	\N	\N	2025-10-02 16:15:43.973502	0	\N
+32	17	sale_return	2	65.00	\N	\N	\N	19	2025-10-02 16:16:04.805063	0	\N
+45	1	sale	1	15.00	\N	37	\N	\N	2025-11-14 07:49:54.354203	0	\N
+46	1	sale	1	15.00	\N	38	\N	\N	2025-11-14 07:50:31.550842	0	\N
+47	1	sale	1	15.00	\N	39	\N	\N	2025-11-14 07:51:08.466045	0	\N
 \.
 
 
@@ -2959,6 +2946,11 @@ COPY public.patient_vitals (vital_id, visit_id, blood_pressure, heart_rate, temp
 --
 
 COPY public.pharmacy_customer (customer_id, name, phone, email, address, loyalty_points, created_at, last_purchase_date) FROM stdin;
+1	Alice Johnson	555-0101	alice.j@example.com	123 Main St, Anytown	250	2024-01-15 10:00:00	2025-10-20 14:30:00
+2	Bob Smith	555-0102	bob.s@example.com	456 Oak Ave, Somewhere City	80	2024-03-20 15:30:00	2025-11-01 09:00:00
+3	Charlie Brown	555-0103	charlie.b@test.com	789 Pine Ln, Otherplace	500	2023-12-01 08:00:00	2025-11-10 18:00:00
+4	Diana Prince	555-0104	diana.p@hero.org	321 River Rd, Metropolis	10	2025-05-01 12:00:00	2025-05-01 12:00:00
+5	Ethan Hunt	555-0105	ethan.h@agent.net	987 Mountain View, Spyville	0	2025-11-13 17:00:00	2025-11-13 17:00:00
 \.
 
 
@@ -2983,6 +2975,9 @@ COPY public.pharmacy_sale (sale_id, visit_id, bill_id, sale_timestamp, handled_b
 22	39	14	2025-09-28 11:38:53.023284	1	\N	Completed	CASH	\N	0.00	0.00	0.00	0.00	0.00	0.00	f	\N	\N	\N
 20	39	14	2025-09-28 08:27:55.720514	1	\N	Returned	CASH	\N	0.00	0.00	0.00	0.00	0.00	0.00	f	\N	\N	\N
 23	41	16	2025-10-02 16:15:43.973502	1	\N	Returned	CASH	\N	0.00	0.00	0.00	0.00	0.00	0.00	f	\N	\N	\N
+37	\N	\N	2025-11-14 07:49:54.354203	1	15.00	Completed	CASH	TXN-1763088591249-316	1000.00	0.00	985.00	0.00	0.00	0.00	f	\N	\N	1
+38	\N	\N	2025-11-14 07:50:31.550842	1	15.00	Completed	CASH	TXN-1763088630799-168	1000.00	0.00	985.00	0.00	0.00	0.00	f	\N	\N	1
+39	\N	\N	2025-11-14 07:51:08.466045	1	15.00	Completed	CASH	TXN-1763088667593-870	500.00	0.00	485.00	0.00	0.00	0.00	f	\N	\N	1
 \.
 
 
@@ -2990,45 +2985,40 @@ COPY public.pharmacy_sale (sale_id, visit_id, bill_id, sale_timestamp, handled_b
 -- Data for Name: pharmacy_sale_detail; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.pharmacy_sale_detail (id, sale_id, medicine_id, qty, unit_price, total_price, discount_percent, discount_amount, original_price, sub_quantity) FROM stdin;
-1	1	1	5	12.00	60.00	0.00	0.00	\N	0
-2	1	2	10	20.00	200.00	0.00	0.00	\N	0
-3	1	3	5	28.00	140.00	0.00	0.00	\N	0
-4	2	4	6	18.00	108.00	0.00	0.00	\N	0
-5	2	5	5	45.00	225.00	0.00	0.00	\N	0
-6	2	6	4	30.00	120.00	0.00	0.00	\N	0
-7	3	7	2	220.00	440.00	0.00	0.00	\N	0
-8	3	8	1	60.00	60.00	0.00	0.00	\N	0
-9	4	9	5	15.00	75.00	0.00	0.00	\N	0
-10	4	10	3	40.00	120.00	0.00	0.00	\N	0
-11	5	11	4	18.00	72.00	0.00	0.00	\N	0
-12	5	12	2	55.00	110.00	0.00	0.00	\N	0
-13	6	13	5	28.00	140.00	0.00	0.00	\N	0
-14	6	14	6	15.00	90.00	0.00	0.00	\N	0
-15	7	15	4	60.00	240.00	0.00	0.00	\N	0
-16	7	16	3	12.00	36.00	0.00	0.00	\N	0
-17	8	17	2	65.00	130.00	0.00	0.00	\N	0
-18	8	18	1	70.00	70.00	0.00	0.00	\N	0
-19	9	19	3	25.00	75.00	0.00	0.00	\N	0
-20	9	20	5	35.00	175.00	0.00	0.00	\N	0
-21	10	1	6	12.00	72.00	0.00	0.00	\N	0
-22	10	2	4	20.00	80.00	0.00	0.00	\N	0
-23	11	3	5	28.00	140.00	0.00	0.00	\N	0
-24	11	4	6	18.00	108.00	0.00	0.00	\N	0
-25	12	5	7	45.00	315.00	0.00	0.00	\N	0
-29	20	12	1	60.00	60.00	0.00	0.00	\N	0
-30	21	12	1	60.00	60.00	0.00	0.00	\N	0
-31	21	12	1	60.00	60.00	0.00	0.00	\N	0
-32	22	12	1	60.00	60.00	0.00	0.00	\N	0
-33	23	17	2	65.00	130.00	0.00	0.00	\N	0
-\.
-
-
---
--- Data for Name: pharmacy_sale_payment; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.pharmacy_sale_payment (payment_id, sale_id, payment_type, amount, payment_reference, created_at) FROM stdin;
+COPY public.pharmacy_sale_detail (pharmacy_sale_detail_id, sale_id, medicine_id, quantity, unit_sale_price, line_total, discount_percent, discount_amount, sub_unit_sale_price, sub_quantity, batch_id) FROM stdin;
+1	1	1	5	12.00	60.00	0.00	0.00	\N	0	\N
+2	1	2	10	20.00	200.00	0.00	0.00	\N	0	\N
+3	1	3	5	28.00	140.00	0.00	0.00	\N	0	\N
+4	2	4	6	18.00	108.00	0.00	0.00	\N	0	\N
+5	2	5	5	45.00	225.00	0.00	0.00	\N	0	\N
+6	2	6	4	30.00	120.00	0.00	0.00	\N	0	\N
+7	3	7	2	220.00	440.00	0.00	0.00	\N	0	\N
+8	3	8	1	60.00	60.00	0.00	0.00	\N	0	\N
+9	4	9	5	15.00	75.00	0.00	0.00	\N	0	\N
+10	4	10	3	40.00	120.00	0.00	0.00	\N	0	\N
+11	5	11	4	18.00	72.00	0.00	0.00	\N	0	\N
+12	5	12	2	55.00	110.00	0.00	0.00	\N	0	\N
+13	6	13	5	28.00	140.00	0.00	0.00	\N	0	\N
+14	6	14	6	15.00	90.00	0.00	0.00	\N	0	\N
+15	7	15	4	60.00	240.00	0.00	0.00	\N	0	\N
+16	7	16	3	12.00	36.00	0.00	0.00	\N	0	\N
+17	8	17	2	65.00	130.00	0.00	0.00	\N	0	\N
+18	8	18	1	70.00	70.00	0.00	0.00	\N	0	\N
+19	9	19	3	25.00	75.00	0.00	0.00	\N	0	\N
+20	9	20	5	35.00	175.00	0.00	0.00	\N	0	\N
+21	10	1	6	12.00	72.00	0.00	0.00	\N	0	\N
+22	10	2	4	20.00	80.00	0.00	0.00	\N	0	\N
+23	11	3	5	28.00	140.00	0.00	0.00	\N	0	\N
+24	11	4	6	18.00	108.00	0.00	0.00	\N	0	\N
+25	12	5	7	45.00	315.00	0.00	0.00	\N	0	\N
+29	20	12	1	60.00	60.00	0.00	0.00	\N	0	\N
+30	21	12	1	60.00	60.00	0.00	0.00	\N	0	\N
+31	21	12	1	60.00	60.00	0.00	0.00	\N	0	\N
+32	22	12	1	60.00	60.00	0.00	0.00	\N	0	\N
+33	23	17	2	65.00	130.00	0.00	0.00	\N	0	\N
+46	37	1	1	15.00	NaN	0.00	NaN	15.00	0	\N
+47	38	1	1	15.00	NaN	0.00	NaN	15.00	0	\N
+48	39	1	1	15.00	NaN	0.00	NaN	15.00	0	\N
 \.
 
 
@@ -3037,6 +3027,13 @@ COPY public.pharmacy_sale_payment (payment_id, sale_id, payment_type, amount, pa
 --
 
 COPY public.pos_audit_log (log_id, staff_id, action_type, sale_id, description, ip_address, user_agent, created_at) FROM stdin;
+1	1	SALE_COMPLETED	37	Completed sale TXN-1763088591249-316 with 1 items	\N	\N	2025-11-14 07:49:54.354203
+2	1	SALE_COMPLETED	38	Completed sale TXN-1763088630799-168 with 1 items	\N	\N	2025-11-14 07:50:31.550842
+3	1	RECEIPT_PRINTED	38	Receipt printed for sale TXN-1763088630799-168	\N	\N	2025-11-14 07:50:32.221651
+4	1	CASH_DRAWER_OPENED	\N	Cash drawer manually opened	\N	\N	2025-11-14 07:50:33.455287
+5	1	SALE_COMPLETED	39	Completed sale TXN-1763088667593-870 with 1 items	\N	\N	2025-11-14 07:51:08.466045
+6	1	RECEIPT_PRINTED	39	Receipt printed for sale TXN-1763088667593-870	\N	\N	2025-11-14 07:51:09.324495
+7	1	CASH_DRAWER_OPENED	\N	Cash drawer manually opened	\N	\N	2025-11-14 07:51:10.011501
 \.
 
 
@@ -3098,30 +3095,30 @@ COPY public.prescription (prescription_id, visit_id, doctor_id, created_at) FROM
 -- Data for Name: prescription_medicines; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.prescription_medicines (prescription_medicine_id, prescription_id, medicine_id, duration, instructions, dispensed_by, frequency, prescribed_quantity, dispensed_quantity, dispensed_at, created_at, updated_at) FROM stdin;
-9	5	8	As needed	Use inhaler when short of breath	3	Unspecified	9	9	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-14	7	14	As needed	Take one tablet in morning	2	Once daily (morning)	14	14	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-16	8	16	As needed	Take one tablet in morning	4	Once daily (morning)	4	4	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-3	2	2	10 days	Take one capsule every 12 hours	3	Every 12 hours	17	17	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-4	2	4	5 days	Take one tablet after meals	4	Unspecified	7	7	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-5	3	3	7 days	Take one tablet every 12 hours	5	Every 12 hours	12	12	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-2	1	9	7 days	Take one tablet at night	1	Once daily (night)	4	4	2025-09-27 20:16:21.44961	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-1	1	1	5 days	Take one tablet every 8 hours	1	Every 8 hours	19	19	2025-09-27 20:16:21.449871	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-6	3	5	30 days	Take one tablet twice a day	6	Twice daily	9	9	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-7	4	6	30 days	Take one tablet daily in morning	1	Once daily (morning)	16	16	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-8	4	7	14 days	Take one capsule before breakfast	2	Unspecified	17	17	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-10	5	10	7 days	Take one tablet before sleep	4	Unspecified	18	18	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-11	6	11	5 days	Take one tablet every 8 hours	5	Every 8 hours	5	5	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-12	6	12	7 days	Take one tablet in morning	6	Once daily (morning)	16	16	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-13	7	13	14 days	Take one tablet before meal	1	Unspecified	15	15	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-15	8	15	10 days	Take one tablet every 12 hours	3	Every 12 hours	3	3	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-17	9	17	5 days	Take one tablet every 12 hours	5	Every 12 hours	18	18	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-18	9	18	7 days	Take one tablet at night	6	Once daily (night)	9	9	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-19	10	19	7 days	Take one tablet in morning	1	Once daily (morning)	20	20	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-20	10	20	30 days	Take one tablet daily	2	Once daily	6	6	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588
-26	19	2	7 days	chill kar	1	tow times a day	1	1	2025-09-27 20:16:21.436338	2025-09-24 19:02:01.599964	2025-09-24 19:02:01.599964
-27	20	12	7 days	chill kar	\N	tow times a day	1	0	\N	2025-09-28 07:58:01.296136	2025-09-28 07:58:01.296136
-29	23	17	7 days	chill kar	\N	tow times a day	2	0	\N	2025-10-02 16:15:19.944547	2025-10-02 16:15:19.944547
+COPY public.prescription_medicines (prescription_medicine_id, prescription_id, medicine_id, duration, instructions, dispensed_by, frequency, prescribed_quantity, dispensed_quantity, dispensed_at, created_at, updated_at, prescribed_sub_quantity, dispensed_sub_quantity) FROM stdin;
+9	5	8	As needed	Use inhaler when short of breath	3	Unspecified	9	9	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+14	7	14	As needed	Take one tablet in morning	2	Once daily (morning)	14	14	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+16	8	16	As needed	Take one tablet in morning	4	Once daily (morning)	4	4	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+3	2	2	10 days	Take one capsule every 12 hours	3	Every 12 hours	17	17	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+4	2	4	5 days	Take one tablet after meals	4	Unspecified	7	7	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+5	3	3	7 days	Take one tablet every 12 hours	5	Every 12 hours	12	12	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+2	1	9	7 days	Take one tablet at night	1	Once daily (night)	4	4	2025-09-27 20:16:21.44961	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+1	1	1	5 days	Take one tablet every 8 hours	1	Every 8 hours	19	19	2025-09-27 20:16:21.449871	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+6	3	5	30 days	Take one tablet twice a day	6	Twice daily	9	9	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+7	4	6	30 days	Take one tablet daily in morning	1	Once daily (morning)	16	16	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+8	4	7	14 days	Take one capsule before breakfast	2	Unspecified	17	17	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+10	5	10	7 days	Take one tablet before sleep	4	Unspecified	18	18	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+11	6	11	5 days	Take one tablet every 8 hours	5	Every 8 hours	5	5	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+12	6	12	7 days	Take one tablet in morning	6	Once daily (morning)	16	16	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+13	7	13	14 days	Take one tablet before meal	1	Unspecified	15	15	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+15	8	15	10 days	Take one tablet every 12 hours	3	Every 12 hours	3	3	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+17	9	17	5 days	Take one tablet every 12 hours	5	Every 12 hours	18	18	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+18	9	18	7 days	Take one tablet at night	6	Once daily (night)	9	9	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+19	10	19	7 days	Take one tablet in morning	1	Once daily (morning)	20	20	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+20	10	20	30 days	Take one tablet daily	2	Once daily	6	6	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	2025-09-24 07:35:43.374588	0	0
+26	19	2	7 days	chill kar	1	tow times a day	1	1	2025-09-27 20:16:21.436338	2025-09-24 19:02:01.599964	2025-09-24 19:02:01.599964	0	0
+27	20	12	7 days	chill kar	\N	tow times a day	1	0	\N	2025-09-28 07:58:01.296136	2025-09-28 07:58:01.296136	0	0
+29	23	17	7 days	chill kar	\N	tow times a day	2	0	\N	2025-10-02 16:15:19.944547	2025-10-02 16:15:19.944547	0	0
 \.
 
 
@@ -3145,19 +3142,19 @@ COPY public.purchase_return (return_id, purchase_id, reason, return_timestamp, c
 -- Data for Name: purchase_return_detail; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.purchase_return_detail (id, return_id, medicine_id, quantity, unit_cost, sub_quantity) FROM stdin;
-1	1	1	10	12.00	0
-2	1	2	5	20.00	0
-3	2	3	8	35.00	0
-4	2	4	6	18.00	0
-5	3	5	4	45.00	0
-6	3	6	3	30.00	0
-7	4	7	2	220.00	0
-8	5	8	5	60.00	0
-9	6	9	6	15.00	0
-10	7	10	4	40.00	0
-11	8	11	5	18.00	0
-12	8	12	3	55.00	0
+COPY public.purchase_return_detail (id, return_id, medicine_id, quantity, sub_quantity, returned_unit_price, returned_sub_unit_price, batch_id) FROM stdin;
+1	1	1	10	0	\N	\N	\N
+2	1	2	5	0	\N	\N	\N
+3	2	3	8	0	\N	\N	\N
+4	2	4	6	0	\N	\N	\N
+5	3	5	4	0	\N	\N	\N
+6	3	6	3	0	\N	\N	\N
+7	4	7	2	0	\N	\N	\N
+8	5	8	5	0	\N	\N	\N
+9	6	9	6	0	\N	\N	\N
+10	7	10	4	0	\N	\N	\N
+11	8	11	5	0	\N	\N	\N
+12	8	12	3	0	\N	\N	\N
 \.
 
 
@@ -3185,23 +3182,23 @@ COPY public.sale_return (return_id, sale_id, reason, return_timestamp, created_b
 -- Data for Name: sale_return_detail; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.sale_return_detail (id, return_id, medicine_id, qty, unit_price) FROM stdin;
-1	1	3	2	28.00
-2	2	17	1	65.00
-3	3	11	1	18.00
-4	4	20	2	35.00
-5	5	5	3	45.00
-6	6	15	2	60.00
-7	7	1	1	12.00
-8	8	2	2	20.00
-9	1	4	1	18.00
-10	2	18	1	70.00
-11	3	12	2	55.00
-12	4	19	1	25.00
-16	15	12	1	60.00
-18	17	12	1	60.00
-19	18	12	1	60.00
-20	19	17	2	65.00
+COPY public.sale_return_detail (id, return_id, medicine_id, returned_quantity, returned_unit_price, batch_id, returned_sub_quantity, returned_sub_unit_price) FROM stdin;
+1	1	3	2	28.00	\N	\N	\N
+2	2	17	1	65.00	\N	\N	\N
+3	3	11	1	18.00	\N	\N	\N
+4	4	20	2	35.00	\N	\N	\N
+5	5	5	3	45.00	\N	\N	\N
+6	6	15	2	60.00	\N	\N	\N
+7	7	1	1	12.00	\N	\N	\N
+8	8	2	2	20.00	\N	\N	\N
+9	1	4	1	18.00	\N	\N	\N
+10	2	18	1	70.00	\N	\N	\N
+11	3	12	2	55.00	\N	\N	\N
+12	4	19	1	25.00	\N	\N	\N
+16	15	12	1	60.00	\N	\N	\N
+18	17	12	1	60.00	\N	\N	\N
+19	18	12	1	60.00	\N	\N	\N
+20	19	17	2	65.00	\N	\N	\N
 \.
 
 
@@ -3374,6 +3371,13 @@ SELECT pg_catalog.setval('public.lab_test_results_result_id_seq', 15, true);
 
 
 --
+-- Name: medicine_batch_batch_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.medicine_batch_batch_id_seq', 1, false);
+
+
+--
 -- Name: medicine_medicine_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
@@ -3398,7 +3402,7 @@ SELECT pg_catalog.setval('public.medicine_purchase_purchase_id_seq', 10, true);
 -- Name: medicine_transaction_txn_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.medicine_transaction_txn_id_seq', 33, true);
+SELECT pg_catalog.setval('public.medicine_transaction_txn_id_seq', 47, true);
 
 
 --
@@ -3454,42 +3458,35 @@ SELECT pg_catalog.setval('public.pharmacy_customer_customer_id_seq', 1, false);
 -- Name: pharmacy_sale_detail_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.pharmacy_sale_detail_id_seq', 34, true);
-
-
---
--- Name: pharmacy_sale_payment_payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.pharmacy_sale_payment_payment_id_seq', 1, false);
+SELECT pg_catalog.setval('public.pharmacy_sale_detail_id_seq', 48, true);
 
 
 --
 -- Name: pharmacy_sale_sale_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.pharmacy_sale_sale_id_seq', 24, true);
+SELECT pg_catalog.setval('public.pharmacy_sale_sale_id_seq', 39, true);
 
 
 --
 -- Name: pos_audit_log_log_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.pos_audit_log_log_id_seq', 1, false);
+SELECT pg_catalog.setval('public.pos_audit_log_log_id_seq', 7, true);
 
 
 --
 -- Name: pos_held_transaction_detail_detail_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.pos_held_transaction_detail_detail_id_seq', 1, true);
+SELECT pg_catalog.setval('public.pos_held_transaction_detail_detail_id_seq', 2, true);
 
 
 --
 -- Name: pos_held_transaction_hold_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.pos_held_transaction_hold_id_seq', 1, true);
+SELECT pg_catalog.setval('public.pos_held_transaction_hold_id_seq', 2, true);
 
 
 --
@@ -3682,6 +3679,14 @@ ALTER TABLE ONLY public.medicine
 
 
 --
+-- Name: medicine_batch medicine_batch_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.medicine_batch
+    ADD CONSTRAINT medicine_batch_pkey PRIMARY KEY (batch_id);
+
+
+--
 -- Name: medicine medicine_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -3790,15 +3795,7 @@ ALTER TABLE ONLY public.pharmacy_customer
 --
 
 ALTER TABLE ONLY public.pharmacy_sale_detail
-    ADD CONSTRAINT pharmacy_sale_detail_pkey PRIMARY KEY (id);
-
-
---
--- Name: pharmacy_sale_payment pharmacy_sale_payment_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.pharmacy_sale_payment
-    ADD CONSTRAINT pharmacy_sale_payment_pkey PRIMARY KEY (payment_id);
+    ADD CONSTRAINT pharmacy_sale_detail_pkey PRIMARY KEY (pharmacy_sale_detail_id);
 
 
 --
@@ -4033,13 +4030,6 @@ CREATE INDEX idx_pos_session_status ON public.pos_session USING btree (status);
 
 
 --
--- Name: idx_sale_payment_sale_id; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_sale_payment_sale_id ON public.pharmacy_sale_payment USING btree (sale_id);
-
-
---
 -- Name: idx_visit_timestamp; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -4249,11 +4239,35 @@ ALTER TABLE ONLY public.lab_test_results
 
 
 --
+-- Name: medicine_batch medicine_batch_medicine_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.medicine_batch
+    ADD CONSTRAINT medicine_batch_medicine_id_fkey FOREIGN KEY (medicine_id) REFERENCES public.medicine(medicine_id);
+
+
+--
+-- Name: medicine_batch medicine_batch_party_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.medicine_batch
+    ADD CONSTRAINT medicine_batch_party_id_fkey FOREIGN KEY (party_id) REFERENCES public.party(party_id);
+
+
+--
 -- Name: medicine_purchase medicine_purchase_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.medicine_purchase
     ADD CONSTRAINT medicine_purchase_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.staff(staff_id);
+
+
+--
+-- Name: medicine_purchase_detail medicine_purchase_detail_batch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.medicine_purchase_detail
+    ADD CONSTRAINT medicine_purchase_detail_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.medicine_batch(batch_id);
 
 
 --
@@ -4278,6 +4292,14 @@ ALTER TABLE ONLY public.medicine_purchase_detail
 
 ALTER TABLE ONLY public.medicine_purchase
     ADD CONSTRAINT medicine_purchase_party_id_fkey FOREIGN KEY (party_id) REFERENCES public.party(party_id);
+
+
+--
+-- Name: medicine_transaction medicine_transaction_batch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.medicine_transaction
+    ADD CONSTRAINT medicine_transaction_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.medicine_batch(batch_id);
 
 
 --
@@ -4369,6 +4391,14 @@ ALTER TABLE ONLY public.pharmacy_sale
 
 
 --
+-- Name: pharmacy_sale_detail pharmacy_sale_detail_batch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.pharmacy_sale_detail
+    ADD CONSTRAINT pharmacy_sale_detail_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.medicine_batch(batch_id);
+
+
+--
 -- Name: pharmacy_sale_detail pharmacy_sale_detail_medicine_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -4390,14 +4420,6 @@ ALTER TABLE ONLY public.pharmacy_sale_detail
 
 ALTER TABLE ONLY public.pharmacy_sale
     ADD CONSTRAINT pharmacy_sale_handled_by_fkey FOREIGN KEY (handled_by) REFERENCES public.staff(staff_id);
-
-
---
--- Name: pharmacy_sale_payment pharmacy_sale_payment_sale_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.pharmacy_sale_payment
-    ADD CONSTRAINT pharmacy_sale_payment_sale_id_fkey FOREIGN KEY (sale_id) REFERENCES public.pharmacy_sale(sale_id) ON DELETE CASCADE;
 
 
 --
@@ -4513,6 +4535,14 @@ ALTER TABLE ONLY public.purchase_return
 
 
 --
+-- Name: purchase_return_detail purchase_return_detail_batch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.purchase_return_detail
+    ADD CONSTRAINT purchase_return_detail_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.medicine_batch(batch_id);
+
+
+--
 -- Name: purchase_return_detail purchase_return_detail_medicine_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -4542,6 +4572,14 @@ ALTER TABLE ONLY public.purchase_return
 
 ALTER TABLE ONLY public.sale_return
     ADD CONSTRAINT sale_return_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.staff(staff_id);
+
+
+--
+-- Name: sale_return_detail sale_return_detail_batch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.sale_return_detail
+    ADD CONSTRAINT sale_return_detail_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.medicine_batch(batch_id);
 
 
 --
@@ -4612,5 +4650,5 @@ ALTER TABLE ONLY public.visit_status_history
 -- PostgreSQL database dump complete
 --
 
-\unrestrict SmZn1a8RTZ4hMhu9f45ucMyrd1InIYP7DNgict3HIyNDaxLRxbzzj8lh9JMat7Z
+\unrestrict H40Cj5qSRfhsBiLMtuV6Q9k2h7AJnUYH0Ya8DoSShZO8R1zj373IdCrXYVq2Y0y
 

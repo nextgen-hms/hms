@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict FLuD8OarkN4oPPw1fv8s0tJn8rRRL3bI4KvUNzguxEa18m78Md5B3eUzlSrfLAF
+\restrict 0EVToT2fX1udV51Aq73AxmlFRa5bj7fTyMCuY97LmzqIa3Z1Oe3AJpsKX6y1fac
 
 -- Dumped from database version 18.1 (Ubuntu 18.1-1.pgdg24.04+2)
 -- Dumped by pg_dump version 18.1 (Ubuntu 18.1-1.pgdg24.04+2)
@@ -66,39 +66,16 @@ CREATE FUNCTION public.fn_tg_purchase_detail_to_txn() RETURNS trigger
     AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO medicine_transaction(
-      medicine_id, 
-      txn_type, 
-      quantity, 
-      sub_quantity,
-      amount_per_unit, 
-      ref_purchase_id
-    )
-    VALUES (
-      NEW.medicine_id, 
-      'purchase', 
-      NEW.quantity,
-      COALESCE(NEW.sub_quantity, 0),
-      NEW.unit_cost, 
-      NEW.purchase_id
-    );
-
+    INSERT INTO medicine_transaction(medicine_id, txn_type, quantity, sub_quantity, amount_per_unit, ref_purchase_id, batch_id)
+    VALUES (NEW.medicine_id, 'purchase', NEW.quantity, COALESCE(NEW.sub_quantity, 0), NEW.unit_cost, NEW.purchase_id, NEW.batch_id);
   ELSIF TG_OP = 'UPDATE' THEN
     UPDATE medicine_transaction
-    SET quantity = NEW.quantity,
-        sub_quantity = COALESCE(NEW.sub_quantity, 0),
-        amount_per_unit = NEW.unit_cost
-    WHERE ref_purchase_id = NEW.purchase_id
-      AND medicine_id = NEW.medicine_id
-      AND txn_type = 'purchase';
-
+    SET quantity = NEW.quantity, sub_quantity = COALESCE(NEW.sub_quantity, 0), amount_per_unit = NEW.unit_cost, batch_id = NEW.batch_id
+    WHERE ref_purchase_id = NEW.purchase_id AND medicine_id = NEW.medicine_id AND txn_type = 'purchase';
   ELSIF TG_OP = 'DELETE' THEN
     DELETE FROM medicine_transaction
-    WHERE ref_purchase_id = OLD.purchase_id
-      AND medicine_id = OLD.medicine_id
-      AND txn_type = 'purchase';
+    WHERE ref_purchase_id = OLD.purchase_id AND medicine_id = OLD.medicine_id AND txn_type = 'purchase';
   END IF;
-
   RETURN COALESCE(NEW, OLD);
 END;
 $$;
@@ -115,40 +92,16 @@ CREATE FUNCTION public.fn_tg_purchase_return_detail_to_txn() RETURNS trigger
     AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO medicine_transaction(
-      medicine_id, 
-      txn_type, 
-      quantity, 
-      sub_quantity,
-      amount_per_unit, 
-      ref_purchase_return_id
-    )
-    VALUES (
-      NEW.medicine_id, 
-      'purchase_return', 
-      NEW.quantity,
-      COALESCE(NEW.sub_quantity, 0),
-      NEW.unit_cost, 
-      NEW.purchase_return_id
-    );
-
+    INSERT INTO medicine_transaction(medicine_id, txn_type, quantity, sub_quantity, amount_per_unit, ref_purchase_return_id, batch_id)
+    VALUES (NEW.medicine_id, 'purchase_return', NEW.quantity, COALESCE(NEW.sub_quantity, 0), NEW.unit_cost, NEW.purchase_return_id, NEW.batch_id);
   ELSIF TG_OP = 'UPDATE' THEN
     UPDATE medicine_transaction
-    SET medicine_id = NEW.medicine_id,
-        quantity = NEW.quantity,
-        sub_quantity = COALESCE(NEW.sub_quantity, 0),
-        amount_per_unit = NEW.unit_cost
-    WHERE ref_purchase_return_id = OLD.purchase_return_id
-      AND medicine_id = OLD.medicine_id
-      AND txn_type = 'purchase_return';
-
+    SET medicine_id = NEW.medicine_id, quantity = NEW.quantity, sub_quantity = COALESCE(NEW.sub_quantity, 0), amount_per_unit = NEW.unit_cost, batch_id = NEW.batch_id
+    WHERE ref_purchase_return_id = OLD.purchase_return_id AND medicine_id = OLD.medicine_id AND txn_type = 'purchase_return';
   ELSIF TG_OP = 'DELETE' THEN
     DELETE FROM medicine_transaction
-    WHERE ref_purchase_return_id = OLD.purchase_return_id
-      AND medicine_id = OLD.medicine_id
-      AND txn_type = 'purchase_return';
+    WHERE ref_purchase_return_id = OLD.purchase_return_id AND medicine_id = OLD.medicine_id AND txn_type = 'purchase_return';
   END IF;
-
   RETURN COALESCE(NEW, OLD);
 END;
 $$;
@@ -165,39 +118,16 @@ CREATE FUNCTION public.fn_tg_sale_detail_to_txn() RETURNS trigger
     AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO medicine_transaction(
-      medicine_id, 
-      txn_type, 
-      quantity, 
-      sub_quantity,
-      amount_per_unit, 
-      ref_sale_id
-    )
-    VALUES (
-      NEW.medicine_id, 
-      'sale', 
-      NEW.qty,
-      COALESCE(NEW.sub_quantity, 0),
-      NEW.unit_price, 
-      NEW.sale_id
-    );
-  
+    INSERT INTO medicine_transaction(medicine_id, txn_type, quantity, sub_quantity, amount_per_unit, ref_sale_id, batch_id)
+    VALUES (NEW.medicine_id, 'sale', NEW.quantity, COALESCE(NEW.sub_quantity, 0), NEW.unit_sale_price, NEW.sale_id, NEW.batch_id);
   ELSIF TG_OP = 'UPDATE' THEN
     UPDATE medicine_transaction
-    SET quantity = NEW.qty,
-        sub_quantity = COALESCE(NEW.sub_quantity, 0),
-        amount_per_unit = NEW.unit_price
-    WHERE ref_sale_id = NEW.sale_id
-      AND medicine_id = NEW.medicine_id
-      AND txn_type = 'sale';
-
+    SET quantity = NEW.quantity, sub_quantity = COALESCE(NEW.sub_quantity, 0), amount_per_unit = NEW.unit_sale_price, batch_id = NEW.batch_id
+    WHERE ref_sale_id = NEW.sale_id AND medicine_id = NEW.medicine_id AND txn_type = 'sale';
   ELSIF TG_OP = 'DELETE' THEN
     DELETE FROM medicine_transaction
-    WHERE ref_sale_id = OLD.sale_id
-      AND medicine_id = OLD.medicine_id
-      AND txn_type = 'sale';
+    WHERE ref_sale_id = OLD.sale_id AND medicine_id = OLD.medicine_id AND txn_type = 'sale';
   END IF;
-
   RETURN NULL;
 END;
 $$;
@@ -214,39 +144,16 @@ CREATE FUNCTION public.fn_tg_sale_return_detail_to_txn() RETURNS trigger
     AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO medicine_transaction(
-      medicine_id,
-      txn_type,
-      quantity,
-      sub_quantity,
-      amount_per_unit,
-      ref_sale_return
-    )
-    VALUES (
-      NEW.medicine_id,
-      'sale_return',
-      NEW.qty,
-      COALESCE(NEW.sub_quantity, 0),
-      NEW.unit_price,
-      NEW.return_id
-    );
-  
+    INSERT INTO medicine_transaction(medicine_id, txn_type, quantity, sub_quantity, amount_per_unit, ref_sale_return, batch_id)
+    VALUES (NEW.medicine_id, 'sale_return', NEW.quantity, COALESCE(NEW.sub_quantity, 0), NEW.unit_sale_price, NEW.return_id, NEW.batch_id);
   ELSIF TG_OP = 'UPDATE' THEN
     UPDATE medicine_transaction
-    SET quantity = NEW.qty,
-        sub_quantity = COALESCE(NEW.sub_quantity, 0),
-        amount_per_unit = NEW.unit_price
-    WHERE ref_sale_return = NEW.return_id
-      AND medicine_id = NEW.medicine_id
-      AND txn_type = 'sale_return';
-
+    SET quantity = NEW.quantity, sub_quantity = COALESCE(NEW.sub_quantity, 0), amount_per_unit = NEW.unit_sale_price, batch_id = NEW.batch_id
+    WHERE ref_sale_return = NEW.return_id AND medicine_id = NEW.medicine_id AND txn_type = 'sale_return';
   ELSIF TG_OP = 'DELETE' THEN
     DELETE FROM medicine_transaction
-    WHERE ref_sale_return = OLD.return_id
-      AND medicine_id = OLD.medicine_id
-      AND txn_type = 'sale_return';
+    WHERE ref_sale_return = OLD.return_id AND medicine_id = OLD.medicine_id AND txn_type = 'sale_return';
   END IF;
-
   RETURN NEW;
 END;
 $$;
@@ -265,93 +172,51 @@ DECLARE
     v_sign INTEGER;
     v_sub_units_per_unit INTEGER;
     v_total_sub_units_change INTEGER;
-    v_current_stock INTEGER;
-    v_current_sub_stock INTEGER;
-    v_current_total_sub_units INTEGER;
-    v_new_total_sub_units INTEGER;
-    v_new_full_units INTEGER;
-    v_new_sub_units INTEGER;
+    v_medicine_id INTEGER;
 BEGIN
-    -- Get medicine configuration and current stock
-    SELECT sub_units_per_unit, stock_quantity, stock_sub_quantity
-    INTO v_sub_units_per_unit, v_current_stock, v_current_sub_stock
-    FROM medicine 
-    WHERE medicine_id = COALESCE(NEW.medicine_id, OLD.medicine_id);
+    v_medicine_id := COALESCE(NEW.medicine_id, OLD.medicine_id);
+
+    SELECT sub_units_per_unit INTO v_sub_units_per_unit
+    FROM medicine WHERE medicine_id = v_medicine_id;
     
-    -- Handle medicines without sub-units (default to 1)
     IF v_sub_units_per_unit IS NULL OR v_sub_units_per_unit = 0 THEN
         v_sub_units_per_unit := 1;
     END IF;
-    
-    -- Determine sign based on transaction type
-    IF NEW.txn_type = 'purchase' THEN 
-        v_sign := 1;
-    ELSIF NEW.txn_type = 'sale' THEN
-        v_sign := -1;
-    ELSIF NEW.txn_type = 'purchase_return' THEN 
-        v_sign := -1;
-    ELSIF NEW.txn_type = 'sale_return' THEN
-        v_sign := 1;
-    ELSE
-        RAISE EXCEPTION 'Unknown txn_type: %', NEW.txn_type;
+
+    IF TG_OP IN ('INSERT', 'UPDATE') THEN
+        IF NEW.txn_type IN ('purchase', 'sale_return') THEN v_sign := 1;
+        ELSIF NEW.txn_type IN ('sale', 'purchase_return') THEN v_sign := -1;
+        ELSIF NEW.txn_type = 'adjustment' THEN v_sign := 1;
+        END IF;
+    ELSIF TG_OP = 'DELETE' THEN
+        IF OLD.txn_type IN ('purchase', 'sale_return') THEN v_sign := 1;
+        ELSE v_sign := -1;
+        END IF;
     END IF;
 
     IF TG_OP = 'INSERT' THEN
-        -- Convert transaction to total sub-units
         v_total_sub_units_change := (NEW.quantity * v_sub_units_per_unit) + COALESCE(NEW.sub_quantity, 0);
-        
-        -- Calculate current total sub-units in stock
-        v_current_total_sub_units := (v_current_stock * v_sub_units_per_unit) + COALESCE(v_current_sub_stock, 0);
-        
-        -- Apply the change
-        v_new_total_sub_units := v_current_total_sub_units + (v_sign * v_total_sub_units_change);
-        
-        -- Split back into full units and remaining sub-units
-        v_new_full_units := v_new_total_sub_units / v_sub_units_per_unit;
-        v_new_sub_units := v_new_total_sub_units % v_sub_units_per_unit;
-        
-        -- Update stock
-        UPDATE medicine 
-        SET stock_quantity = v_new_full_units,
-            stock_sub_quantity = v_new_sub_units
-        WHERE medicine_id = NEW.medicine_id;
-
+        UPDATE medicine SET stock_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity + (v_sign * v_total_sub_units_change) ) / v_sub_units_per_unit, stock_sub_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity + (v_sign * v_total_sub_units_change) ) % v_sub_units_per_unit WHERE medicine_id = v_medicine_id;
+        IF NEW.batch_id IS NOT NULL THEN
+            UPDATE medicine_batch SET stock_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity + (v_sign * v_total_sub_units_change) ) / v_sub_units_per_unit, stock_sub_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity + (v_sign * v_total_sub_units_change) ) % v_sub_units_per_unit WHERE batch_id = NEW.batch_id;
+        END IF;
     ELSIF TG_OP = 'DELETE' THEN
-        -- Convert OLD transaction to total sub-units
         v_total_sub_units_change := (OLD.quantity * v_sub_units_per_unit) + COALESCE(OLD.sub_quantity, 0);
-        
-        v_current_total_sub_units := (v_current_stock * v_sub_units_per_unit) + COALESCE(v_current_sub_stock, 0);
-        v_new_total_sub_units := v_current_total_sub_units - (v_sign * v_total_sub_units_change);
-        
-        v_new_full_units := v_new_total_sub_units / v_sub_units_per_unit;
-        v_new_sub_units := v_new_total_sub_units % v_sub_units_per_unit;
-        
-        UPDATE medicine
-        SET stock_quantity = v_new_full_units,
-            stock_sub_quantity = v_new_sub_units
-        WHERE medicine_id = OLD.medicine_id;
-
+        UPDATE medicine SET stock_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity - (v_sign * v_total_sub_units_change) ) / v_sub_units_per_unit, stock_sub_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity - (v_sign * v_total_sub_units_change) ) % v_sub_units_per_unit WHERE medicine_id = v_medicine_id;
+        IF OLD.batch_id IS NOT NULL THEN
+            UPDATE medicine_batch SET stock_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity - (v_sign * v_total_sub_units_change) ) / v_sub_units_per_unit, stock_sub_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity - (v_sign * v_total_sub_units_change) ) % v_sub_units_per_unit WHERE batch_id = OLD.batch_id;
+        END IF;
     ELSIF TG_OP = 'UPDATE' THEN
-        -- Calculate OLD transaction effect
         v_total_sub_units_change := (OLD.quantity * v_sub_units_per_unit) + COALESCE(OLD.sub_quantity, 0);
-        v_current_total_sub_units := (v_current_stock * v_sub_units_per_unit) + COALESCE(v_current_sub_stock, 0);
-        
-        -- Remove OLD effect
-        v_current_total_sub_units := v_current_total_sub_units - (v_sign * v_total_sub_units_change);
-        
-        -- Calculate NEW transaction effect
+        UPDATE medicine SET stock_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity - (v_sign * v_total_sub_units_change) ) / v_sub_units_per_unit, stock_sub_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity - (v_sign * v_total_sub_units_change) ) % v_sub_units_per_unit WHERE medicine_id = v_medicine_id;
+        IF OLD.batch_id IS NOT NULL THEN
+            UPDATE medicine_batch SET stock_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity - (v_sign * v_total_sub_units_change) ) / v_sub_units_per_unit, stock_sub_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity - (v_sign * v_total_sub_units_change) ) % v_sub_units_per_unit WHERE batch_id = OLD.batch_id;
+        END IF;
         v_total_sub_units_change := (NEW.quantity * v_sub_units_per_unit) + COALESCE(NEW.sub_quantity, 0);
-        
-        -- Add NEW effect
-        v_new_total_sub_units := v_current_total_sub_units + (v_sign * v_total_sub_units_change);
-        
-        v_new_full_units := v_new_total_sub_units / v_sub_units_per_unit;
-        v_new_sub_units := v_new_total_sub_units % v_sub_units_per_unit;
-        
-        UPDATE medicine
-        SET stock_quantity = v_new_full_units,
-            stock_sub_quantity = v_new_sub_units
-        WHERE medicine_id = NEW.medicine_id;
+        UPDATE medicine SET stock_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity + (v_sign * v_total_sub_units_change) ) / v_sub_units_per_unit, stock_sub_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity + (v_sign * v_total_sub_units_change) ) % v_sub_units_per_unit WHERE medicine_id = v_medicine_id;
+        IF NEW.batch_id IS NOT NULL THEN
+            UPDATE medicine_batch SET stock_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity + (v_sign * v_total_sub_units_change) ) / v_sub_units_per_unit, stock_sub_quantity = ( (stock_quantity * v_sub_units_per_unit) + stock_sub_quantity + (v_sign * v_total_sub_units_change) ) % v_sub_units_per_unit WHERE batch_id = NEW.batch_id;
+        END IF;
     END IF;
 
     RETURN COALESCE(NEW, OLD);
@@ -602,7 +467,7 @@ ALTER SEQUENCE public.bill_item_item_id_seq OWNED BY public.bill_item.item_id;
 --
 
 CREATE TABLE public.current_pregnancy (
-    pregnanacy_id integer NOT NULL,
+    pregnancy_id integer CONSTRAINT current_pregnancy_pregnanacy_id_not_null NOT NULL,
     patient_id integer NOT NULL,
     visit_id integer NOT NULL,
     multiple_pregnancy boolean,
@@ -619,10 +484,10 @@ CREATE TABLE public.current_pregnancy (
 ALTER TABLE public.current_pregnancy OWNER TO postgres;
 
 --
--- Name: current_pregnancy_pregnanacy_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: current_pregnancy_pregnancy_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.current_pregnancy_pregnanacy_id_seq
+CREATE SEQUENCE public.current_pregnancy_pregnancy_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -631,13 +496,13 @@ CREATE SEQUENCE public.current_pregnancy_pregnanacy_id_seq
     CACHE 1;
 
 
-ALTER SEQUENCE public.current_pregnancy_pregnanacy_id_seq OWNER TO postgres;
+ALTER SEQUENCE public.current_pregnancy_pregnancy_id_seq OWNER TO postgres;
 
 --
--- Name: current_pregnancy_pregnanacy_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: current_pregnancy_pregnancy_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.current_pregnancy_pregnanacy_id_seq OWNED BY public.current_pregnancy.pregnanacy_id;
+ALTER SEQUENCE public.current_pregnancy_pregnancy_id_seq OWNED BY public.current_pregnancy.pregnancy_id;
 
 
 --
@@ -651,7 +516,7 @@ CREATE TABLE public.doctor (
     doctor_name character varying(50) NOT NULL,
     specialization character varying(100) NOT NULL,
     education character varying(255),
-    consultaion_fee numeric(10,2) NOT NULL,
+    consultation_fee numeric(10,2) CONSTRAINT doctor_consultaion_fee_not_null NOT NULL,
     emergency_fee numeric(10,2) NOT NULL,
     contact_number character varying(20),
     email character varying(100),
@@ -2169,10 +2034,10 @@ ALTER TABLE ONLY public.bill_item ALTER COLUMN item_id SET DEFAULT nextval('publ
 
 
 --
--- Name: current_pregnancy pregnanacy_id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: current_pregnancy pregnancy_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.current_pregnancy ALTER COLUMN pregnanacy_id SET DEFAULT nextval('public.current_pregnancy_pregnanacy_id_seq'::regclass);
+ALTER TABLE ONLY public.current_pregnancy ALTER COLUMN pregnancy_id SET DEFAULT nextval('public.current_pregnancy_pregnancy_id_seq'::regclass);
 
 
 --
@@ -2483,7 +2348,7 @@ COPY public.bill_item (item_id, bill_id, description, amount, quantity, created_
 -- Data for Name: current_pregnancy; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.current_pregnancy (pregnanacy_id, patient_id, visit_id, multiple_pregnancy, complications, ultrasound_findings, fetal_heart_rate_bpm, placenta_position, presentation, gestational_age_weeks, notes) FROM stdin;
+COPY public.current_pregnancy (pregnancy_id, patient_id, visit_id, multiple_pregnancy, complications, ultrasound_findings, fetal_heart_rate_bpm, placenta_position, presentation, gestational_age_weeks, notes) FROM stdin;
 2	4	4	t	Gestational diabetes	Twin pregnancy, both healthy	145	Posterior	Cephalic	24	High-risk twin pregnancy
 3	5	5	f	Mild anemia	Normal	138	Anterior	Breech	18	Monitor diet
 4	7	7	f	None	Normal	142	Anterior	Cephalic	22	Regular follow-up
@@ -2498,7 +2363,7 @@ COPY public.current_pregnancy (pregnanacy_id, patient_id, visit_id, multiple_pre
 -- Data for Name: doctor; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.doctor (doctor_id, user_code, password, doctor_name, specialization, education, consultaion_fee, emergency_fee, contact_number, email, created_at) FROM stdin;
+COPY public.doctor (doctor_id, user_code, password, doctor_name, specialization, education, consultation_fee, emergency_fee, contact_number, email, created_at) FROM stdin;
 1	DOC001	pass1	Dr. Ahmed Khan	Gynecology	MBBS, FCPS	1500.00	3000.00	03001230001	ahmed.khan@example.com	2025-09-07 12:57:18.982786
 2	DOC002	pass2	Dr. Fatima Ali	Cardiology	MBBS, MD	2000.00	4000.00	03001230002	fatima.ali@example.com	2025-09-07 12:57:18.982786
 3	DOC003	pass3	Dr. Ali Raza	General Medicine	MBBS	1000.00	2000.00	03001230003	ali.raza@example.com	2025-09-07 12:57:18.982786
@@ -2726,6 +2591,9 @@ COPY public.medicine (medicine_id, generic_name, brand_name, category, dosage_va
 20	Metoprolol	Lopressor	Antihypertensive	50.00	mg	Tablet	80	40.00	2025-09-07 13:04:08.818759	\N	\N	\N	10	1000	t	f	'antihypertens':3B 'lopressor':2A 'metoprolol':1A	\N	0	\N	f	0
 12	Prednisolone	Prednisone	Steroid	10.00	mg	Tablet	39	60.00	2025-09-07 13:04:08.818759	\N	\N	\N	10	1000	t	f	'prednisolon':1A 'prednison':2A 'steroid':3B	\N	0	\N	f	0
 17	Azithromycin	Zithromax	Antibiotic	500.00	mg	Tablet	85	65.00	2025-09-07 13:04:08.818759	\N	\N	\N	10	1000	t	f	'antibiot':3B 'azithromycin':1A 'zithromax':2A	\N	0	\N	f	0
+21	Paracetamol	Panadol	Analgesic	\N	\N	\N	100	10.00	2026-02-05 10:16:13.589345	\N	\N	\N	10	1000	t	f	'analges':3B 'panadol':2A 'paracetamol':1A	\N	10	\N	f	0
+22	Paracetamol	Panadol	Analgesic	\N	\N	\N	100	10.00	2026-02-05 10:18:16.862864	\N	\N	\N	10	1000	t	f	'analges':3B 'panadol':2A 'paracetamol':1A	\N	10	\N	f	0
+23	Paracetamol	Panadol	Analgesic	\N	\N	\N	108	10.00	2026-02-05 10:20:04.992888	\N	\N	\N	10	1000	t	f	'analges':3B 'panadol':2A 'paracetamol':1A	\N	10	\N	f	0
 \.
 
 
@@ -2734,6 +2602,8 @@ COPY public.medicine (medicine_id, generic_name, brand_name, category, dosage_va
 --
 
 COPY public.medicine_batch (batch_id, medicine_id, stock_quantity, stock_sub_quantity, purchase_price, purchase_sub_unit_price, sale_price, sale_sub_unit_price, expiry_date, batch_number, received_date, party_id) FROM stdin;
+1	22	50	0	\N	\N	10.00	\N	\N	BCH001	2026-02-05 10:18:16.87534	\N
+2	23	58	0	\N	\N	10.00	\N	\N	BCH001	2026-02-05 10:20:04.99575	\N
 \.
 
 
@@ -2752,6 +2622,7 @@ COPY public.medicine_purchase (purchase_id, party_id, invoice_no, invoice_timest
 8	3	INV-1008	2025-09-07 13:08:19.434238	3500.00	Paid	2025-09-07 13:08:19.434238	\N
 9	4	INV-1009	2025-09-07 13:08:19.434238	7000.00	Partial	2025-09-07 13:08:19.434238	\N
 10	5	INV-1010	2025-09-07 13:08:19.434238	9000.00	Paid	2025-09-07 13:08:19.434238	\N
+11	1	INV-TEST-001	2026-02-05 10:20:04.997576	\N	\N	2026-02-05 10:20:04.997576	1
 \.
 
 
@@ -2780,6 +2651,7 @@ COPY public.medicine_purchase_detail (id, purchase_id, medicine_id, quantity, un
 18	9	18	20	70.00	0	0.0	\N
 19	10	19	25	25.00	0	0.0	\N
 20	10	20	40	35.00	0	0.0	\N
+21	11	23	10	8.00	0	0.0	2
 \.
 
 
@@ -2821,6 +2693,8 @@ COPY public.medicine_transaction (txn_id, medicine_id, txn_type, quantity, amoun
 45	1	sale	1	15.00	\N	37	\N	\N	2025-11-14 07:49:54.354203	0	\N
 46	1	sale	1	15.00	\N	38	\N	\N	2025-11-14 07:50:31.550842	0	\N
 47	1	sale	1	15.00	\N	39	\N	\N	2025-11-14 07:51:08.466045	0	\N
+48	23	purchase	10	8.00	11	\N	\N	\N	2026-02-05 10:20:04.999838	0	2
+49	23	sale	2	10.00	\N	41	\N	\N	2026-02-05 10:20:05.00646	0	2
 \.
 
 
@@ -2978,6 +2852,8 @@ COPY public.pharmacy_sale (sale_id, visit_id, bill_id, sale_timestamp, handled_b
 37	\N	\N	2025-11-14 07:49:54.354203	1	15.00	Completed	CASH	TXN-1763088591249-316	1000.00	0.00	985.00	0.00	0.00	0.00	f	\N	\N	1
 38	\N	\N	2025-11-14 07:50:31.550842	1	15.00	Completed	CASH	TXN-1763088630799-168	1000.00	0.00	985.00	0.00	0.00	0.00	f	\N	\N	1
 39	\N	\N	2025-11-14 07:51:08.466045	1	15.00	Completed	CASH	TXN-1763088667593-870	500.00	0.00	485.00	0.00	0.00	0.00	f	\N	\N	1
+40	\N	\N	2026-02-05 10:18:16.880382	1	20.00	Completed	CASH	\N	0.00	0.00	0.00	0.00	0.00	0.00	f	\N	\N	\N
+41	\N	\N	2026-02-05 10:20:05.004668	1	20.00	Completed	CASH	\N	0.00	0.00	0.00	0.00	0.00	0.00	f	\N	\N	\N
 \.
 
 
@@ -3019,6 +2895,7 @@ COPY public.pharmacy_sale_detail (pharmacy_sale_detail_id, sale_id, medicine_id,
 46	37	1	1	15.00	NaN	0.00	NaN	15.00	0	\N
 47	38	1	1	15.00	NaN	0.00	NaN	15.00	0	\N
 48	39	1	1	15.00	NaN	0.00	NaN	15.00	0	\N
+50	41	23	2	10.00	20.00	0.00	0.00	\N	0	2
 \.
 
 
@@ -3322,10 +3199,10 @@ SELECT pg_catalog.setval('public.bill_item_item_id_seq', 35, true);
 
 
 --
--- Name: current_pregnancy_pregnanacy_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: current_pregnancy_pregnancy_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.current_pregnancy_pregnanacy_id_seq', 11, true);
+SELECT pg_catalog.setval('public.current_pregnancy_pregnancy_id_seq', 11, true);
 
 
 --
@@ -3374,35 +3251,35 @@ SELECT pg_catalog.setval('public.lab_test_results_result_id_seq', 15, true);
 -- Name: medicine_batch_batch_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.medicine_batch_batch_id_seq', 1, false);
+SELECT pg_catalog.setval('public.medicine_batch_batch_id_seq', 2, true);
 
 
 --
 -- Name: medicine_medicine_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.medicine_medicine_id_seq', 20, true);
+SELECT pg_catalog.setval('public.medicine_medicine_id_seq', 23, true);
 
 
 --
 -- Name: medicine_purchase_detail_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.medicine_purchase_detail_id_seq', 20, true);
+SELECT pg_catalog.setval('public.medicine_purchase_detail_id_seq', 21, true);
 
 
 --
 -- Name: medicine_purchase_purchase_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.medicine_purchase_purchase_id_seq', 10, true);
+SELECT pg_catalog.setval('public.medicine_purchase_purchase_id_seq', 11, true);
 
 
 --
 -- Name: medicine_transaction_txn_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.medicine_transaction_txn_id_seq', 47, true);
+SELECT pg_catalog.setval('public.medicine_transaction_txn_id_seq', 49, true);
 
 
 --
@@ -3458,14 +3335,14 @@ SELECT pg_catalog.setval('public.pharmacy_customer_customer_id_seq', 1, false);
 -- Name: pharmacy_sale_detail_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.pharmacy_sale_detail_id_seq', 48, true);
+SELECT pg_catalog.setval('public.pharmacy_sale_detail_id_seq', 50, true);
 
 
 --
 -- Name: pharmacy_sale_sale_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.pharmacy_sale_sale_id_seq', 39, true);
+SELECT pg_catalog.setval('public.pharmacy_sale_sale_id_seq', 41, true);
 
 
 --
@@ -3587,7 +3464,7 @@ ALTER TABLE ONLY public.bill
 --
 
 ALTER TABLE ONLY public.current_pregnancy
-    ADD CONSTRAINT current_pregnancy_pkey PRIMARY KEY (pregnanacy_id);
+    ADD CONSTRAINT current_pregnancy_pkey PRIMARY KEY (pregnancy_id);
 
 
 --
@@ -4650,5 +4527,5 @@ ALTER TABLE ONLY public.visit_status_history
 -- PostgreSQL database dump complete
 --
 
-\unrestrict FLuD8OarkN4oPPw1fv8s0tJn8rRRL3bI4KvUNzguxEa18m78Md5B3eUzlSrfLAF
+\unrestrict 0EVToT2fX1udV51Aq73AxmlFRa5bj7fTyMCuY97LmzqIa3Z1Oe3AJpsKX6y1fac
 
