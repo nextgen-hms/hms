@@ -1,12 +1,13 @@
 "use client";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ObstetricHistorySchema, ObstetricHistoryFormData } from "../types";
 import { useObstetricHistory } from "../hooks/useObstetricHistory";
 import { usePatient } from "@/contexts/PatientIdContext";
+
 export default function ObstetricHistoryForm() {
-  // get patientId from context or props
-  const {patientId} = usePatient(); // <-- your context hook
+  const { patientId } = usePatient();
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ObstetricHistoryFormData>({
     resolver: zodResolver(ObstetricHistorySchema),
@@ -16,47 +17,143 @@ export default function ObstetricHistoryForm() {
   const { addInfo, updateInfo } = useObstetricHistory(patientId, reset);
 
   return (
-    <form className="w-2/3 grid grid-cols-2 gap-4 p-4 border-black/40">
-      <div className="col-span-2">
-        <h1 className="text-2xl pl-2 font-semibold text-black/70">Obstetric History</h1>
+    <div className="w-full max-w-5xl mx-auto">
+      <div className="flex items-center gap-4 mb-8">
+        <div className="h-12 w-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-emerald-200">
+          📋
+        </div>
+        <div>
+          <h2 className="text-2xl font-black text-slate-800 tracking-tight">Obstetric History</h2>
+          <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Comprehensive Pregnancy Records</p>
+        </div>
       </div>
 
-      <InputField label="Is First Pregnancy" id="isFirstPregnancy" as="select" {...register("is_first_pregnancy")}>
-        <option value="true">True</option>
-        <option value="false">False</option>
-      </InputField>
+      <form className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+        <InputField
+          label="First Pregnancy?"
+          id="isFirstPregnancy"
+          as="select"
+          err={errors.is_first_pregnancy?.message}
+          {...register("is_first_pregnancy")}
+        >
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </InputField>
 
-      <InputField label="Married Years" id="marriedYears" {...register("married_years")} />
-      <InputField label="Gravida" id="gravida" {...register("gravida")} />
-      <InputField label="Para" id="para" {...register("para")} />
-      <InputField label="Last Menstrual Cycle" id="lastMenstrualCycle" as="input" type="date" {...register("last_menstrual_cycle")} />
-      <InputField label="Abortions" id="abortions" {...register("abortions")} />
-      <InputField label="EDD" id="edd" as="input" type="date" {...register("edd")} />
-      <InputField label="Notes" id="notes" as="textarea" {...register("notes")} />
+        <InputField
+          label="Years Married"
+          placeholder="Ex: 5"
+          err={errors.married_years?.message}
+          {...register("married_years")}
+        />
 
-      <div className="flex space-x-6 col-span-2 pt-2">
-        <FormButton text="Add Info" onClick={handleSubmit(addInfo)} />
-        <FormButton text="Update Info" onClick={handleSubmit(updateInfo)} />
-        <FormButton text="Reset Info" onClick={() => reset()} />
-      </div>
-    </form>
-  );
-}
+        <InputField
+          label="Gravida (No. of Pregnancies)"
+          placeholder="Ex: 2"
+          err={errors.gravida?.message}
+          {...register("gravida")}
+        />
 
-// --- Reusable components ---
-function InputField({ label, id, as = "input", children, ...rest }: any) {
-  const Component = as;
-  return (
-    <div className="flex flex-col">
-      <label htmlFor={id} className="px-2 pb-1 text-sm text-black/70">{label}:</label>
-      <Component id={id} className="w-[80%] p-2 bg-gray-200 rounded-2xl" {...rest}>{children}</Component>
+        <InputField
+          label="Para (No. of Live Births)"
+          placeholder="Ex: 1"
+          err={errors.para?.message}
+          {...register("para")}
+        />
+
+        <InputField
+          label="Last Menstrual Period (LMP)"
+          type="date"
+          err={errors.last_menstrual_cycle?.message}
+          {...register("last_menstrual_cycle")}
+        />
+
+        <InputField
+          label="Abortions / Miscarriages"
+          placeholder="Ex: 0"
+          err={errors.abortions?.message}
+          {...register("abortions")}
+        />
+
+        <InputField
+          label="Estimated Delivery Date (EDD)"
+          type="date"
+          err={errors.edd?.message}
+          {...register("edd")}
+        />
+
+        <div className="md:col-span-2">
+          <InputField
+            label="Additional Notes"
+            as="textarea"
+            placeholder="Relevant medical history details..."
+            err={errors.notes?.message}
+            {...register("notes")}
+          />
+        </div>
+
+        <div className="md:col-span-2 flex items-center justify-end gap-4 pt-6 border-t border-slate-100 mt-4">
+          <FormButton
+            text="Reset"
+            variant="ghost"
+            onClick={() => reset()}
+          />
+          <FormButton
+            text="Update Records"
+            variant="secondary"
+            onClick={handleSubmit(updateInfo)}
+          />
+          <FormButton
+            text="Save History"
+            variant="primary"
+            onClick={handleSubmit(addInfo)}
+          />
+        </div>
+      </form>
     </div>
   );
 }
 
-function FormButton({ text, onClick }: { text: string; onClick?: () => void }) {
+function InputField({ label, id, err, as = "input", children, placeholder, ...rest }: any) {
+  const Component = as;
   return (
-    <button type="button" onClick={onClick} className="bg-gradient-to-r w-[20%] p-2 from-[#BBF6AB] to-[#36F5D4] shadow-2xl rounded-2xl">
+    <div className="space-y-1.5 group">
+      <label htmlFor={id} className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 group-focus-within:text-emerald-600 transition-colors">
+        {label}
+      </label>
+      <div className="relative">
+        <Component
+          id={id}
+          placeholder={placeholder}
+          rows={as === "textarea" ? 3 : undefined}
+          className={`w-full ${as === "textarea" ? "py-3 min-h-[100px]" : "h-12"} px-4 bg-slate-50 border rounded-2xl text-sm font-bold transition-all outline-none resize-none
+            ${err
+              ? "border-red-200 bg-red-50 text-red-900 placeholder:text-red-300"
+              : "border-slate-200 text-slate-700 placeholder:text-slate-400 focus:bg-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10"
+            }`}
+          {...rest}
+        >
+          {children}
+        </Component>
+      </div>
+      {err && <p className="text-[10px] font-bold text-red-500 ml-2 animate-in fade-in slide-in-from-top-1">{err}</p>}
+    </div>
+  );
+}
+
+function FormButton({ text, onClick, variant = "primary" }: { text: string; onClick?: () => void; variant?: "primary" | "secondary" | "ghost" }) {
+  const styles = {
+    primary: "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200",
+    secondary: "bg-white text-emerald-600 border border-emerald-200 hover:bg-emerald-50 shadow-emerald-200/50",
+    ghost: "bg-transparent text-slate-400 hover:bg-slate-50 hover:text-slate-600",
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`h-11 px-8 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 shadow-lg active:scale-95 ${styles[variant]}`}
+    >
       {text}
     </button>
   );

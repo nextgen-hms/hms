@@ -5,10 +5,10 @@ import { generateReference, getCurrentStaffId } from '@/src/lib/utils';
 
 export async function POST(request: NextRequest) {
   const client = await pool.connect();
-  
+
   try {
     const transaction: Transaction = await request.json();
-    
+
     // Validate request
     if (!transaction.items || transaction.items.length === 0) {
       return NextResponse.json<ApiResponse>({
@@ -55,23 +55,24 @@ export async function POST(request: NextRequest) {
       transaction.payment.changeAmount,
       transaction.payment.adjustmentPercent,
       transaction.payment.adjustment,
-     1,
+      1,
       !!transaction.prescriptionId,
       transaction.prescriptionId || null
     ]);
 
     const saleId = saleResult.rows[0].sale_id;
     const saleTimestamp = saleResult.rows[0].sale_timestamp;
-     
-     
+
+
     // Insert sale details
     for (const item of transaction.items) {
       const discountAmount = (item.quantity * item.price * item.discountPercent) / 100;
-      const lineTotal = (item.quantity * item.price) - discountAmount;         
+      const lineTotal = (item.quantity * item.price) - discountAmount;
       await client.query(`
         INSERT INTO pharmacy_sale_detail (
           sale_id,
           medicine_id,
+          batch_id,
           qty,
           sub_quantity,
           unit_price,
@@ -79,10 +80,11 @@ export async function POST(request: NextRequest) {
           discount_amount,
           original_price,
           total_price
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       `, [
         saleId,
         item.medicine.medicine_id,
+        item.batchId || null,
         item.quantity,
         item.subQuantity,
         item.price,
@@ -126,12 +128,12 @@ export async function POST(request: NextRequest) {
     // Rollback on error
     await client.query('ROLLBACK');
     console.error('Transaction error:', error);
-    
+
     return NextResponse.json<ApiResponse>({
       success: false,
       error: 'Failed to process transaction'
     }, { status: 500 });
-    
+
   } finally {
     client.release();
   }

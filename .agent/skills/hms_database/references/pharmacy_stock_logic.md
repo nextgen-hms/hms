@@ -26,7 +26,10 @@ The `tg_stockquantity_generic` trigger on `medicine_transaction` executes `fn_tg
     - `sale`: -1
     - `purchase_return`: -1
     - `sale_return`: +1
-- **Final Update**: Updates `stock_quantity` and `stock_sub_quantity` in the `medicine` table.
+    - `adjustment`: +1
+- **Dual-Update Loop**:
+    1.  Updates `stock_quantity` and `stock_sub_quantity` in the **aggregate** `medicine` table.
+    2.  If `batch_id` is present in the transaction, updates the **specific** `medicine_batch` record to maintain parity.
 
 ## Constraints
 - `check_sub_quantity_valid`: Ensures `stock_sub_quantity` is always non-negative and less than `sub_units_per_unit`.

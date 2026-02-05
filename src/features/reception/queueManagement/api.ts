@@ -36,3 +36,9 @@ export async function fetchDoctors() {
   if (!res.ok) throw new Error("Failed to fetch doctors");
   return res.json();
 }
+
+export async function searchPatients(q: string) {
+  const res = await fetch(`/api/patient/search?q=${encodeURIComponent(q)}`);
+  if (!res.ok) throw new Error("Failed to search patients");
+  return res.json();
+}

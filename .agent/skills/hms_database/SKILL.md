@@ -17,11 +17,15 @@ Pharmacy stock management follows a two-step trigger system. NEVER assume direct
     - `purchase_return_detail` -> `tg_purchase_return_detail_to_txn`
     - `sale_return_detail` -> `tg_sale_return_detail_to_txn`
 - **Level 2**: These triggers insert into `medicine_transaction`.
-- **Level 3**: The `tg_stockquantity_generic` trigger on `medicine_transaction` executes `fn_tg_stockquantity_generic()` which finalizes the `stock_quantity` and `stock_sub_quantity` in the `medicine` table.
+- **Level 3**: The `tg_stockquantity_generic` trigger on `medicine_transaction` executes `fn_tg_stockquantity_generic()` which finalizes the `stock_quantity` and `stock_sub_quantity` in BOTH `medicine` (aggregate) and `medicine_batch` (expiry-specific) tables.
 
 **Always refer to [.agent/skills/hms_database/references/pharmacy_stock_logic.md](file:///home/oops/projects/hms/.agent/skills/hms_database/references/pharmacy_stock_logic.md) for sub-unit math and sign logic.**
 
-### 2. Search Vector Maintenance
+### 2. POS Medicine View
+The `v_medicine_pos` view provides the data for the Pharmacy POS search. It joins `medicine` with `medicine_batch` to provide batch-level granularity, filtered for non-expired items.
+- **Key Columns**: `batch_id`, `batch_number`, `expiry_date`, `batch_sale_price`.
+
+### 3. Search Vector Maintenance
 The `medicine` table uses a GIN index on `search_vector`.
 - Before any insert or update on `medicine`, the `medicine_search_vector_trigger` executes `medicine_search_vector_update()`.
 - This combines `generic_name`, `brand_name`, and `category` into a searchable `tsvector`.

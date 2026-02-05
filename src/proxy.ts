@@ -1,7 +1,7 @@
-import {jwtVerify} from "jose";
+import { jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
-const JWT_Secret =new TextEncoder().encode(process.env.JWT_SECRET|| "supersecurekey") ;
-export async function middleware(req: NextRequest) {
+const JWT_Secret = new TextEncoder().encode(process.env.JWT_SECRET || "supersecurekey");
+export async function proxy(req: NextRequest) {
     //get token from request
     const token = req.cookies.get("token")?.value;
     //url to change path for redirection
@@ -13,7 +13,7 @@ export async function middleware(req: NextRequest) {
         return NextResponse.redirect(url);
     }
     try {
-        const {payload} = await jwtVerify(token, JWT_Secret);
+        const { payload } = await jwtVerify(token, JWT_Secret);
         if (url.pathname.startsWith("/doctor") && payload.role != "Doctor") {
             url.pathname = '/';
             return NextResponse.redirect(url);
@@ -22,7 +22,7 @@ export async function middleware(req: NextRequest) {
             url.pathname = "/";
             return NextResponse.redirect(url);
         }
-         if (url.pathname.startsWith("/receptionist") && payload.role !== "Receptionist") {
+        if (url.pathname.startsWith("/receptionist") && payload.role !== "Receptionist") {
             url.pathname = "/";
             return NextResponse.redirect(url);
         }
@@ -31,12 +31,12 @@ export async function middleware(req: NextRequest) {
             return NextResponse.redirect(url);
         }
     }
-    catch(err){
+    catch (err) {
         console.error("Invalid or expired token:", err);
-        url.pathname='/';
+        url.pathname = '/';
         return NextResponse.redirect(url);
     }
-     return NextResponse.next();
+    return NextResponse.next();
 }
 
-export const config = { matcher: ["/doctor/:path*", "/lab/:path*", "/pharmacy/:path*","/receptionist/:path*"], };
+export const config = { matcher: ["/doctor/:path*", "/lab/:path*", "/pharmacy/:path*", "/receptionist/:path*"], };

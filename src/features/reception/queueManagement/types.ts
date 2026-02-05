@@ -9,6 +9,7 @@ export type Patient = {
   patient_name: string;
   age: string;
   gender: string;
+  cnic?: string;
 };
 
 export type Visit = {

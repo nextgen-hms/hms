@@ -1,6 +1,5 @@
 "use client";
-import { useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ParaDetailsForm from "./allForms/ParaDetaisl";
 import MenstrualHistory from "./allForms/MenstrualHistory";
 import CurrentPregnancy from "./allForms/CurrentPregnancy";
@@ -12,102 +11,44 @@ export default function Gynaecologist({
   patientId: string | null;
 }) {
   const [selectedTab, setSelectedTab] = useState("Menstrual History");
-  const {
-      register,
-      handleSubmit,
-      watch,
-      formState: { errors, isSubmitting },
-      setValue,
-      reset
-    } = useForm({
-        mode: "onChange",
-    });
-   
-  
-  async function getObstetricHistory() {
-    const res = await fetch(`api/clinicalDetails/gynaecologist/obstetric/${patientId}`);
-    const data = await res.json();
-    console.log(data);
-     
-   reset(data);
-  }
-  async function postObstetricHistory(data:any) {
-        const res=await fetch('/api/clinicalDetails/gynaecologist/obstetric',{
-          method:"POST",
-          body:JSON.stringify(data)
-        })
 
-        console.log(data , "done");
-        
-  }
-    async function updateObstetricHistory(data:any) {
-        const res=await fetch('/api/clinicalDetails/gynaecologist/obstetric',{
-          method:"PATCH",
-          body:JSON.stringify(data)
-        })
+  const tabs = [
+    { id: "Menstrual History", icon: "🩸", label: "Menstrual" },
+    { id: "Current Pregnancy", icon: "🤰", label: "Pregnancy" },
+    { id: "Obstetric History", icon: "📋", label: "Obstetric" },
+    { id: "Para Details", icon: "🔢", label: "Para" },
+  ];
 
-        console.log(data , "done");
-        
-  }
- 
-
- 
   return (
-    <div className="pt-4">
-    <div
-            id="tab"
-            className=" w-[60%] p-2  border-2 border-black/30   rounded-4xl flex items-center  bg-gray-300 "
+    <div className="flex flex-col h-full space-y-4">
+      {/* Premium Tab Bar */}
+      <div className="flex items-center gap-2 p-1.5 bg-slate-200/50 backdrop-blur-md rounded-2xl w-fit border border-slate-200/50 shadow-sm">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setSelectedTab(tab.id)}
+            className={`flex items-center gap-4 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${selectedTab === tab.id
+                ? "bg-white text-emerald-700 shadow-md shadow-emerald-900/5 border border-slate-100 translate-y-[-1px]"
+                : "text-slate-500 hover:bg-white/40 hover:text-slate-700"
+              }`}
           >
-            <button
-              className={`  px-4    text-center ${
-                selectedTab === "Menstrual History"
-                  ? "bg-green-400 rounded-3xl border-black/30 border-2"
-                  : null
-              }`}
-              onClick={() => setSelectedTab("Menstrual History")}
-            >
-              Menstrual History
-            </button>
-            <button
-              className={` px-4      text-center  ${
-                selectedTab === "Current Pregnancy"
-                  ? "bg-green-400 rounded-3xl border-black/30 border-2"
-                  : null
-              }`}
-              onClick={() => setSelectedTab("Current Pregnancy")}
-            >
-              Current Pregnancy
-            </button>
-            <button
-              className={` px-4     text-center  ${
-                selectedTab === "Obstetric History"
-                  ? "bg-green-400 rounded-3xl border-black/30 border-2"
-                  : null
-              }`}
-              onClick={() => setSelectedTab("Obstetric History")}
-            >
-              Obstetric History
-            </button>
-            <button
-              className={` px-4     text-center  ${
-                selectedTab === "Para Details"
-                  ? "bg-green-400 rounded-3xl border-black/30 border-2"
-                  : null
-              }`}
-              onClick={() => setSelectedTab("Para Details")}
-            >
-              Para Details
-            </button>
-          
+            <span className="text-base">{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-
+      {/* Content Area with Animation Wrapper */}
+      <div className="flex-1 min-h-0 bg-white/30 backdrop-blur-xl border border-white/40 rounded-[2rem] shadow-xl shadow-slate-200/50 overflow-hidden group">
+        <div className="h-full overflow-auto custom-scrollbar p-1">
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-full p-6">
+            {selectedTab === "Menstrual History" && <MenstrualHistory />}
+            {selectedTab === "Current Pregnancy" && <CurrentPregnancy />}
+            {selectedTab === "Obstetric History" && <ObstetricHistory />}
+            {selectedTab === "Para Details" && <ParaDetailsForm />}
           </div>
-    <div >
-      {selectedTab === "Menstrual History" && (<MenstrualHistory ></MenstrualHistory>)}
-      {selectedTab === "Current Pregnancy" && (<CurrentPregnancy ></CurrentPregnancy>      )}
-      {selectedTab === "Obstetric History" && (<ObstetricHistory ></ObstetricHistory>      )}
-       {selectedTab === "Para Details" && ( < ParaDetailsForm   ></ParaDetailsForm>)}
-    </div>
+        </div>
+      </div>
     </div>
   );
 }

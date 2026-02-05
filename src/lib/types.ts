@@ -11,12 +11,19 @@ export interface Medicine {
   barcode?: string;
   sku?: string;
   manufacturer?: string;
-  batch_number?: string;
   expiry_date?: string;
   min_stock_level: number;
   max_stock_level: number;
   is_active: boolean;
   requires_prescription: boolean;
+
+  // Batch specific fields
+  batch_id?: number;
+  batch_number?: string;
+  batch_stock_quantity?: number;
+  batch_stock_sub_quantity?: number;
+  batch_sale_price?: number;
+  batch_sale_sub_unit_price?: number;
 }
 
 export interface CartItem {
@@ -27,6 +34,8 @@ export interface CartItem {
   discountPercent: number;
   discountAmount: number;
   lineTotal: number;
+  batchId?: number;
+  batchNumber?: string;
 }
 
 export interface PaymentDetails {

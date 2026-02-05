@@ -17,7 +17,7 @@ Ensure the system is perfectly consistent in all 3 parts:
 ---
 
 ## Project Context
-- **Vision**: Offline-first healthcare solution (Next.js 15, Electron, PostgreSQL 18).
+- **Vision**: Premium Enterprise Healthcare Management System (Next.js 15, PostgreSQL 18).
 - **Primary Schema**: `public` (38 tables, 10 functions, 6 triggers).
 - **Database Name**: `hims`.
 
@@ -25,6 +25,7 @@ Ensure the system is perfectly consistent in all 3 parts:
 - **Database-First Logic**: Triggers handle all inventory math and status auditing. **NEVER bypass triggers.**
 - **Feature-Based Modularity**: Code resides in `src/features/[module]`.
 - **Type Safety**: Unified TypeScript definitions and strict Zod validation.
+- **Premium Aesthetics**: Standardized glassmorphic design with `emerald` for clinical and `indigo` for pharmacy modules.
 
 ---
 
@@ -37,7 +38,8 @@ The system relies on a complex relational structure. Before any database-related
 
 ### 2. Clinical & Patient Workflow
 - **Patient & Visit**: Linked via `patient_id`. Visit status is tracked atomically via `update_and_log_visit_status`.
-- **OB/GYN**: Specialized tables for `current_pregnancy`, `obstetric_history`, and `para_details`.
+- **Reception**: Features search-as-you-type patient lookup and real-time dashboard sync.
+- **OB/GYN**: Specialized tables for `current_pregnancy`, `obstetric_history`, and `para_details`. Clinical forms use premium modernized UI.
 - **Lab**: Multi-parameter tests with verification stages and automated flagging.
 
 ### 3. Pharmacy & Inventory

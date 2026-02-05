@@ -19,7 +19,7 @@ export const CartTable: React.FC<CartTableProps> = ({
   onRemoveItem,
 }) => {
   return (
-    <div className="flex flex-col flex-1 border border-gray-300 rounded-md overflow-hidden bg-white">
+    <div className="flex flex-col flex-1 bg-white/50 backdrop-blur-xl border border-slate-200/50 rounded-2xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
       <CartHeader />
       <div className="flex-1 overflow-y-auto">
         {items.length === 0 ? (

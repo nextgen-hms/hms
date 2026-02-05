@@ -1,7 +1,7 @@
 "use client"
 import { useState, useCallback } from 'react';
 import { CartItem, Medicine } from '../types';
-import { calculateLineTotal, validateStockClientSide as validateStock} from '../utils';
+import { calculateLineTotal, validateStockClientSide as validateStock } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
 
 export const useCart = () => {
@@ -17,7 +17,7 @@ export const useCart = () => {
   ) => {
     // Validate stock
     console.log(medicine);
-    
+
     const stockValidation = validateStock(medicine, quantity, subQuantity);
     if (!stockValidation.valid) {
       throw new Error(stockValidation.message);
@@ -42,7 +42,9 @@ export const useCart = () => {
       discountedPrice,
       discountPercent,
       customPrice,
-      lineTotal
+      lineTotal,
+      batchId: medicine.batch_id,
+      batchNumber: medicine.batch_number
     };
 
     setCart(prev => [...prev, newItem]);
@@ -93,7 +95,7 @@ export const useCart = () => {
   return {
     cart,
     selectedItem,
-    
+
     addItem,
     updateItem,
     removeItem,

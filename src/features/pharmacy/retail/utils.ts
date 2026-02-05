@@ -9,11 +9,14 @@ export const calculateLineTotal = (
   subQuantity: number,
   unitPrice: number,
   discountPercent: number,
-  customPrice?: number
+  customPrice?: number,
+  subUnitsPerUnit: number = 1
 ): number => {
   const effectivePrice = customPrice ?? unitPrice;
-  const totalQuantity = quantity + (subQuantity / 100); // Assuming 100 sub-units per unit
-  const subtotal = totalQuantity * effectivePrice;
+  // Calculate total price: (qty * price) + (subQty * subPrice)
+  // SubPrice = unitPrice / subUnitsPerUnit
+  const subUnitPrice = effectivePrice / (subUnitsPerUnit || 1);
+  const subtotal = (quantity * effectivePrice) + (subQuantity * subUnitPrice);
   const discount = (subtotal * discountPercent) / 100;
   return subtotal - discount;
 };
@@ -31,10 +34,10 @@ export const calculatePaymentDetails = (
     (sum, item) => sum + (item.quantity * item.price - item.lineTotal),
     0
   );
-  
+
   const globalDiscount = (itemsTotal * globalDiscountPercent) / 100;
   const totalDiscount = itemsDiscount + globalDiscount;
-  
+
   const payableAmount = itemsTotal - globalDiscount;
   const changeAmount = Math.max(0, paidAmount - payableAmount);
   const dueAmount = Math.max(0, payableAmount - paidAmount);
@@ -77,43 +80,47 @@ export const validateStockClientSide = (
   medicine: Medicine,
   requestedQty: number,
   requestedSubQty: number = 0
-): { 
-  valid: boolean; 
-  message?: string; 
+): {
+  valid: boolean;
+  message?: string;
   totalAvailable?: number;
   totalRequested?: number;
 } => {
-  
+
   const subUnitsPerUnit = medicine.sub_units_per_unit || 1;
-  
-  const totalAvailable = 
-    (medicine.stock_quantity * subUnitsPerUnit) + (medicine.stock_sub_quantity || 0);
-  
-  const totalRequested = 
+
+  // Use batch stock if it's a batch-specific medicine object, otherwise use global stock
+  const availableQty = medicine.batch_stock_quantity ?? medicine.stock_quantity;
+  const availableSubQty = medicine.batch_stock_sub_quantity ?? medicine.stock_sub_quantity;
+
+  const totalAvailable =
+    (availableQty * subUnitsPerUnit) + (availableSubQty || 0);
+
+  const totalRequested =
     (requestedQty * subUnitsPerUnit) + requestedSubQty;
-  
+
   if (totalRequested > totalAvailable) {
     const totalShortage = totalRequested - totalAvailable;
     const shortageQty = Math.floor(totalShortage / subUnitsPerUnit);
     const shortageSubQty = totalShortage % subUnitsPerUnit;
-    
-    const availableDisplay = medicine.stock_sub_quantity > 0
-      ? `${medicine.stock_quantity} ${medicine.form || 'units'} + ${medicine.stock_sub_quantity} ${medicine.sub_unit || 'sub-units'}`
-      : `${medicine.stock_quantity} ${medicine.form || 'units'}`;
-    
+
+    const availableDisplay = availableSubQty > 0
+      ? `${availableQty} ${medicine.form || 'units'} + ${availableSubQty} ${medicine.sub_unit || 'sub-units'}`
+      : `${availableQty} ${medicine.form || 'units'}`;
+
     const shortageDisplay = shortageSubQty > 0
       ? `${shortageQty} ${medicine.form || 'units'} + ${shortageSubQty} ${medicine.sub_unit || 'sub-units'}`
       : `${shortageQty} ${medicine.form || 'units'}`;
-    
+
     return {
       valid: false,
-      message: `Insufficient stock. Available: ${availableDisplay}. Short by: ${shortageDisplay}`,
+      message: `Insufficient stock${medicine.batch_number ? ' for batch ' + medicine.batch_number : ''}. Available: ${availableDisplay}. Short by: ${shortageDisplay}`,
       totalAvailable,
       totalRequested
     };
   }
-  
-  return { 
+
+  return {
     valid: true,
     totalAvailable,
     totalRequested
@@ -157,7 +164,7 @@ export const getExpiryWarning = (expiryDate: string): {
   const daysRemaining = Math.floor(
     (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
   );
-  
+
   return {
     isExpired: daysRemaining < 0,
     isNearExpiry: daysRemaining > 0 && daysRemaining <= 90,

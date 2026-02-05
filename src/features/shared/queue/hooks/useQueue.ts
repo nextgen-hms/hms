@@ -26,7 +26,7 @@ export function useQueue() {
 
   useEffect(() => {
     loadQueue();
-    const interval = setInterval(loadQueue, 30000); // every 30s
+    const interval = setInterval(loadQueue, 5000); // Poll every 5 seconds for more responsive UI
     return () => clearInterval(interval);
   }, []);
 

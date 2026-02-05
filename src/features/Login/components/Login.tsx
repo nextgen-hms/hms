@@ -1,6 +1,5 @@
 // app/login/components/Login.tsx
 "use client";
-
 import { useState, useEffect } from "react";
 import {
   Sparkles, Target, Star, Sun, Rocket, ThumbsUp, Trophy,
@@ -27,7 +26,7 @@ const motivationalQuotes: Quote[] = [
   { text: "Keep shining—your effort will speak louder than words.", icon: Sparkles },
   { text: "Hard work beats talent when talent doesn’t work hard.", icon: Heart },
 ];
-export  function Login() {
+export function Login() {
   const {
     userCode, name, designation, password, showPassword,
     isLoading, error, setUserCode, setName, setDesignation,
@@ -42,7 +41,6 @@ export  function Login() {
     }, 4000);
     return () => clearInterval(interval);
   }, []);
-
   return (
     <div className="flex min-h-screen w-full bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 items-center justify-center p-4">
       <div className="flex w-full max-w-5xl h-[600px] shadow-2xl rounded-3xl overflow-hidden">
@@ -50,14 +48,14 @@ export  function Login() {
         <div className="flex flex-col w-full lg:w-1/2 bg-white p-8 lg:p-12 relative">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="h-10 w-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Stethoscope className="h-6 w-6 text-white" />
+            <div className="h-12 w-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl border border-white/20">
+              <img src="/logo_img.svg" alt="Logo" className="h-8 w-8 object-contain" />
             </div>
             <div>
-              <h1 className="font-bold text-emerald-700 text-lg leading-tight">
-                XYZ Hospital
+              <h1 className="font-bold text-emerald-800 text-3xl leading-tight">
+                Dr Fauzia Ishaq Clinic
               </h1>
-              <p className="text-xs text-emerald-600">NextGen HMS</p>
+              <p className="text-xs text-emerald-600 font-medium tracking-wide">CLINICAL EXCELLENCE</p>
             </div>
           </div>
 
@@ -140,7 +138,7 @@ export  function Login() {
           </div>
 
           <p className="mt-6 text-xs text-gray-400 text-center">
-            Powered by <span className="font-semibold text-emerald-600">Bublu</span>
+            Powered by <span className="font-semibold text-emerald-600">Muhammad Abdul Rehman</span>
           </p>
         </div>
 
@@ -151,8 +149,8 @@ export  function Login() {
 
           <div className="relative z-10 text-center">
             <div className="mb-8 flex justify-center">
-              <div className="h-24 w-24 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center shadow-2xl animate-bounce">
-                <CurrentIcon className="h-12 w-12 text-white" />
+              <div className="h-40 w-40 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center shadow-2xl animate-float border border-white/30">
+                <img src="/logo_img.svg" alt="Big Logo" className="h-28 w-28 object-contain drop-shadow-2xl" />
               </div>
             </div>
 
@@ -168,9 +166,8 @@ export  function Login() {
               {motivationalQuotes.map((_, i) => (
                 <div
                   key={i}
-                  className={`h-2 rounded-full transition-all ${
-                    i === currentQuoteIndex ? "w-8 bg-white" : "w-2 bg-white/40"
-                  }`}
+                  className={`h-2 rounded-full transition-all ${i === currentQuoteIndex ? "w-8 bg-white" : "w-2 bg-white/40"
+                    }`}
                 />
               ))}
             </div>
@@ -180,17 +177,18 @@ export  function Login() {
 
       <style jsx>{`
         @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
         }
         .animate-fade-in {
           animation: fade-in 0.6s ease-out;
+        }
+        .animate-float {
+          animation: float 4s ease-in-out infinite;
         }
       `}</style>
     </div>

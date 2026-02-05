@@ -6,19 +6,30 @@ export interface Medicine {
   sku: string;
   price: number;
   stock_quantity: number;
-  stock_sub_quantity:number;
-  sub_unit:string;
-  sub_units_per_unit:number;
-  sub_unit_price:number;
-  allow_sub_unit_sale:boolean;
+  stock_sub_quantity: number;
+  sub_unit: string;
+  sub_units_per_unit: number;
+  sub_unit_price: number;
+  allow_sub_unit_sale: boolean;
   subQuantity?: number; // For loose units (e.g., tablets from strips)
   batchNumber?: string;
   expiry_date?: string;
   manufacturer?: string;
-  dosage_value:number;
-  dosage_unit:string;
-  form:string;
+  dosage_value: number;
+  dosage_unit: string;
+  form: string;
   category: 'prescription' | 'otc' | 'controlled';
+
+  // Batch specific fields from v_medicine_pos
+  batch_id?: number;
+  batch_number?: string;
+  batch_stock_quantity?: number;
+  batch_stock_sub_quantity?: number;
+  batch_sale_price?: number;
+  batch_sale_sub_unit_price?: number;
+  global_price?: number;
+  total_stock_quantity?: number;
+  total_stock_sub_quantity?: number;
 }
 
 // Cart Item Types
@@ -32,6 +43,8 @@ export interface CartItem {
   discountPercent: number;
   customPrice?: number;
   lineTotal: number;
+  batchId?: number;
+  batchNumber?: string;
 }
 
 // Payment Types

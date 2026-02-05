@@ -4,7 +4,7 @@
 import { Controller, useFormContext } from "react-hook-form";
 import { usePatientVitals } from "../hooks/usePatientVitals";
 
-export  function PatientVitalsForm() {
+export function PatientVitalsForm() {
   const {
     pId,
     setpId,
@@ -18,69 +18,152 @@ export  function PatientVitalsForm() {
   } = usePatientVitals();
 
   return (
-    <form className="w-2/3 border-black/40 grid grid-cols-2 p-4">
-      {/* Patient ID */}
-      <div className="flex flex-col col-span-2">
-        <label className="px-2 pb-1 text-sm text-black/70">Patient Id:</label>
-        <input
-          id="pid"
-          type="text"
-          value={pId}
-          placeholder="Enter existing Patient Id"
-          className="w-[40%] p-2 bg-gray-200 rounded-2xl"
-          onChange={(e) => setpId(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              setPatientId(pId);
-              e.preventDefault();
-            }
-          }}
-        />
-        <ErrorMsg msg={errors.patient_id?.message} />
-      </div>
+    <div className="w-full h-full p-2">
+      <div className="max-w-4xl mx-auto bg-white/40 backdrop-blur-xl border border-white/40 rounded-[2.5rem] shadow-2xl shadow-emerald-900/5 p-8">
+        <div className="flex items-center justify-between mb-8 px-2">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">Biometric Intake</h2>
+            <p className="text-sm text-slate-500">Record patient vital signs and physical metrics</p>
+          </div>
+          <div className="h-12 w-12 bg-emerald-100 rounded-2xl flex items-center justify-center p-2 shadow-inner">
+            <span className="text-2xl">🌡️</span>
+          </div>
+        </div>
 
-      <Input label="Blood Pressure" id="bgp" reg={register("blood_pressure")} err={errors.blood_pressure?.message} />
-      <Input label="Temperature" id="temp" reg={register("temperature")} err={errors.temperature?.message} />
-      <Input label="Heart Rate" id="heart_rate" reg={register("heart_rate")} err={errors.heart_rate?.message} />
-      <Input label="Height" id="height" reg={register("height")} err={errors.height?.message} />
-      <Input label="Weight" id="weight" reg={register("weight")} err={errors.weight?.message} />
+        <form className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+          {/* Patient ID Search */}
+          <div className="flex flex-col col-span-2 md:col-span-1 space-y-1.5">
+            <Label className="text-slate-600 font-semibold ml-1">Patient ID</Label>
+            <div className="relative group">
+              <input
+                id="pid"
+                type="text"
+                value={pId}
+                placeholder="Ex: 1001"
+                className="w-full h-12 bg-white/70 border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 p-4 rounded-2xl outline-none transition-all placeholder:text-gray-400 text-sm shadow-sm hover:bg-white"
+                onChange={(e) => setpId(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setPatientId(pId);
+                    e.preventDefault();
+                  }
+                }}
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                PRESS ENTER
+              </div>
+            </div>
+            <ErrorMsg msg={errors.patient_id?.message} />
+          </div>
 
-      <div className="flex flex-col">
-        <label className="px-2 pb-1 text-sm text-black/70">Blood Group:</label>
-        <select {...register("blood_group")} className="w-[80%] p-2 bg-gray-200 rounded-2xl">
-          <option value="" hidden>Select Blood Group</option>
-          {["A+", "B+", "AB+", "A-", "B-", "O+", "O-"].map((g) => (
-            <option key={g} value={g}>{g}</option>
-          ))}
-        </select>
-      </div>
+          <div className="hidden md:block" /> {/* Spacing */}
 
-      {/* Buttons */}
-      <div className="flex space-x-6 col-span-2 pt-6">
-     <Button text="Add Vitals" onClick={() => handleSubmit(addPatient)()} />
-<Button text="Update Vitals" onClick={() => handleSubmit(updateInfo)()} />
-        <Button text="Reset Info" type="reset" />
+          {/* Clinical Vitals */}
+          <Input
+            label="Blood Pressure"
+            id="bgp"
+            reg={register("blood_pressure")}
+            err={errors.blood_pressure?.message}
+            placeholder="e.g. 120/80"
+          />
+          <Input
+            label="Temperature (°F)"
+            id="temp"
+            reg={register("temperature")}
+            err={errors.temperature?.message}
+            placeholder="e.g. 98.6"
+          />
+          <Input
+            label="Heart Rate (BPM)"
+            id="heart_rate"
+            reg={register("heart_rate")}
+            err={errors.heart_rate?.message}
+            placeholder="e.g. 72"
+          />
+
+          {/* Physical Metrics */}
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Height (cm)"
+              id="height"
+              reg={register("height")}
+              err={errors.height?.message}
+              placeholder="cm"
+            />
+            <Input
+              label="Weight (kg)"
+              id="weight"
+              reg={register("weight")}
+              err={errors.weight?.message}
+              placeholder="kg"
+            />
+          </div>
+
+          <div className="flex flex-col space-y-1.5">
+            <Label className="text-slate-600 font-semibold ml-1">Blood Group</Label>
+            <select
+              {...register("blood_group")}
+              className="h-12 bg-white/70 border border-slate-200 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl px-4 outline-none text-sm transition-all shadow-sm hover:bg-white"
+            >
+              <option value="" hidden>Select Type</option>
+              {["A+", "B+", "AB+", "A-", "B-", "O+", "O-"].map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <ButtonComp
+              text="Add Vitals"
+              onClick={() => handleSubmit(addPatient)()}
+              variant="primary"
+            />
+            <ButtonComp
+              text="Update Vitals"
+              onClick={() => handleSubmit(updateInfo)()}
+              variant="secondary"
+            />
+            <ButtonComp
+              text="Reset Form"
+              type="reset"
+              variant="outline"
+            />
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   );
 }
 
-function Input({ label, id, reg, err }: any) {
+function Input({ label, id, reg, err, placeholder }: any) {
   return (
-    <div className="flex flex-col">
-      <label htmlFor={id} className="px-2 pb-1 text-sm text-black/70">{label}:</label>
-      <input id={id} type="text" className="w-[80%] p-2 bg-gray-200 rounded-2xl" {...reg} />
+    <div className="flex flex-col space-y-1.5">
+      <Label htmlFor={id} className="text-slate-600 font-semibold ml-1">{label}</Label>
+      <input
+        id={id}
+        type="text"
+        placeholder={placeholder}
+        className="h-12 bg-white/70 border border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 rounded-2xl px-4 transition-all shadow-sm hover:bg-white outline-none text-sm"
+        {...reg}
+      />
       <ErrorMsg msg={err} />
     </div>
   );
 }
 
-function Button({ text, onClick, type = "button" }: any) {
+function ButtonComp({ text, onClick, type = "button", variant }: any) {
+  const styles = {
+    primary: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100 active:scale-95",
+    secondary: "bg-slate-100 hover:bg-slate-200 text-slate-700",
+    outline: "border-2 border-slate-200 hover:bg-slate-50 text-slate-500"
+  };
+
   return (
     <button
       type={type}
       onClick={onClick}
-      className="bg-gradient-to-r w-[20%] p-2 from-[#BBF6AB] to-[#36F5D4] shadow-2xl rounded-2xl"
+      className={`h-14 rounded-2xl font-bold text-lg transition-all ${styles[variant as keyof typeof styles]}`}
     >
       {text}
     </button>
@@ -89,8 +172,10 @@ function Button({ text, onClick, type = "button" }: any) {
 
 function ErrorMsg({ msg }: { msg?: string }) {
   return (
-    <div className="min-h-[20px]">
-      {msg && <p className="text-red-300 text-sm px-2">{msg}</p>}
+    <div className="min-h-[14px] mt-1">
+      {msg && <p className="text-red-500 text-[10px] ml-1">{msg}</p>}
     </div>
   );
 }
+
+import { Label } from "@/src/components/ui/Label";

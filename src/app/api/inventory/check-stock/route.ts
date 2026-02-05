@@ -5,40 +5,64 @@ import { ApiResponse } from '@/src/lib/types';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { medicineId, quantity } = body;
+    const { medicineId, quantity, subQuantity, batchId } = body;
 
-    if (!medicineId || quantity === undefined) {
+    if (!medicineId || (quantity === undefined && subQuantity === undefined)) {
       return NextResponse.json<ApiResponse>({
         success: false,
-        error: 'Medicine ID and quantity are required'
+        error: 'Medicine ID and at least one quantity (quantity or subQuantity) are required'
       }, { status: 400 });
     }
 
-    const sql = `
-      SELECT stock_quantity 
-      FROM medicine 
-      WHERE medicine_id = $1 AND is_active = true 
-    `;
+    let sql = '';
+    let params = [];
 
-    const result = await query(sql, [medicineId]);
+    if (batchId) {
+      sql = `
+        SELECT stock_quantity, stock_sub_quantity 
+        FROM medicine_batch 
+        WHERE batch_id = $1 AND medicine_id = $2
+      `;
+      params = [batchId, medicineId];
+    } else {
+      sql = `
+        SELECT stock_quantity, stock_sub_quantity 
+        FROM medicine 
+        WHERE medicine_id = $1 AND is_active = true 
+      `;
+      params = [medicineId];
+    }
 
-    if (result.rows.length === 0) {
+    const { rows } = await query(sql, params);
+
+    if (rows.length === 0) {
       return NextResponse.json<ApiResponse>({
         success: false,
-        error: 'Medicine not found'
+        error: batchId ? 'Batch not found' : 'Medicine not found'
       }, { status: 404 });
     }
 
-    const currentStock = result.rows[0].stock_quantity;
-    const available = currentStock >= quantity;
+    const currentStockUnits = rows[0].stock_quantity;
+    const currentStockSubUnits = rows[0].stock_sub_quantity || 0;
 
-    return NextResponse.json<ApiResponse<{ available: boolean; currentStock: number }>>({
+    // Simple availability check (could be more complex if we need to convert units)
+    // For now, we assume POS specifies exact quantity/sub-quantity needed
+    const available = (currentStockUnits > (quantity || 0)) ||
+      (currentStockUnits === (quantity || 0) && currentStockSubUnits >= (subQuantity || 0));
+
+    return NextResponse.json<ApiResponse<{
+      available: boolean;
+      currentStock: number;
+      currentSubStock: number;
+    }>>({
       success: true,
       data: {
         available,
-        currentStock
+        currentStock: currentStockUnits,
+        currentSubStock: currentStockSubUnits
       }
     });
+
 
   } catch (error) {
     console.error('Check stock error:', error);
