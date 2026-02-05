@@ -14,10 +14,10 @@ export default function Pharmacist({
     returnMedicine:React.ReactNode;
     purchase:React.ReactNode;
 }) {
-  const [selectedTab, setSelectedTab] = useState("retail");
+  const [selectedTab, setSelectedTab] = useState("purchases");
 
   return (
-    <div className="flex flex-col h-screen w-screen "> 
+    <div className="flex flex-col h-screen w-full "> 
       {/* Clinic Header */}
       <div className=" border-1 border-black/30  flex items-center justify-center">
         <div className="relative h-10 w-10">
@@ -38,12 +38,10 @@ export default function Pharmacist({
         </h1>
       </div>
       {/* container containg  qeue and tabs and their implemntations */}
-      <div id="container-containing-queue-and-tabs" className="flex  space-x-4  w-full h-full">
-        <PatientContextProvider>
-          {/* queue paralell route */}
-           
+      <div id="container-containing-queue-and-tabs" className="flex  space-x-4  w-full flex-1">
+        <PatientContextProvider>         
            {/* div containing tabs and their implemetations */}
-          <div   className=" p-2 rounded-2xl border-black/30 border-2  w-full"> 
+          <div   className=" p-2 rounded-2xl border-black/30 border-2 flex flex-1 flex-col h-full  w-full"> 
               <div id="tab" className=" w-[60%]  p-2 border-2 border-black/30    rounded-4xl flex items-center gap-2 bg-gray-300 ">
                 <button className={`  px-4    text-center ${selectedTab === "retail" ? "bg-green-400 rounded-3xl border-black/30 border-2": null}`}
                     onClick={()=> setSelectedTab("retail")}
@@ -77,7 +75,7 @@ export default function Pharmacist({
                 </button>
               </div>
 
-              <div id="tab-paralell-routes" className=" ">
+              <div id="tab-paralell-routes " className=" h-full w-full">
                 {selectedTab === "retail" ? retail : null}
                 {selectedTab === "returnMedicine" ?  returnMedicine : null}
                  {selectedTab === "purchases" ?  purchase : null}

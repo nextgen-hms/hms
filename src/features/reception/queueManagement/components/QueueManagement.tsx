@@ -3,6 +3,7 @@ import { ChangeEvent, KeyboardEvent } from "react";
 import { usePatientForm } from "../hooks/usePatientForm";
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
+import { Label } from "@/src/components/ui/Label";
 
 export function PatientForm() {
   const {
@@ -42,8 +43,10 @@ export function PatientForm() {
     <div className="w-full h-full border-black/30 rounded-4xl">
       <div className="w-2/3 p-4 grid grid-cols-2 gap-5 rounded-2xl border-black/30">
         {/* Patient ID */}
+        <div>
+        <Label>Patient Id:</Label>
         <Input
-          label="Patient Id"
+         
           value={pId}
           onChange={(e: ChangeEvent<HTMLInputElement>) =>
             setpId(e.target.value)
@@ -52,18 +55,22 @@ export function PatientForm() {
           placeholder="Enter patient ID"
           className="w-[80%]"
         />
-
+       </div>
         {/* Clinic No */}
+         <div>
+        <Label>Clinic No:</Label>
         <Input
-          label="Clinic No"
+          
           value={clinicNo}
           disabled
           className="w-[80%]"
         />
-
+         </div>
         {/* Patient Name */}
+         <div>
+        <Label>Patient Name:</Label>
         <Input
-          label="Patient Name"
+         
           value={patientName}
           onChange={(e: ChangeEvent<HTMLInputElement>) =>
             setPatientName(e.target.value)
@@ -71,10 +78,12 @@ export function PatientForm() {
           placeholder="Enter patient name"
           className="w-[80%]"
         />
-
+        </div>
         {/* Age */}
+         <div>
+        <Label>Age:</Label>
         <Input
-          label="Age"
+          
           type="number"
           value={age}
           onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -83,7 +92,7 @@ export function PatientForm() {
           placeholder="Enter age"
           className="w-[80%]"
         />
-
+        </div>
         {/* Gender */}
         <SelectField
           label="Gender"
@@ -98,8 +107,10 @@ export function PatientForm() {
         />
 
         {/* Visit Reason */}
+         <div>
+        <Label>Patient Id:</Label>
         <Input
-          label="Visit Reason"
+        
           value={visitReason}
           onChange={(e: ChangeEvent<HTMLInputElement>) =>
             setVisitReason(e.target.value)
@@ -107,7 +118,7 @@ export function PatientForm() {
           placeholder="Reason for visit"
           className="w-[80%]"
         />
-
+       </div>
         {/* Select Doctor */}
         <SelectField
           label="Select Doctor"

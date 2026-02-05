@@ -1,170 +1,243 @@
-// features/pharmacy/medicinePurchase/components/MedicinePurchaseForm.tsx
+//Next steps 
+//creagte purchase medicine api
+//make sure to deal  with alll edge cases
+//like expiiry date - stock update - price update
 
-"use client";
-import { useMedicinePurchase } from "../hooks/useMedicinePurchase";
 
-export default function MedicinePurchaseForm() {
-  const {
-    parties,
-    medicines,
-    searchTerm,
-    setSearchTerm,
-    formData,
-    handleMedicineChange,
-    addMedicineRow,
-    removeMedicineRow,
-    handleSubmit,
-  } = useMedicinePurchase();
 
-  return (
-    <div className="p-6 bg-white shadow-lg rounded-lg max-w-6xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">💊 New Medicine Purchase</h2>
+///DB UPDATES
+///add some table to cater medicines from different batches
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Party selection */}
-        <div>
-          <label htmlFor="party" className="block font-medium mb-1">
-            Supplier / Party <span className="text-red-500">*</span>
-          </label>
-          <select
-            id="party"
-            value={formData.party_id}
-            onChange={(e) => (formData.party_id = e.target.value)}
-            className="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-            <option value="">-- Select Party --</option>
-            {parties.map((party) => (
-              <option key={party.party_id} value={party.party_id}>
-                {party.name}
-              </option>
-            ))}
-          </select>
-        </div>
 
-        {/* Invoice info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="invoice_no" className="block font-medium mb-1">
-              Invoice No <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="invoice_no"
-              value={formData.invoice_no}
-              onChange={(e) => (formData.invoice_no = e.target.value)}
-              className="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
 
-          <div>
-            <label htmlFor="payment_status" className="block font-medium mb-1">
-              Payment Status
-            </label>
-            <select
-              id="payment_status"
-              value={formData.payment_status}
-              onChange={(e) => (formData.payment_status = e.target.value as any)}
-              className="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="Paid">Paid</option>
-              <option value="Unpaid">Unpaid</option>
-              <option value="Partial">Partial</option>
-            </select>
-          </div>
-        </div>
+//issues
+//right  now i am using input woth dat list ---> later i have to fix it with new input search
+//
 
-        {/* Medicine search */}
-        <div>
-          <label htmlFor="search" className="block font-medium mb-1">
-            Search Medicine
-          </label>
-          <input
-            type="text"
-            id="search"
-            placeholder="Search by name, ID, or category..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
 
-        {/* Medicine rows */}
-        <div>
-          <h3 className="font-semibold mb-2 text-gray-700">Medicines</h3>
-          {formData.medicines.map((med, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end mb-2 border border-gray-200 p-3 rounded">
-              <select
-                value={med.medicine_id}
-                onChange={(e) => handleMedicineChange(index, "medicine_id", e.target.value)}
-                className="col-span-2 border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">-- Select Medicine --</option>
-                {medicines.map((m) => (
-                  <option key={m.medicine_id} value={m.medicine_id}>
-                    {m.brand_name} ({m.generic_name}) - {m.category}
-                  </option>
-                ))}
-              </select>
+"use client"
+import {z} from 'zod';
+import { Button } from "@/src/components/ui/Button";
+import { Input } from "@/src/components/ui/Input";
+import { Label } from "@/src/components/ui/Label";
+import { useEffect, useRef, useState } from "react";
+import { getAllMedicines, getAllPartiesName } from "../api";
+import { Medicine, Party, PurchaseForm } from "../types";
+import { useForm } from 'react-hook-form'; 
+import { zodResolver } from '@hookform/resolvers/zod';
+const PurchaseSchema=z.object({
+    party:z.string().min(1,"Please Select a Party"),
+    medicine:z.string().min(1,"Please Select a Medicine"),
+    quantity:z.number().min(1,"Please Enter Quantity"),
+    sub_quantity:z.number().min(0,"Please Enter Sub Quantity"),
+    unit_cost:z.number().min(0,"Please Enter Unit Cost"),
+    sub_unit_cost:z.number().min(0,"Please Enter Sub Unit Cost"),
+    expiry_date:z.string().min(1,"Expiry Date is Required"),
+    batch_number:z.number().min(1,"Batch Number is Required")
+})
 
-              <input
-                type="number"
-                placeholder="Qty"
-                min={1}
-                value={med.qty}
-                onChange={(e) => handleMedicineChange(index, "qty", e.target.value)}
-                className="border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
 
-              <input
-                type="number"
-                placeholder="Unit Cost"
-                step="0.01"
-                min={0}
-                value={med.unit_cost}
-                onChange={(e) => handleMedicineChange(index, "unit_cost", e.target.value)}
-                className="border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+export default function MedicinePurchase (){
+    const [parties,setParties]=useState<Party[]>([]);
+    const [filterParties,setFilterParties]=useState<Party[]>([]);
+    const [medicines,setMedicines]=useState<Medicine[]>([]);
+    const [filteredMedicines,setFilteredMedicines]=useState<Medicine[]>([]);
+    const [showParties,setShowParties]=useState(false);
+    const [showMedicines,setShowMedicines]=useState(false);
+    const [highlightIndex,SetHighlightIndex]=useState(0);
+    const isFirstRender=useRef(true);
+    const inputRef=useRef(null);
+    const {
+        register,
+        handleSubmit,
+        formState:{errors},
+        setValue,
+        watch
+    }=useForm({
+        resolver:zodResolver(PurchaseSchema) ///zod.infer X
+    }
+    );
 
-              <input
-                type="text"
-                placeholder="Batch No"
-                value={med.batch_no}
-                onChange={(e) => handleMedicineChange(index, "batch_no", e.target.value)}
-                className="border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+  
 
-              <input
-                type="date"
-                value={med.expiry_date}
-                onChange={(e) => handleMedicineChange(index, "expiry_date", e.target.value)}
-                className="border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+useEffect(()=>{
+    async function LoadPartiesNames(){
+        const data= await getAllPartiesName();
+        setParties(data);
+        setFilterParties(data);
+    }
+    LoadPartiesNames();
+},[]);
 
-              {formData.medicines.length > 1 && (
-                <button type="button" onClick={() => removeMedicineRow(index)} className="text-red-500 text-sm font-semibold hover:text-red-700 transition">
-                  Remove
-                </button>
-              )}
+useEffect(()=>{
+    async function LoadMedicines(){
+        const data=await getAllMedicines();
+        setMedicines(data);
+        setFilteredMedicines(data);
+    }
+    LoadMedicines();
+},[]);
+
+ function onSubmit(data:PurchaseForm){
+     console.log(data);
+     
+       
+ }
+
+
+    return(
+            <form onSubmit={handleSubmit(onSubmit)}>
+        <div className="border-1 h-1/2 w-3/5 grid grid-cols-2 grid-rows-6 ">
+            <div id="Select(Add) Party " className="flex w-full  gap-4 flex-1 justify-between ">
+                <div id="Select Party" className="w-4/5 relative ">
+                <Label>Party :</Label>
+                {/* <select {...register("party")}
+                        className=''
+                >
+                    <option value="">Select a Party</option>
+                    {parties.map((party,index)=>(
+                        <option>{party.name}</option>
+                    ))}
+                </select> */}
+                <Input
+                 {...register("party")}
+                 list='party-list'
+                 className=''
+                />
+                <datalist id='party-list' className=''>
+                    {parties.map((party,index)=>(
+                        <option key={party.party_id} >{party.name}   </option>
+                    ))}
+                </datalist>
+                
+                <p className='text-red-500 text-sm h-5'>{errors.party?.message}</p> 
+                </div>
             </div>
-          ))}
+            <div className="flex items-end">
+                <Button className="h-fit flex ">Add Party</Button>
+            </div>
+            <div id="Select(Add) Medicine " className="flex items-end gap-4 flex-1 justify-between">
+                <div id="Select Medicine" className="w-4/5 relative">
+                <Label>Medicine :</Label>
+                {/* <Input {...register("medicine")}
+                     placeholder="Select Medicine"
+                      className=""
+                      onFocus={()=>setShowMedicines(true)}
+                      onBlur={()=>setShowMedicines(false)}
+                      onKeyDown={(e)=>{
+                        if(!showMedicines) return;
+     
+                        if(e.key === "ArrowDown"){
+                            e.preventDefault();
+                          SetHighlightIndex((prev)=>{
+                            if(prev +1 < filteredMedicines.length){
+                                prev=prev+1;
+                            }
+                            return prev;
+                          })
+                        }
+                        if(e.key === "ArrowUp"){
+                            e.preventDefault();
+                            SetHighlightIndex((prev)=>{                            
+                                if(prev > 0){
+                                    prev=prev-1;
+                                }
+                                return prev;
+                            })
+                        }
+                        if(e.key === "Enter"){
+                            e.preventDefault();
+                            if(highlightIndex >=0){
+                                setValue("medicine",
+                                    filteredMedicines[highlightIndex].brand_name+" "+filteredMedicines[highlightIndex].dosage_value+filteredMedicines[highlightIndex].dosage_unit, { shouldValidate: true });
+                                SetHighlightIndex(-1);
+                                setShowMedicines(false);
+                            }
+                        }
+                     }}
+                      /> */}
+                    <Input
+                 {...register("medicine")}
+                 list='med-list'
+                 className=''
+                />
+                <datalist id='med-list' className=''>
+                    {medicines.map((medicine,index)=>(
+                        <option key={medicine.medicine_id} >{medicine.brand_name}  {medicine.dosage_value}{medicine.dosage_unit} {medicine.stock_quantity}  </option>
+                    ))}
+                </datalist>
+                <div className={`absolute bg-white w-full ${showMedicines ? "h-[480px]" : ""} overflow-y-auto`}>
+                    { showMedicines && (filteredMedicines.map((medicine:Medicine,index)=>{
+                        return(
+                        <div key={medicine.medicine_id}
+                             className={`border-1 p-1 hover:bg-emerald-200 ${highlightIndex === index ?
+                                "bg-emerald-200" : ""}  cursor-pointer rounded-md`}
+                             onMouseDown={(e)=>{
+                                e.preventDefault();
+                                setValue("medicine",filteredMedicines[index].brand_name, { shouldValidate: true });
+                                SetHighlightIndex(-1);
+                                setShowMedicines(false);
+                             }}
+                        >
+                            {medicine.brand_name} {medicine.dosage_value}{medicine.dosage_unit}
+                        </div>
+                    )})
+                    )
 
-          <button
-            type="button"
-            onClick={addMedicineRow}
-            className="mt-2 px-3 py-2 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition"
-          >
-            + Add Another Medicine
-          </button>
+                    }
+                </div>
+                    <p className='text-red-500 text-sm h-5'>{errors.medicine?.message}</p>
+                </div>
+            </div>
+            <div className="flex items-end">
+                <Button className="h-fit  ">Add Medicine</Button>
+            </div>
+            <div id="quantity" className="flex items-end gap-4 flex-1 justify-between">
+                <div id="quantity" className="w-4/5">
+                <Label>Quantity :</Label>
+                <Input {...register("quantity",{valueAsNumber:true})} placeholder="Enter Quantity" className="" type='number'/>
+                    <p className='text-red-500 text-sm h-5'>{errors.quantity?.message}</p>
+                </div>
+            </div>
+            <div id="sub_quantity" className="flex items-end gap-4 flex-1 justify-between">
+                <div id="sub_quantity" className="w-4/5">
+                <Label>Sub Quantity :</Label>
+                <Input {...register("sub_quantity",{valueAsNumber:true})} placeholder="Enter Sub Quantity" className="" type='number'/>
+                    <p className='text-red-500 text-sm h-5'>{errors.sub_quantity?.message}</p>
+                </div>
+            </div>
+            <div id="unit_cost" className="flex items-end gap-4 flex-1 justify-between">
+                <div id="unit_cost" className="w-4/5">
+                <Label>unit Cost :</Label>
+                <Input {...register("unit_cost",{valueAsNumber:true})} placeholder="Enter Unit Cost" className="" type='number'/>
+                    <p className='text-red-500 text-sm h-5'>{errors.unit_cost?.message}</p>
+                </div>
+            </div>
+            <div id="sub_unit_cost" className="flex items-end gap-4 flex-1 justify-between">
+                <div id="unit_cost" className="w-4/5">
+                <Label>Sub unit Cost :</Label>
+                <Input {...register("sub_unit_cost",{valueAsNumber:true})} placeholder="Enter Sub Unit Cost" className="" type='number'/>
+                    <p className='text-red-500 text-sm h-5'>{errors.sub_unit_cost?.message}</p>
+                </div>
+            </div>
+            <div id="expiry-date" className="flex items-end gap-4 flex-1 justify-between">
+                <div id="expiry-date" className="w-4/5">
+                <Label>Expiry Date :</Label>
+                <Input {...register("expiry_date")} placeholder="Expiry Date"  type="Date"  className="" />
+                    <p className='text-red-500 text-sm h-5'>{errors.expiry_date?.message}</p>
+                </div>
+            </div>
+            <div id="batch-number" className="flex items-end gap-4 flex-1 justify-between">
+                <div id="batch-number" className="w-4/5">
+                <Label>Batch Number :</Label>
+                <Input {...register("batch_number",{valueAsNumber:true})} placeholder="Enter Batch Number" className="" type='number'/>
+                    <p className='text-red-500 text-sm h-5'>{errors.batch_number?.message}</p>
+                </div>
+            </div>
+            <div className="flex items-center ml-4 mt-4 col-span-2">
+             <Button type='submit' className="w-1/4 h-fit  ">Submit</Button>
+            </div>
         </div>
-
-        <div>
-          <button type="submit" className="w-full py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 transition">
-            Save Purchase
-          </button>
-        </div>
-      </form>
-    </div>
-  );
+            </form>
+    )
 }

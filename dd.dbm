@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+CAUTION: Do not modify this file unless you know what you are doing.
+ Unexpected results may occur if the code is changed deliberately.
+-->
+<dbmodel pgmodeler-ver="2.0.0-alpha" use-changelog="false" max-obj-count="6"
+	 gen-disabled-objs-code="false" show-sys-schemas-rects="true"
+	 last-position="0,-35" last-zoom="0.7" scene-rect="-128,-50,2288.77,1453.92"
+	 default-schema="public" default-owner="postgres"
+	 layers="Default layer"
+	 active-layers="0"
+	 layer-name-colors="#000000"
+	 layer-rect-colors="#b4b4b4"
+	 show-layer-names="false" show-layer-rects="false">
+<role name="hms_owner"
+ superuser="true"
+ inherit="true"
+ login="true"
+ password="********">
+</role>
+
+<database name="dd" encoding="UTF8" lc-collate="en_US.UTF-8" lc-ctype="en_US.UTF-8" is-template="false" allow-conns="true">
+	<role name="postgres"/>
+	<tablespace name="pg_default"/>
+</database>
+
+<schema name="public" layers="0" rect-visible="true" fill-color="#e1e1e1" name-color="#000000" sql-disabled="true">
+</schema>
+
+<sequence name="activity_id_seq" cycle="false" start="1" increment="1" min-value="1" max-value="2147483647" cache="1">
+	<schema name="public"/>
+	<role name="postgres"/>
+</sequence>
+
+<table name="activity" layers="0" collapse-mode="2" max-obj-count="8" z-value="0">
+	<schema name="public"/>
+	<role name="postgres"/>
+	<position x="-100" y="320"/>
+	<column name="id" not-null="true" sequence="public.activity_id_seq">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="name" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="description">
+		<type name="text" length="0"/>
+	</column>
+	<column name="start_date">
+		<type name="date" length="0"/>
+	</column>
+	<column name="end_date">
+		<type name="date" length="0"/>
+	</column>
+	<column name="status" default-value="'active'">
+		<type name="text" length="0"/>
+	</column>
+	<column name="created_at" default-value="now()">
+		<type name="timestamp" length="0"/>
+	</column>
+	<constraint name="activity_status_check" type="ck-constr" table="public.activity">
+			<expression> <![CDATA[(status = ANY (ARRAY['active'::text, 'paused'::text, 'completed'::text, 'archived'::text]))]]> </expression>
+	</constraint>
+	<constraint name="activity_pkey" type="pk-constr" table="public.activity">
+		<columns names="id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<sequence name="journal_entry_id_seq" cycle="false" start="1" increment="1" min-value="1" max-value="2147483647" cache="1">
+	<schema name="public"/>
+	<role name="postgres"/>
+</sequence>
+
+<table name="journal_entry" layers="0" collapse-mode="2" max-obj-count="21" z-value="0">
+	<schema name="public"/>
+	<role name="postgres"/>
+	<position x="340" y="0"/>
+	<column name="id" not-null="true" sequence="public.journal_entry_id_seq">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="entry_date" not-null="true">
+		<type name="date" length="0"/>
+	</column>
+	<column name="day_of_week" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="planned_start" not-null="true">
+		<type name="time" length="0"/>
+	</column>
+	<column name="planned_end" not-null="true">
+		<type name="time" length="0"/>
+	</column>
+	<column name="planned_min" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="actual_start">
+		<type name="time" length="0"/>
+	</column>
+	<column name="actual_end">
+		<type name="time" length="0"/>
+	</column>
+	<column name="actual_min">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="activity_id">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="intended_task" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="actual_result">
+		<type name="text" length="0"/>
+	</column>
+	<column name="completion_pct">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="energy_level">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="friction_note">
+		<type name="text" length="0"/>
+	</column>
+	<column name="status" default-value="'planned'">
+		<type name="text" length="0"/>
+	</column>
+	<column name="created_at" default-value="now()">
+		<type name="timestamp" length="0"/>
+	</column>
+	<column name="closed_at">
+		<type name="timestamp" length="0"/>
+	</column>
+	<constraint name="journal_entry_day_of_week_check" type="ck-constr" table="public.journal_entry">
+			<expression> <![CDATA[((day_of_week >= 0) AND (day_of_week <= 6))]]> </expression>
+	</constraint>
+	<constraint name="journal_entry_completion_pct_check" type="ck-constr" table="public.journal_entry">
+			<expression> <![CDATA[((completion_pct >= 0) AND (completion_pct <= 100))]]> </expression>
+	</constraint>
+	<constraint name="journal_entry_energy_level_check" type="ck-constr" table="public.journal_entry">
+			<expression> <![CDATA[((energy_level >= 1) AND (energy_level <= 5))]]> </expression>
+	</constraint>
+	<constraint name="journal_entry_status_check" type="ck-constr" table="public.journal_entry">
+			<expression> <![CDATA[(status = ANY (ARRAY['planned'::text, 'started'::text, 'closed'::text, 'skipped'::text]))]]> </expression>
+	</constraint>
+	<constraint name="journal_entry_pkey" type="pk-constr" table="public.journal_entry">
+		<columns names="id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<sequence name="journal_segment_id_seq" cycle="false" start="1" increment="1" min-value="1" max-value="2147483647" cache="1">
+	<schema name="public"/>
+	<role name="postgres"/>
+</sequence>
+
+<table name="journal_segment" layers="0" collapse-mode="2" max-obj-count="9" z-value="0">
+	<schema name="public"/>
+	<role name="postgres"/>
+	<position x="860" y="60"/>
+	<column name="id" not-null="true" sequence="public.journal_segment_id_seq">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="journal_entry_id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="segment_type" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="start_time" not-null="true">
+		<type name="time" length="0"/>
+	</column>
+	<column name="end_time" not-null="true">
+		<type name="time" length="0"/>
+	</column>
+	<column name="duration_min" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="notes">
+		<type name="text" length="0"/>
+	</column>
+	<column name="created_at" default-value="now()">
+		<type name="timestamp" length="0"/>
+	</column>
+	<constraint name="journal_segment_segment_type_check" type="ck-constr" table="public.journal_segment">
+			<expression> <![CDATA[(segment_type = ANY (ARRAY['focus'::text, 'break'::text, 'distraction'::text, 'overhead'::text]))]]> </expression>
+	</constraint>
+	<constraint name="journal_segment_pkey" type="pk-constr" table="public.journal_segment">
+		<columns names="id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<sequence name="decision_id_seq" cycle="false" start="1" increment="1" min-value="1" max-value="2147483647" cache="1">
+	<schema name="public"/>
+	<role name="postgres"/>
+</sequence>
+
+<table name="decision" layers="0" collapse-mode="2" max-obj-count="7" z-value="0">
+	<schema name="public"/>
+	<role name="postgres"/>
+	<position x="320" y="680"/>
+	<column name="id" not-null="true" sequence="public.decision_id_seq">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="activity_id">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="decision_title" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="decision_context">
+		<type name="text" length="0"/>
+	</column>
+	<column name="decision_date" not-null="true">
+		<type name="date" length="0"/>
+	</column>
+	<column name="created_at" default-value="now()">
+		<type name="timestamp" length="0"/>
+	</column>
+	<constraint name="decision_pkey" type="pk-constr" table="public.decision">
+		<columns names="id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<sequence name="decision_option_id_seq" cycle="false" start="1" increment="1" min-value="1" max-value="2147483647" cache="1">
+	<schema name="public"/>
+	<role name="postgres"/>
+</sequence>
+
+<table name="decision_option" layers="0" collapse-mode="2" max-obj-count="9" z-value="0">
+	<schema name="public"/>
+	<role name="postgres"/>
+	<position x="920" y="740"/>
+	<column name="id" not-null="true" sequence="public.decision_option_id_seq">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="decision_id" not-null="true">
+		<type name="integer" length="0"/>
+	</column>
+	<column name="option_text" not-null="true">
+		<type name="text" length="0"/>
+	</column>
+	<column name="is_chosen" default-value="false">
+		<type name="boolean" length="0"/>
+	</column>
+	<column name="pros">
+		<type name="text" length="0"/>
+	</column>
+	<column name="cons">
+		<type name="text" length="0"/>
+	</column>
+	<column name="reason">
+		<type name="text" length="0"/>
+	</column>
+	<column name="created_at" default-value="now()">
+		<type name="timestamp" length="0"/>
+	</column>
+	<constraint name="decision_option_pkey" type="pk-constr" table="public.decision_option">
+		<columns names="id" ref-type="src-columns"/>
+	</constraint>
+</table>
+
+<constraint name="journal_entry_activity_id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.activity" table="public.journal_entry">
+	<columns names="activity_id" ref-type="src-columns"/>
+	<columns names="id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="journal_segment_journal_entry_id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.journal_entry" table="public.journal_segment">
+	<columns names="journal_entry_id" ref-type="src-columns"/>
+	<columns names="id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="decision_activity_id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.activity" table="public.decision">
+	<columns names="activity_id" ref-type="src-columns"/>
+	<columns names="id" ref-type="dst-columns"/>
+</constraint>
+
+<constraint name="decision_option_decision_id_fkey" type="fk-constr" comparison-type="MATCH SIMPLE"
+	 upd-action="NO ACTION" del-action="NO ACTION" ref-table="public.decision" table="public.decision_option">
+	<columns names="decision_id" ref-type="src-columns"/>
+	<columns names="id" ref-type="dst-columns"/>
+</constraint>
+
+<relationship name="rel_journal_entry_activity" type="relfk" layers="0"
+	 custom-color="#0005c7"
+	 src-table="public.journal_entry"
+	 dst-table="public.activity" reference-fk="journal_entry_activity_id_fkey"
+	 src-required="false" dst-required="false"/>
+
+<relationship name="rel_journal_segment_journal_entry" type="relfk" layers="0"
+	 custom-color="#0662ca"
+	 src-table="public.journal_segment"
+	 dst-table="public.journal_entry" reference-fk="journal_segment_journal_entry_id_fkey"
+	 src-required="false" dst-required="true"/>
+
+<relationship name="rel_decision_activity" type="relfk" layers="0"
+	 custom-color="#1f83e6"
+	 src-table="public.decision"
+	 dst-table="public.activity" reference-fk="decision_activity_id_fkey"
+	 src-required="false" dst-required="false"/>
+
+<relationship name="rel_decision_option_decision" type="relfk" layers="0"
+	 custom-color="#4b15b0"
+	 src-table="public.decision_option"
+	 dst-table="public.decision" reference-fk="decision_option_decision_id_fkey"
+	 src-required="false" dst-required="true"/>
+
+</dbmodel>
