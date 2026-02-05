@@ -36,12 +36,14 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.getAllPartiesName = getAllPartiesName;
+exports.getAllMedicines = getAllMedicines;
 function getAllPartiesName() {
     return __awaiter(this, void 0, void 0, function () {
         var res, data, parties;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, fetch('http://localhost:3000/api/party')];
+                case 0: return [4 /*yield*/, fetch('/api/party')];
                 case 1:
                     res = _a.sent();
                     if (!res.ok)
@@ -60,4 +62,24 @@ function getAllPartiesName() {
         });
     });
 }
-console.log(await getAllPartiesName());
+function getAllMedicines() {
+    return __awaiter(this, void 0, void 0, function () {
+        var res, data;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, fetch('http://localhost:3000/api/medicine')];
+                case 1:
+                    res = _a.sent();
+                    console.log(res);
+                    if (!res.ok)
+                        throw new Error("Failed to fetch Data from api/medicine");
+                    return [4 /*yield*/, res.json()];
+                case 2:
+                    data = _a.sent();
+                    console.log(data);
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+getAllMedicines();

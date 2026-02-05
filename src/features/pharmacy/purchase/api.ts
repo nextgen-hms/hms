@@ -12,7 +12,14 @@ export async function getAllPartiesName(){
       }
     )
   })
-  return(parties);
+  return parties ;
+}
+
+export async function getAllMedicines(){
+  const res=await fetch('/api/medicine');
+  if(!res.ok) throw new Error("Failed to fetch Data from api/medicine");
+  const data=await res.json();
+  return data;
 }
 
 
