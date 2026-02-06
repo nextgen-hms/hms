@@ -29,7 +29,7 @@ const motivationalQuotes: Quote[] = [
 export function Login() {
   const {
     userCode, name, designation, password, showPassword,
-    isLoading, error, setUserCode, setName, setDesignation,
+    isLoading, isFetchingInfo, error, setUserCode, setName, setDesignation,
     setPassword, setShowPassword, getUserData, verifyUserLogin,
   } = useLogin();
 
@@ -80,6 +80,11 @@ export function Login() {
                 className="w-full h-12 px-4 pl-11 text-gray-700 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
               />
               <User className="absolute left-3.5 top-3.5 h-5 w-5 text-gray-400" />
+              {isFetchingInfo && !name && (
+                <div className="absolute right-3.5 top-3.5">
+                  <div className="h-5 w-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
             </div>
 
             <input

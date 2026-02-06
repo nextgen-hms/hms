@@ -12,39 +12,27 @@ export function useLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingInfo, setIsFetchingInfo] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
-  // Auto-redirect if already logged in
-  // useEffect(() => {
-  //   const token = localStorage.getItem("token");
-  //   if (!token) return;
 
-  //   try {
-  //     const decoded = jwt.decode(token) as DecodedToken | null;
-  //     if (decoded?.role) redirectByRole(decoded.role);
-  //   } catch {
-  //     localStorage.removeItem("token");
-  //   }
-  // }, []);
-
-  const redirectByRole = (role: any) => {
-    // Use window.location.href for reliable production redirects after auth
+  const redirectByRole = (role: string) => {
     switch (role) {
       case "Doctor":
-        window.location.href = "/doctor";
+        router.replace("/doctor");
         break;
       case "Receptionist":
-        window.location.href = "/receptionist";
+        router.replace("/receptionist");
         break;
       case "Pharmacist":
-        window.location.href = "/pharmacy";
+        router.replace("/pharmacy");
         break;
       case "Lab_Technician":
-        window.location.href = "/lab";
+        router.replace("/lab");
         break;
       default:
-        window.location.href = "/";
+        router.replace("/");
     }
   };
 
@@ -54,17 +42,19 @@ export function useLogin() {
       return;
     }
 
-    // setIsLoading(true);
+    setIsFetchingInfo(true);
     setError("");
 
-    const data = await fetchUserData(userCode);
-    if (!data) setError("User code not found");
-    else {
-      setName(data.name);
-      setDesignation(data.role);
+    try {
+      const data = await fetchUserData(userCode);
+      if (!data) setError("User code not found");
+      else {
+        setName(data.name);
+        setDesignation(data.role);
+      }
+    } finally {
+      setIsFetchingInfo(false);
     }
-
-    // setIsLoading(false);
   };
 
   const verifyUserLogin = async () => {
@@ -96,6 +86,7 @@ export function useLogin() {
     password,
     showPassword,
     isLoading,
+    isFetchingInfo,
     error,
     setUserCode,
     setName,

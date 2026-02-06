@@ -2,7 +2,7 @@
 import pool from "@/database/db";
 import { NextRequest, NextResponse } from "next/server";
 import { SignJWT } from "jose";
-const secret = new TextEncoder().encode(process.env.secret_key || "supersecurekey");
+const secret = new TextEncoder().encode(process.env.secret_key || "hms_super_secure_2026_clinic_key");
 export async function POST(req: NextRequest) {
    const body = await req.json();
    const { user_code, password } = body;

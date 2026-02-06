@@ -1,7 +1,8 @@
 import { jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
-const JWT_Secret = new TextEncoder().encode(process.env.JWT_SECRET || "supersecurekey");
-export async function proxy(req: NextRequest) {
+const JWT_Secret = new TextEncoder().encode(process.env.secret_key || "hms_super_secure_2026_clinic_key");
+
+export async function middleware(req: NextRequest) {
     //get token from request
     const token = req.cookies.get("token")?.value;
     //url to change path for redirection
@@ -14,19 +15,21 @@ export async function proxy(req: NextRequest) {
     }
     try {
         const { payload } = await jwtVerify(token, JWT_Secret);
-        if (url.pathname.startsWith("/doctor") && payload.role != "Doctor") {
+        const role = payload.role;
+
+        if (url.pathname.startsWith("/doctor") && role != "Doctor") {
             url.pathname = '/';
             return NextResponse.redirect(url);
         }
-        if (url.pathname.startsWith("/lab") && payload.role !== "Lab_Technician") {
+        if (url.pathname.startsWith("/lab") && role !== "Lab_Technician") {
             url.pathname = "/";
             return NextResponse.redirect(url);
         }
-        if (url.pathname.startsWith("/receptionist") && payload.role !== "Receptionist") {
+        if (url.pathname.startsWith("/receptionist") && role !== "Receptionist") {
             url.pathname = "/";
             return NextResponse.redirect(url);
         }
-        if (url.pathname.startsWith("/pharmacy") && payload.role !== "Pharmacist") {
+        if (url.pathname.startsWith("/pharmacy") && role !== "Pharmacist") {
             url.pathname = "/";
             return NextResponse.redirect(url);
         }
@@ -34,7 +37,9 @@ export async function proxy(req: NextRequest) {
     catch (err) {
         console.error("Invalid or expired token:", err);
         url.pathname = '/';
-        return NextResponse.redirect(url);
+        const response = NextResponse.redirect(url);
+        response.cookies.delete("token");
+        return response;
     }
     return NextResponse.next();
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET || "supersecurekey");
+const secret = new TextEncoder().encode(process.env.secret_key || "hms_super_secure_2026_clinic_key");
 
 export async function GET(req: NextRequest) {
     try {

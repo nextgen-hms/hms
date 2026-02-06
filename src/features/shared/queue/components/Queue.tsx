@@ -28,8 +28,8 @@ export function Queue() {
             <button
               key={type}
               className={`flex-1 py-1.5 text-sm font-medium transition-all ${selectedQueue === type
-                  ? "bg-white shadow-sm rounded-xl text-green-800 border-white/50 border"
-                  : "text-gray-500 hover:text-gray-700"
+                ? "bg-white shadow-sm rounded-xl text-green-800 border-white/50 border"
+                : "text-gray-500 hover:text-gray-700"
                 }`}
               onClick={() => setSelectedQueue(type as any)}
             >
@@ -67,7 +67,10 @@ export function Queue() {
           queue.map((p) => (
             <div
               key={p.patient_id}
-              className="group relative bg-white/60 hover:bg-white backdrop-blur-sm p-3 border border-white/40 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden border-l-4 border-l-green-500/30 hover:border-l-green-500"
+              className={`group relative bg-white/60 hover:bg-white backdrop-blur-sm p-3 border border-white/40 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden border-l-4 ${p.visit_type === "Emergency"
+                  ? "border-l-red-500 bg-red-50/20"
+                  : "border-l-green-500/30 hover:border-l-green-500"
+                }`}
               onClick={() => setPatientId(p.patient_id)}
             >
               <button
@@ -77,14 +80,14 @@ export function Queue() {
                   deleteVisit(p.patient_id);
                 }}
               >
-                <Search size={14} className="rotate-45" /> {/* Placeholder for X delete icon if lucide X is not explicitly loaded, but Lucide usually has X */}
+                <Search size={14} className="rotate-45" />
                 <span className="sr-only">Delete</span>
               </button>
 
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded leading-none uppercase">
+                    <span className={`text-xs font-bold ${p.visit_type === 'Emergency' ? 'text-red-700 bg-red-100' : 'text-green-700 bg-green-100'} px-1.5 py-0.5 rounded leading-none uppercase`}>
                       #{p.clinic_number}
                     </span>
                     <h3 className="font-bold text-slate-800 truncate max-w-[140px]">
@@ -98,7 +101,7 @@ export function Queue() {
                       Dr. {p.doctor_name}
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                      <span className={`w-1.5 h-1.5 rounded-full ${p.visit_type === 'Emergency' ? 'bg-red-400' : 'bg-slate-300'}`} />
                       {p.visit_type}
                     </span>
                   </div>
@@ -107,7 +110,7 @@ export function Queue() {
 
               {/* Status Indicator Bar */}
               <div className="mt-2 h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-green-500/50 w-1/3 rounded-full" />
+                <div className={`h-full ${p.visit_type === 'Emergency' ? 'bg-red-500 animate-pulse' : 'bg-green-500/50'} w-1/3 rounded-full`} />
               </div>
             </div>
           ))
