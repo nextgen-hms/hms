@@ -5,10 +5,10 @@ import { getCurrentStaffId } from '@/src/lib/utils';
 
 export async function POST(request: NextRequest) {
   const client = await pool.connect();
-  
+
   try {
     const transaction: Transaction = await request.json();
-    
+
     if (!transaction.items || transaction.items.length === 0) {
       return NextResponse.json<ApiResponse>({
         success: false,
@@ -56,10 +56,10 @@ export async function POST(request: NextRequest) {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7)
       `, [
         holdId,
-        item.medicine.medicine_id,
+        item.medicine.id,
         item.quantity,
         item.subQuantity,
-        item.unitPrice,
+        item.price,
         item.discountPercent,
         item.lineTotal
       ]);
@@ -76,12 +76,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Hold transaction error:', error);
-    
+
     return NextResponse.json<ApiResponse>({
       success: false,
       error: 'Failed to hold transaction'
     }, { status: 500 });
-    
+
   } finally {
     client.release();
   }
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const staffId = getCurrentStaffId();
-     const client = await pool.connect();
+    const client = await pool.connect();
     const result = await client.query(`
       SELECT 
         ht.*,

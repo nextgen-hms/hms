@@ -1,5 +1,5 @@
-import PreviousPrescriptions from "@/src/features/doctor/pharmacyOrder/previous/components/PeviousPrescriptions";
+import { PreviousPrescriptions } from "@/src/features/doctor/pharmacyOrder/previous";
 
-export default function PreviousPrescriptionsPage(){
-  return <PreviousPrescriptions/>;
+export default function PreviousPrescriptionsPage() {
+  return <PreviousPrescriptions />;
 }

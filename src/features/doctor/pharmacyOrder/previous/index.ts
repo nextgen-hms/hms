@@ -1,6 +1,5 @@
 
-
-export { default as PreviousLabOrders } from "./components/PreviousLabOrders";
-export * from "./hooks/usePreviousLabOrders";
+export { default as PreviousPrescriptions } from "./components/PreviousPrescriptions";
+export * from "./hooks/usePreviousPrescriptions";
 export * from "./api";
 export * from "./types";
