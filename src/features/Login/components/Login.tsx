@@ -119,22 +119,20 @@ export function Login() {
               </button>
             </div>
 
-            <Link href="/receptionist" className="mt-2">
-              <button
-                onClick={verifyUserLogin}
-                disabled={isLoading}
-                className="w-full h-12 text-white font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all shadow-lg disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Logging in...</span>
-                  </div>
-                ) : (
-                  "Sign In"
-                )}
-              </button>
-            </Link>
+            <button
+              onClick={verifyUserLogin}
+              disabled={isLoading}
+              className="w-full h-12 mt-2 text-white font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all shadow-lg disabled:opacity-50"
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Logging in...</span>
+                </div>
+              ) : (
+                "Sign In"
+              )}
+            </button>
           </div>
 
           <p className="mt-6 text-xs text-gray-400 text-center">
