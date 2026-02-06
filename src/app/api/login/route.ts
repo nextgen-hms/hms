@@ -43,3 +43,6 @@ export async function POST(req: NextRequest) {
       client.release();
    }
 }
+function getCurrentStaffId() {
+
+}
