@@ -19,14 +19,15 @@ export async function POST(request: NextRequest) {
 
     if (batchId) {
       sql = `
-        SELECT stock_quantity, stock_sub_quantity 
-        FROM medicine_batch 
-        WHERE batch_id = $1 AND medicine_id = $2
+        SELECT m.sub_units_per_unit, mb.stock_quantity, mb.stock_sub_quantity 
+        FROM medicine_batch mb
+        JOIN medicine m ON mb.medicine_id = m.medicine_id
+        WHERE mb.batch_id = $1 AND mb.medicine_id = $2
       `;
       params = [batchId, medicineId];
     } else {
       sql = `
-        SELECT stock_quantity, stock_sub_quantity 
+        SELECT sub_units_per_unit, stock_quantity, stock_sub_quantity 
         FROM medicine 
         WHERE medicine_id = $1 AND is_active = true 
       `;
@@ -42,24 +43,28 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
 
-    const currentStockUnits = rows[0].stock_quantity;
+    const subUnitsPerUnit = rows[0].sub_units_per_unit || 1;
+    const currentStockUnits = rows[0].stock_quantity || 0;
     const currentStockSubUnits = rows[0].stock_sub_quantity || 0;
 
-    // Simple availability check (could be more complex if we need to convert units)
-    // For now, we assume POS specifies exact quantity/sub-quantity needed
-    const available = (currentStockUnits > (quantity || 0)) ||
-      (currentStockUnits === (quantity || 0) && currentStockSubUnits >= (subQuantity || 0));
+    // Correct availability check: Convert everything to sub-units
+    const totalAvailableSubUnits = (currentStockUnits * subUnitsPerUnit) + currentStockSubUnits;
+    const totalRequestedSubUnits = ((quantity || 0) * subUnitsPerUnit) + (subQuantity || 0);
+
+    const available = totalAvailableSubUnits >= totalRequestedSubUnits;
 
     return NextResponse.json<ApiResponse<{
       available: boolean;
       currentStock: number;
       currentSubStock: number;
+      totalAvailableSubUnits: number;
     }>>({
       success: true,
       data: {
         available,
         currentStock: currentStockUnits,
-        currentSubStock: currentStockSubUnits
+        currentSubStock: currentStockSubUnits,
+        totalAvailableSubUnits
       }
     });
 

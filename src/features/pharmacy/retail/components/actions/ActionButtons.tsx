@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { CartItem, PaymentDetails } from '../../types';
 import { submitTransaction, holdTransaction, printReceipt, openCashDrawer } from '../../api';
-import { generateReference } from '../../utils';
+import { generateReference, formatCurrency } from '../../utils';
+import toast from 'react-hot-toast';
 import { CloseButton } from './CloseButton';
 import { PrintButton } from './PrintButton';
 import { PayDueButton } from './PayDueButton';
@@ -23,12 +24,12 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   const [lastTransactionId, setLastTransactionId] = useState<string | null>(null);
 
   const handlePayNow = async () => {
-   
-    
-    if (cart.length === 0) return alert('Cart is empty');
 
-    if (payment.dueAmount > 0 && !window.confirm(`Due amount $${payment.dueAmount.toFixed(2)}. Continue?`)) return;
-   
+
+    if (cart.length === 0) return toast.error('Cart is empty');
+
+    if (payment.dueAmount > 0 && !window.confirm(`Due amount ${formatCurrency(payment.dueAmount)}. Continue?`)) return;
+
     setIsProcessing(true);
     try {
       const transaction = {
@@ -39,25 +40,25 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         status: 'completed' as const,
       };
       console.log(transaction);
-      
+
       const response = await submitTransaction(transaction);
       if (response.success && response.data) {
         setLastTransactionId(response.data.id);
         await printReceipt(response.data.id);
         if (payment.type === 'CASH') await openCashDrawer();
-        alert('Transaction completed successfully!');
+        toast.success('Transaction completed successfully!');
         onComplete();
-      } else alert(response.error || 'Transaction failed');
+      } else toast.error(response.error || 'Transaction failed');
     } catch (err) {
       console.error(err);
-      alert('Error during transaction');
+      toast.error('Error during transaction');
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleHold = async () => {
-    if (cart.length === 0) return alert('Cart is empty');
+    if (cart.length === 0) return toast.error('Cart is empty');
     setIsProcessing(true);
     try {
       const transaction = {
@@ -67,38 +68,38 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         cashier: 'Current User',
         status: 'held' as const,
       };
-     
+
       const response = await holdTransaction(transaction);
       if (response.success && response.data) {
-        alert(`Transaction held successfully! Hold ID: ${response.data.holdId}`);
+        toast.success(`Transaction held successfully! Hold ID: ${response.data.holdId}`);
         onComplete();
-      } else alert(response.error || 'Failed to hold transaction');
+      } else toast.error(response.error || 'Failed to hold transaction');
     } catch (err) {
       console.error(err);
-      alert('Error while holding transaction');
+      toast.error('Error while holding transaction');
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handlePrint = async () => {
-    if (!lastTransactionId) return alert('No recent transaction to print');
+    if (!lastTransactionId) return toast.error('No recent transaction to print');
     try {
       const res = await printReceipt(lastTransactionId);
-      if (!res.success) alert(res.error || 'Failed to print receipt');
+      if (!res.success) toast.error(res.error || 'Failed to print receipt');
     } catch (err) {
       console.error(err);
-      alert('Error while printing');
+      toast.error('Error while printing');
     }
   };
 
   const handleOpenDrawer = async () => {
     try {
       const res = await openCashDrawer();
-      if (!res.success) alert(res.error || 'Failed to open cash drawer');
+      if (!res.success) toast.error(res.error || 'Failed to open cash drawer');
     } catch (err) {
       console.error(err);
-      alert('Error while opening drawer');
+      toast.error('Error while opening drawer');
     }
   };
 
@@ -124,7 +125,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 
         <button
           className="flex flex-col items-center justify-center gap-2 p-5 font-semibold text-sm rounded-lg shadow-md bg-blue-500 text-white hover:bg-blue-600 transition-all duration-300 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
-          onClick={() => alert('Email receipt feature coming soon')}
+          onClick={() => toast.success('Email receipt feature coming soon')}
           disabled={isProcessing || !lastTransactionId}
         >
           <span className="text-[10px] text-white/80">[EM]</span>

@@ -2,7 +2,7 @@
 import { PatientContextProvider } from "@/contexts/PatientIdContext";
 import Image from "next/image";
 import { useState } from "react";
-import {redirect} from "next/navigation";
+import { redirect } from "next/navigation";
 import { Button } from "@/src/components/ui/Button";
 import { logoutUser } from "@/src/features/Login/api";
 export default function LabTechnician({
@@ -24,12 +24,12 @@ export default function LabTechnician({
           <Image src="/logo.png" alt="Clinic Logo" fill sizes="7dvh" />
         </div>
         <h1 className="text-3xl font-bold text-green-800/80">
-          Dr Bablu Clinic
+          Fouzia Ishaq Clinic
         </h1>
-        <Button onClick={async ()=> {
-                  await logoutUser()
-                  redirect("/")
-                  }} className="absolute right-2">Logout</Button>
+        <Button onClick={async () => {
+          await logoutUser()
+          redirect("/")
+        }} className="absolute right-2">Logout</Button>
       </div>
 
       {/* Lab Technician Header */}
@@ -53,31 +53,28 @@ export default function LabTechnician({
               className="w-[70%] p-2 border-2 border-black/30 rounded-4xl flex items-center gap-2 bg-gray-200"
             >
               <button
-                className={`px-4 py-1 text-center ${
-                  selectedTab === "sampleCollection"
+                className={`px-4 py-1 text-center ${selectedTab === "sampleCollection"
                     ? "bg-green-400 rounded-3xl border-black/30 border-2"
                     : ""
-                }`}
+                  }`}
                 onClick={() => setSelectedTab("sampleCollection")}
               >
                 Sample Collection
               </button>
               <button
-                className={`px-4 py-1 text-center ${
-                  selectedTab === "testResults"
+                className={`px-4 py-1 text-center ${selectedTab === "testResults"
                     ? "bg-green-400 rounded-3xl border-black/30 border-2"
                     : ""
-                }`}
+                  }`}
                 onClick={() => setSelectedTab("testResults")}
               >
                 Test Results
               </button>
               <button
-                className={`px-4 py-1 text-center ${
-                  selectedTab === "labOrders"
+                className={`px-4 py-1 text-center ${selectedTab === "labOrders"
                     ? "bg-green-400 rounded-3xl border-black/30 border-2"
                     : ""
-                }`}
+                  }`}
                 onClick={() => setSelectedTab("labOrders")}
               >
                 Lab Orders

@@ -1,7 +1,7 @@
-// Core Medicine Types
 export interface Medicine {
-  id: string;
+  id: number; // Standardized to match v_medicine_pos
   brand_name: string;
+  generic_name: string; // Critical for medical accuracy
   barcode: string;
   sku: string;
   price: number;
@@ -11,16 +11,16 @@ export interface Medicine {
   sub_units_per_unit: number;
   sub_unit_price: number;
   allow_sub_unit_sale: boolean;
-  subQuantity?: number; // For loose units (e.g., tablets from strips)
+  subQuantity?: number;
   batchNumber?: string;
-  expiry_date?: string;
+  expiry_date?: string | Date;
   manufacturer?: string;
   dosage_value: number;
   dosage_unit: string;
   form: string;
   category: 'prescription' | 'otc' | 'controlled';
 
-  // Batch specific fields from v_medicine_pos
+  // Batch specific fields from v_medicine_pos (merged at runtime)
   batch_id?: number;
   batch_number?: string;
   batch_stock_quantity?: number;

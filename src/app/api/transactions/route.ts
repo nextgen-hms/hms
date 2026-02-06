@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
     const saleResult = await client.query(`
       INSERT INTO pharmacy_sale (
         visit_id,
+        bill_id,
         handled_by,
         total_amount,
         status,
@@ -41,10 +42,11 @@ export async function POST(request: NextRequest) {
         customer_id,
         is_prescription_sale,
         prescription_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,$14)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING sale_id, sale_timestamp
     `, [
       transaction.visitId || null,
+      transaction.billId || null,
       staffId,
       transaction.payment.payableAmount,
       'Completed',
@@ -55,7 +57,7 @@ export async function POST(request: NextRequest) {
       transaction.payment.changeAmount,
       transaction.payment.adjustmentPercent,
       transaction.payment.adjustment,
-      1,
+      transaction.customerId || null,
       !!transaction.prescriptionId,
       transaction.prescriptionId || null
     ]);
@@ -66,31 +68,38 @@ export async function POST(request: NextRequest) {
 
     // Insert sale details
     for (const item of transaction.items) {
-      const discountAmount = (item.quantity * item.price * item.discountPercent) / 100;
-      const lineTotal = (item.quantity * item.price) - discountAmount;
+      const subUnitsPerUnit = (item.medicine as any).sub_units_per_unit || 1;
+      const subUnitPrice = item.medicine.batch_sale_sub_unit_price
+        || (item.medicine as any).sub_unit_price
+        || (item.price / subUnitsPerUnit);
+
+      const itemTotalBeforeDiscount = (item.quantity * item.price) + (item.subQuantity * subUnitPrice);
+      const discountAmount = Number(((itemTotalBeforeDiscount * item.discountPercent) / 100).toFixed(2));
+      const lineTotal = Number((itemTotalBeforeDiscount - discountAmount).toFixed(2));
+
       await client.query(`
         INSERT INTO pharmacy_sale_detail (
           sale_id,
           medicine_id,
           batch_id,
-          qty,
+          quantity,
           sub_quantity,
-          unit_price,
+          unit_sale_price,
+          sub_unit_sale_price,
           discount_percent,
           discount_amount,
-          original_price,
-          total_price
+          line_total
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       `, [
         saleId,
-        item.medicine.medicine_id,
+        item.medicine.id,
         item.batchId || null,
         item.quantity,
         item.subQuantity,
         item.price,
+        subUnitPrice,
         item.discountPercent,
         discountAmount,
-        item.price,
         lineTotal
       ]);
     }

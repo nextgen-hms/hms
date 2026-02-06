@@ -23,15 +23,20 @@ export const useCart = () => {
       throw new Error(stockValidation.message);
     }
 
-    const price = customPrice ?? medicine.price;
-    const discountedPrice = price - (price * discountPercent / 100);
+    const price = customPrice ?? medicine.batch_sale_price ?? medicine.price;
+    const subUnitPrice = medicine.batch_sale_sub_unit_price ?? medicine.sub_unit_price;
+    const subUnitsPerUnit = medicine.sub_units_per_unit || 1;
+
     const lineTotal = calculateLineTotal(
       quantity,
       subQuantity,
       price,
       discountPercent,
-      customPrice
+      subUnitPrice,
+      subUnitsPerUnit
     );
+
+    const discountedPrice = price - (price * discountPercent / 100);
 
     const newItem: CartItem = {
       id: uuidv4(),
@@ -59,12 +64,16 @@ export const useCart = () => {
       if (item.id !== itemId) return item;
 
       const updatedItem = { ...item, ...updates };
+      const subUnitsPerUnit = item.medicine.sub_units_per_unit || 1;
+      const subUnitPrice = item.medicine.batch_sale_sub_unit_price ?? item.medicine.sub_unit_price;
+
       updatedItem.lineTotal = calculateLineTotal(
         updatedItem.quantity,
         updatedItem.subQuantity,
         updatedItem.price,
         updatedItem.discountPercent,
-        updatedItem.customPrice
+        subUnitPrice,
+        subUnitsPerUnit
       );
 
       return updatedItem;

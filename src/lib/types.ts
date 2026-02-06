@@ -1,5 +1,5 @@
 export interface Medicine {
-  medicine_id: number;
+  id: number;
   generic_name: string;
   brand_name: string;
   category: string;
@@ -61,6 +61,8 @@ export interface Transaction {
   };
   status: 'completed' | 'pending' | 'cancelled' | 'held';
   visitId?: number;
+  billId?: number;
+  customerId?: number;
   prescriptionId?: number;
 }
 

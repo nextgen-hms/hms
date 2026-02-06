@@ -3,22 +3,21 @@ import { CartItem, PaymentDetails, Medicine } from './types';
 /**
  * Calculate line total for a cart item
  */
-////fix it
 export const calculateLineTotal = (
   quantity: number,
   subQuantity: number,
   unitPrice: number,
   discountPercent: number,
-  customPrice?: number,
+  subUnitPrice?: number,
   subUnitsPerUnit: number = 1
 ): number => {
-  const effectivePrice = customPrice ?? unitPrice;
-  // Calculate total price: (qty * price) + (subQty * subPrice)
-  // SubPrice = unitPrice / subUnitsPerUnit
-  const subUnitPrice = effectivePrice / (subUnitsPerUnit || 1);
-  const subtotal = (quantity * effectivePrice) + (subQuantity * subUnitPrice);
+  // Use explicit subUnitPrice if available, otherwise calculate it
+  const effectiveSubPrice = subUnitPrice || (unitPrice / (subUnitsPerUnit || 1));
+
+  const subtotal = (quantity * unitPrice) + (subQuantity * effectiveSubPrice);
   const discount = (subtotal * discountPercent) / 100;
-  return subtotal - discount;
+
+  return Number((subtotal - discount).toFixed(2));
 };
 
 /**
@@ -30,10 +29,13 @@ export const calculatePaymentDetails = (
   paidAmount: number = 0
 ): PaymentDetails => {
   const itemsTotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
-  const itemsDiscount = items.reduce(
-    (sum, item) => sum + (item.quantity * item.price - item.lineTotal),
-    0
-  );
+
+  const itemsDiscount = items.reduce((sum, item) => {
+    const subUnitsPerUnit = item.medicine.sub_units_per_unit || 1;
+    const subUnitPrice = item.medicine.batch_sale_sub_unit_price ?? item.medicine.sub_unit_price ?? (item.price / subUnitsPerUnit);
+    const totalBeforeDiscount = (item.quantity * item.price) + (item.subQuantity * subUnitPrice);
+    return sum + (totalBeforeDiscount - item.lineTotal);
+  }, 0);
 
   const globalDiscount = (itemsTotal * globalDiscountPercent) / 100;
   const totalDiscount = itemsDiscount + globalDiscount;
@@ -58,8 +60,8 @@ export const calculatePaymentDetails = (
 /**
  * Format currency values
  */
-export const formatCurrency = (amount: number, currency: string = '$'): string => {
-  return `${currency}${amount.toFixed(2)}`;
+export const formatCurrency = (amount: number, currency: string = 'Rs'): string => {
+  return `${currency}${amount.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 /**

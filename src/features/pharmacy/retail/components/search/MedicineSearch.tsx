@@ -1,3 +1,4 @@
+"use client"
 import React, { useState, useRef, useEffect } from "react";
 import { Medicine } from "../../types";
 
@@ -8,6 +9,7 @@ interface MedicineSearchProps {
   onSearch: (query: string) => void;
   onSelect: (medicine: Medicine) => void;
   placeholder?: string;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export const MedicineSearch: React.FC<MedicineSearchProps> = ({
@@ -17,11 +19,11 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({
   onSearch,
   onSelect,
   placeholder = "Search for medicine",
+  inputRef,
 }) => {
   const [showResults, setShowResults] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const resultsRef = useRef<HTMLDivElement>(null);
-  console.log(results);
 
   useEffect(() => {
     setShowResults(results.length > 0);
@@ -58,13 +60,13 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({
     setShowResults(false);
     setFocusedIndex(-1);
   };
-  console.log(results);
 
   return (
     <div className="relative w-full">
       {/* Search Input */}
       <div className="relative group">
         <input
+          ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => onSearch(e.target.value)}
@@ -124,50 +126,67 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({
                 onClick={() => handleSelect(medicine)}
                 onMouseEnter={() => setFocusedIndex(index)}
                 className={`
-                  mb-1 last:mb-0
-                  px-4 py-3
-                  cursor-pointer rounded-xl
-                  transition-all duration-200
-                  flex flex-col gap-1
+                  mb-2 last:mb-0
+                  px-5 py-4
+                  cursor-pointer rounded-[1.25rem]
+                  transition-all duration-300
+                  flex flex-col gap-2 border
                   ${index === focusedIndex
-                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-200/50 scale-[1.01]"
-                    : "hover:bg-slate-50 text-slate-800"}
+                    ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_15px_30px_rgba(79,70,229,0.3)] scale-[1.02] z-10"
+                    : "bg-white/50 border-slate-100 hover:bg-white hover:border-indigo-100 text-slate-800 shadow-sm hover:shadow-md"}
                 `}
               >
                 <div className="flex justify-between items-start">
-                  <div className="font-semibold text-[15px]">
-                    {medicine.brand_name}
-                    <span className={`ml-2 text-[12px] px-2 py-0.5 rounded-full ${index === focusedIndex ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>
-                      {medicine.dosage_value} {medicine.dosage_unit}
+                  <div className="flex flex-col">
+                    <span className="font-black text-[15px] tracking-tight leading-none mb-1">
+                      {medicine.brand_name}
+                    </span>
+                    <span className={`text-[11px] font-bold uppercase tracking-widest ${index === focusedIndex ? 'text-indigo-200' : 'text-slate-400'}`}>
+                      {medicine.generic_name}
                     </span>
                   </div>
-                  {medicine.batch_number && (
-                    <div className={`text-[11px] font-mono px-2 py-0.5 rounded ${index === focusedIndex ? 'bg-white/20' : 'bg-indigo-50 text-indigo-600'}`}>
-                      Batch: {medicine.batch_number}
-                    </div>
-                  )}
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-tighter ${index === focusedIndex ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                      {medicine.dosage_value} {medicine.dosage_unit} // {medicine.form}
+                    </span>
+                    {medicine.batch_number && (
+                      <div className={`text-[10px] font-mono px-2 py-0.5 rounded shadow-inner ${index === focusedIndex ? 'bg-black/20 text-indigo-100' : 'bg-indigo-50 text-indigo-600'}`}>
+                        B# {medicine.batch_number}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className={`flex flex-wrap gap-x-4 gap-y-1 text-[12px] ${index === focusedIndex ? 'text-white/80' : 'text-slate-500'}`}>
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium">Stock:</span>
-                    <span>
-                      {medicine.batch_stock_quantity ?? medicine.stock_quantity} {medicine.form}
-                      {(medicine.batch_stock_sub_quantity ?? medicine.stock_sub_quantity) > 0 && (
-                        <> + {(medicine.batch_stock_sub_quantity || medicine.stock_sub_quantity)} subunits</>
-                      )}
-                    </span>
+                <div className="flex items-center justify-between mt-1 pt-2 border-t border-current/10">
+                  <div className="flex gap-4">
+                    <div className="flex flex-col">
+                      <span className={`text-[9px] font-black uppercase tracking-widest leading-none mb-1 ${index === focusedIndex ? 'text-indigo-200' : 'text-slate-400'}`}>Availability</span>
+                      <div className="flex items-center gap-1.5">
+                        <div className={`w-2 h-2 rounded-full ${(medicine.batch_stock_quantity ?? medicine.stock_quantity) > 10 ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`}></div>
+                        <span className="text-xs font-black">
+                          {medicine.batch_stock_quantity ?? medicine.stock_quantity} <span className="opacity-60 font-medium lowercase">{medicine.form || 'units'}</span>
+                          {(medicine.batch_stock_sub_quantity ?? medicine.stock_sub_quantity) > 0 && (
+                            <span className="ml-1 text-[10px] opacity-80">
+                              + {medicine.batch_stock_sub_quantity ?? medicine.stock_sub_quantity} <span className="lowercase">{medicine.sub_unit || 'sub-units'}</span>
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <span className={`text-[9px] font-black uppercase tracking-widest leading-none mb-1 ${index === focusedIndex ? 'text-indigo-200' : 'text-slate-400'}`}>Expiry</span>
+                      <div className="flex items-center gap-1.5 text-rose-500">
+                        <div className={`w-2 h-2 rounded-full ${index === focusedIndex ? 'bg-white' : 'bg-rose-500'}`}></div>
+                        <span className={`text-xs font-black ${index === focusedIndex ? 'text-white' : ''}`}>{expiryDate}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1 text-rose-500">
-                    <span className={`font-medium ${index === focusedIndex ? 'text-white/90' : ''}`}>Exp:</span>
-                    <span className={index === focusedIndex ? 'text-white/80' : ''}>{expiryDate}</span>
-                  </div>
-
-                  <div className="flex items-center gap-1 ml-auto">
-                    <span className={`font-bold text-[14px] ${index === focusedIndex ? 'text-white' : 'text-emerald-600'}`}>
-                      PKR {(medicine.batch_sale_price ?? medicine.price).toFixed(2)}
-                    </span>
+                  <div className={`px-4 py-1.5 rounded-xl flex items-center justify-center font-black text-lg tracking-tighter ${index === focusedIndex ? 'bg-white text-indigo-600 shadow-xl' : 'bg-emerald-50 text-emerald-600'}`}>
+                    PKR {typeof (medicine.batch_sale_price ?? medicine.price) === 'number'
+                      ? (medicine.batch_sale_price ?? medicine.price).toFixed(2)
+                      : Number(medicine.batch_sale_price ?? medicine.price ?? 0).toFixed(2)}
                   </div>
                 </div>
               </div>

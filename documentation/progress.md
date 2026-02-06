@@ -33,10 +33,26 @@ This document tracks daily progress, architectural decisions, and the roadmap.
 - **Documentation Overhaul**:
     - Updated `database.md`, `architecture.md`, and `progress.md` to reflect the new batch-centric inventory architecture and UI improvements.
 
-## 2026-02-06 (Tomorrow - Planned)
-### Objectives
-1.  **POS Retail UI Improvement**: Apply the premium glassmorphic design to the POS Cart and Payment panels.
-2.  **POS Workflow Refinement**: Implement support for sale returns and complex discounting at the batch level.
+## 2026-02-06 (Today)
+### Major Milestones
+- **Production-Ready POS Overhaul**:
+    - **Sub-Unit Sales Logic**: Re-engineered the entire sales pipeline to support selling individual capsules/tablets from a pack.
+    - **Database Precision**: Updated `pharmacy_sale_detail` with a refined `check_total_price` constraint and explicit `sub_unit_sale_price` columns to ensure accounting accuracy for fragmented unit sales.
+    - **Backend Ledger synchronization**: Fixed the transaction API to correctly use 2-decimal rounding and record sub-unit details in the clinical ledger.
+- **High-Performance UI/UX Features**:
+    - **Direct Stock Context**: Integrated "inside-box" availability indicators (`Avl: X`) into POS quantity inputs, providing real-time stock context without screen clutter.
+    - **Advanced Keyboard Map**: Implemented professional POS shortcuts:
+        - `F1`: Global search focus.
+        - `F2`: Instant checkout and print.
+        - `F3`: Hold transaction.
+        - `F4`: New sale reset.
+        - `Enter`: Rapid confirmation from quantity fields.
+    - **Intelligent Focus Management**: Added automatic autofocus transitions from product selection to quantity entry for rapid SKU processing.
+- **Refined Selection UI**: Enhanced search results to display detailed inventory availability (e.g., "10 Boxes + 5 Tablets") and batch-specific pricing.
+
+## Future Plans
+- **Module Expansion**: Implement Sale Returns and Purchase Return modules.
+- **Reporting Engine**: Develop daily closing and profit/loss dashboards for the pharmacy manager.
 
 ---
-*Next Update: End of day Feb 5, 2026.*
+*Next Update: End of day Feb 6, 2026.*

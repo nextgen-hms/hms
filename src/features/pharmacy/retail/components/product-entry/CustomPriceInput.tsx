@@ -9,7 +9,7 @@ interface CustomPriceInputProps {
 export const CustomPriceInput: React.FC<CustomPriceInputProps> = ({
   value,
   onChange,
-  label = "Retail Price",
+  label = "Rate/Px",
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -24,14 +24,15 @@ export const CustomPriceInput: React.FC<CustomPriceInputProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-[5px]">
-      <label className="text-[13px] font-medium text-gray-600 lowercase">
+    <div className="flex flex-col gap-1.5 flex-1 relative group">
+      <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.15em] px-0.5">
         {label}
       </label>
-      <div className="relative">
-        {/* <span className="absolute left-[12px] top-1/2 -translate-y-1/2 text-gray-600 font-medium">
-          
-        </span> */}
+
+      <div className="relative bg-white border-2 border-slate-200/60 rounded-2xl overflow-hidden focus-within:border-indigo-500/50 focus-within:shadow-[0_4px_20px_rgba(99,102,241,0.1)] transition-all">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-bold text-[12px] select-none">
+          PKR
+        </span>
         <input
           type="number"
           value={value ?? ""}
@@ -39,11 +40,13 @@ export const CustomPriceInput: React.FC<CustomPriceInputProps> = ({
           min="0"
           step="0.01"
           placeholder="0.00"
-          className="w-full px-[12px] py-[10px] pl-[10px] text-[14px] border border-gray-300 rounded 
-                     outline-none focus:border-blue-500 transition-colors 
-                     [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="w-full pl-12 pr-4 py-3 text-[16px] font-black text-slate-700 outline-none 
+                   [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none placeholder:text-slate-300"
         />
       </div>
+
+      {/* Decorative focus bar */}
+      <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-indigo-500 scale-x-0 group-focus-within:scale-x-100 transition-transform duration-300 origin-center rounded-full"></div>
     </div>
   );
 };
