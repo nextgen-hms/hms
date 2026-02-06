@@ -29,21 +29,22 @@ export function useLogin() {
   // }, []);
 
   const redirectByRole = (role: any) => {
+    // Use window.location.href for reliable production redirects after auth
     switch (role) {
       case "Doctor":
-        router.push("/doctor");
+        window.location.href = "/doctor";
         break;
       case "Receptionist":
-        router.push("/receptionist");
+        window.location.href = "/receptionist";
         break;
       case "Pharmacist":
-        router.push("/pharmacy");
+        window.location.href = "/pharmacy";
         break;
       case "Lab_Technician":
-        router.push("/lab");
+        window.location.href = "/lab";
         break;
       default:
-        router.push("/");
+        window.location.href = "/";
     }
   };
 
@@ -78,15 +79,15 @@ export function useLogin() {
     try {
       const data = await loginUser(userCode, password);
       console.log(data);
-      
-      if (data?.role) redirectByRole(data.role );
+
+      if (data?.role) redirectByRole(data.role);
     } catch (err: any) {
       setError(err.message || "Login failed");
     } finally {
       setIsLoading(false);
     }
   };
-   
+
 
   return {
     userCode,
