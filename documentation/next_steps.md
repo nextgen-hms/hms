@@ -9,11 +9,12 @@ Draft plan for the next phases of development, focusing on stability, features, 
 - Enhance Zod validation messages for better user feedback.
 - Add a dedicated `ErrorLogger` table in the database to track runtime failures.
 
-### 2. Inventory Accuracy
-- Conduct a full audit of existing triggers to ensure no edge cases in stock movements (e.g., partial returns).
-- Add "Low Stock" visual indicators and automated notifications for pharmacists.
+### 2. Module Expansion (Feb 7)
+- **Sale Return**: Implement the `sale_return` and `sale_return_detail` logic with automated inventory restoration.
+- **Purchase Tracking**: Build the full procurement lifecycle for `medicine_purchase` and batch entry.
+- **Purchase Return**: Handle supplier-side returns with credit adjustments.
 
-## 📈 Feature Expansion (Phase 2: Functionality)
+## 📈 Phase 2: Refinement & Advanced Features
 
 ### 1. Barcode Integration
 - Integrate ZXing or similar library for medicine barcode scanning in the Pharmacy POS.

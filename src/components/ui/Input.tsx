@@ -11,8 +11,8 @@ export const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"in
     <input
       type={type}
       ref={ref}
-      value={value ?? ""}
       {...props}
+      {...(value !== undefined ? { value } : {})}
       className={cn(
         "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-all",
         "placeholder:text-muted-foreground text-foreground",

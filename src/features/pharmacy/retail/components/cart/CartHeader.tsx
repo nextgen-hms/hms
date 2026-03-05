@@ -2,7 +2,7 @@ export const CartHeader: React.FC = () => {
   return (
     <div
       className="
-        grid grid-cols-[2.5fr_1fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.5fr]
+        grid grid-cols-[3.5fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.5fr]
         gap-4 px-6 py-4
         bg-slate-50 border-b border-slate-200/60
         text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]

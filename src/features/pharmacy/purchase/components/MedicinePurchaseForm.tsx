@@ -1,243 +1,599 @@
-//Next steps 
-//creagte purchase medicine api
-//make sure to deal  with alll edge cases
-//like expiiry date - stock update - price update
-
-
-
-///DB UPDATES
-///add some table to cater medicines from different batches
-
-
-
-//issues
-//right  now i am using input woth dat list ---> later i have to fix it with new input search
-//
-
-
 "use client"
-import {z} from 'zod';
+
+import React, { useState, useEffect, useRef } from 'react';
+import {
+    Plus,
+    Trash2,
+    ShoppingCart,
+    User,
+    FileText,
+    Package,
+    Save,
+    Loader2,
+    X,
+    Layout,
+    Maximize,
+    Minimize,
+    Keyboard,
+    ArrowRight
+} from 'lucide-react';
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
 import { Label } from "@/src/components/ui/Label";
-import { useEffect, useRef, useState } from "react";
-import { getAllMedicines, getAllPartiesName } from "../api";
-import { Medicine, Party, PurchaseForm } from "../types";
-import { useForm } from 'react-hook-form'; 
-import { zodResolver } from '@hookform/resolvers/zod';
-const PurchaseSchema=z.object({
-    party:z.string().min(1,"Please Select a Party"),
-    medicine:z.string().min(1,"Please Select a Medicine"),
-    quantity:z.number().min(1,"Please Enter Quantity"),
-    sub_quantity:z.number().min(0,"Please Enter Sub Quantity"),
-    unit_cost:z.number().min(0,"Please Enter Unit Cost"),
-    sub_unit_cost:z.number().min(0,"Please Enter Sub Unit Cost"),
-    expiry_date:z.string().min(1,"Expiry Date is Required"),
-    batch_number:z.number().min(1,"Batch Number is Required")
-})
+import { getAllMedicines, getAllPartiesName, submitPurchase, getLastInvoice, getMedicinePriceHistory } from "../api";
+import { Medicine, Party, PurchaseItem, PurchaseInvoice } from "../types";
+import { PurchaseMedicineSearch } from "./PurchaseMedicineSearch";
+import toast from 'react-hot-toast';
 
+export default function MedicinePurchaseForm() {
+    // Master Data
+    const [parties, setParties] = useState<Party[]>([]);
+    const [medicines, setMedicines] = useState<Medicine[]>([]);
 
-export default function MedicinePurchase (){
-    const [parties,setParties]=useState<Party[]>([]);
-    const [filterParties,setFilterParties]=useState<Party[]>([]);
-    const [medicines,setMedicines]=useState<Medicine[]>([]);
-    const [filteredMedicines,setFilteredMedicines]=useState<Medicine[]>([]);
-    const [showParties,setShowParties]=useState(false);
-    const [showMedicines,setShowMedicines]=useState(false);
-    const [highlightIndex,SetHighlightIndex]=useState(0);
-    const isFirstRender=useRef(true);
-    const inputRef=useRef(null);
-    const {
-        register,
-        handleSubmit,
-        formState:{errors},
-        setValue,
-        watch
-    }=useForm({
-        resolver:zodResolver(PurchaseSchema) ///zod.infer X
-    }
-    );
+    // Invoice Header
+    const [selectedParty, setSelectedParty] = useState<number | ''>('');
+    const [invoiceNo, setInvoiceNo] = useState('');
 
-  
+    // Item Entry State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filteredMeds, setFilteredMeds] = useState<Medicine[]>([]);
+    const [selectedMed, setSelectedMed] = useState<Medicine | null>(null);
+    const [isSearching, setIsSearching] = useState(false);
 
-useEffect(()=>{
-    async function LoadPartiesNames(){
-        const data= await getAllPartiesName();
-        setParties(data);
-        setFilterParties(data);
-    }
-    LoadPartiesNames();
-},[]);
+    const [batchInfo, setBatchInfo] = useState({
+        quantity: 1,
+        subQuantity: 0,
+        unitCost: 0,
+        subUnitCost: 0,
+        batchNumber: '',
+        expiryDate: '',
+        salePrice: 0,
+        saleSubUnitPrice: 0
+    });
 
-useEffect(()=>{
-    async function LoadMedicines(){
-        const data=await getAllMedicines();
-        setMedicines(data);
-        setFilteredMedicines(data);
-    }
-    LoadMedicines();
-},[]);
+    // Invoice Items (Cart)
+    const [items, setItems] = useState<PurchaseItem[]>([]);
 
- function onSubmit(data:PurchaseForm){
-     console.log(data);
-     
-       
- }
+    // UI State
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
 
+    // Input Refs for Keyboard Navigation
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const partyRef = useRef<HTMLSelectElement>(null);
+    const qtyInputRef = useRef<HTMLInputElement>(null);
+    const costInputRef = useRef<HTMLInputElement>(null);
+    const batchInputRef = useRef<HTMLInputElement>(null);
+    const expiryInputRef = useRef<HTMLInputElement>(null);
+    const salePriceInputRef = useRef<HTMLInputElement>(null);
 
-    return(
-            <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="border-1 h-1/2 w-3/5 grid grid-cols-2 grid-rows-6 ">
-            <div id="Select(Add) Party " className="flex w-full  gap-4 flex-1 justify-between ">
-                <div id="Select Party" className="w-4/5 relative ">
-                <Label>Party :</Label>
-                {/* <select {...register("party")}
-                        className=''
-                >
-                    <option value="">Select a Party</option>
-                    {parties.map((party,index)=>(
-                        <option>{party.name}</option>
-                    ))}
-                </select> */}
-                <Input
-                 {...register("party")}
-                 list='party-list'
-                 className=''
-                />
-                <datalist id='party-list' className=''>
-                    {parties.map((party,index)=>(
-                        <option key={party.party_id} >{party.name}   </option>
-                    ))}
-                </datalist>
-                
-                <p className='text-red-500 text-sm h-5'>{errors.party?.message}</p> 
-                </div>
-            </div>
-            <div className="flex items-end">
-                <Button className="h-fit flex ">Add Party</Button>
-            </div>
-            <div id="Select(Add) Medicine " className="flex items-end gap-4 flex-1 justify-between">
-                <div id="Select Medicine" className="w-4/5 relative">
-                <Label>Medicine :</Label>
-                {/* <Input {...register("medicine")}
-                     placeholder="Select Medicine"
-                      className=""
-                      onFocus={()=>setShowMedicines(true)}
-                      onBlur={()=>setShowMedicines(false)}
-                      onKeyDown={(e)=>{
-                        if(!showMedicines) return;
-     
-                        if(e.key === "ArrowDown"){
-                            e.preventDefault();
-                          SetHighlightIndex((prev)=>{
-                            if(prev +1 < filteredMedicines.length){
-                                prev=prev+1;
-                            }
-                            return prev;
-                          })
-                        }
-                        if(e.key === "ArrowUp"){
-                            e.preventDefault();
-                            SetHighlightIndex((prev)=>{                            
-                                if(prev > 0){
-                                    prev=prev-1;
-                                }
-                                return prev;
-                            })
-                        }
-                        if(e.key === "Enter"){
-                            e.preventDefault();
-                            if(highlightIndex >=0){
-                                setValue("medicine",
-                                    filteredMedicines[highlightIndex].brand_name+" "+filteredMedicines[highlightIndex].dosage_value+filteredMedicines[highlightIndex].dosage_unit, { shouldValidate: true });
-                                SetHighlightIndex(-1);
-                                setShowMedicines(false);
-                            }
-                        }
-                     }}
-                      /> */}
-                    <Input
-                 {...register("medicine")}
-                 list='med-list'
-                 className=''
-                />
-                <datalist id='med-list' className=''>
-                    {medicines.map((medicine,index)=>(
-                        <option key={medicine.medicine_id} >{medicine.brand_name}  {medicine.dosage_value}{medicine.dosage_unit} {medicine.stock_quantity}  </option>
-                    ))}
-                </datalist>
-                <div className={`absolute bg-white w-full ${showMedicines ? "h-[480px]" : ""} overflow-y-auto`}>
-                    { showMedicines && (filteredMedicines.map((medicine:Medicine,index)=>{
-                        return(
-                        <div key={medicine.medicine_id}
-                             className={`border-1 p-1 hover:bg-emerald-200 ${highlightIndex === index ?
-                                "bg-emerald-200" : ""}  cursor-pointer rounded-md`}
-                             onMouseDown={(e)=>{
-                                e.preventDefault();
-                                setValue("medicine",filteredMedicines[index].brand_name, { shouldValidate: true });
-                                SetHighlightIndex(-1);
-                                setShowMedicines(false);
-                             }}
-                        >
-                            {medicine.brand_name} {medicine.dosage_value}{medicine.dosage_unit}
-                        </div>
-                    )})
-                    )
+    const fieldRefs = [qtyInputRef, costInputRef, batchInputRef, expiryInputRef, salePriceInputRef];
 
+    useEffect(() => {
+        async function init() {
+            try {
+                const [pData, mData, lastInv] = await Promise.all([
+                    getAllPartiesName(),
+                    getAllMedicines(),
+                    getLastInvoice()
+                ]);
+                setParties(pData);
+                setMedicines(mData);
+
+                // Suggest next invoice number
+                if (lastInv) {
+                    const match = lastInv.match(/(\d+)$/);
+                    if (match) {
+                        const nextNum = parseInt(match[1]) + 1;
+                        setInvoiceNo(lastInv.replace(/\d+$/, nextNum.toString().padStart(match[1].length, '0')));
+                    } else {
+                        setInvoiceNo(`INV-${new Date().getTime().toString().slice(-4)}`);
                     }
+                } else {
+                    setInvoiceNo(`INV-${new Date().getTime().toString().slice(-4)}`);
+                }
+            } catch (err) {
+                toast.error("Failed to load initial data");
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        init();
+    }, []);
+
+    // Keyboard Navigation: Side Arrow Navigation
+    useEffect(() => {
+        const handleArrowNav = (e: KeyboardEvent) => {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+
+            const activeEl = document.activeElement;
+
+            // Bridge Supplier -> Qty (Skip Invoice)
+            if (activeEl === partyRef.current) {
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    qtyInputRef.current?.focus();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    searchInputRef.current?.focus();
+                }
+                return;
+            }
+
+            const currentIdx = fieldRefs.findIndex(ref => ref.current === activeEl);
+            if (currentIdx === -1) return;
+
+            if (e.key === 'ArrowRight' && currentIdx < fieldRefs.length - 1) {
+                e.preventDefault();
+                fieldRefs[currentIdx + 1].current?.focus();
+            } else if (e.key === 'ArrowLeft' && currentIdx > 0) {
+                e.preventDefault();
+                fieldRefs[currentIdx - 1].current?.focus();
+            } else if (e.key === 'ArrowLeft' && currentIdx === 0) {
+                // Bridge Qty -> Supplier (Skip Invoice)
+                e.preventDefault();
+                partyRef.current?.focus();
+            }
+        };
+
+        window.addEventListener('keydown', handleArrowNav);
+        return () => window.removeEventListener('keydown', handleArrowNav);
+    }, []);
+
+    // Global Shortcuts
+    useEffect(() => {
+        const handleGlobalShorcuts = (e: KeyboardEvent) => {
+            if (e.key === 'F1') {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+                toast('Search Focused', { icon: '🔍', duration: 1000 });
+            }
+            if (e.key === 'F2' && items.length > 0) {
+                e.preventDefault();
+                handleSaveInvoice();
+            }
+        };
+        window.addEventListener('keydown', handleGlobalShorcuts);
+        return () => window.removeEventListener('keydown', handleGlobalShorcuts);
+    }, [items, selectedParty, invoiceNo]);
+
+    // Search Logic
+    useEffect(() => {
+        if (searchQuery.length > 0) {
+            setIsSearching(true);
+            const filtered = medicines.filter(m =>
+                m.brand_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                m.generic_name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            setFilteredMeds(filtered.slice(0, 10));
+            setIsSearching(false);
+        } else {
+            setFilteredMeds([]);
+        }
+    }, [searchQuery, medicines]);
+
+    const handleSelectMedicine = async (med: Medicine) => {
+        setSelectedMed(med);
+        setSearchQuery(med.brand_name);
+
+        // 1. First check if medicine exists in current invoice items (Invoice-local memory)
+        const existingInInvoice = items.find(item => item.medicine_id === med.id);
+
+        if (existingInInvoice) {
+            setBatchInfo({
+                quantity: 1,
+                subQuantity: 0,
+                unitCost: existingInInvoice.unit_cost,
+                subUnitCost: existingInInvoice.sub_unit_cost,
+                batchNumber: existingInInvoice.batch_number,
+                expiryDate: existingInInvoice.expiry_date,
+                salePrice: existingInInvoice.sale_price,
+                saleSubUnitPrice: existingInInvoice.sale_sub_unit_price
+            });
+        } else {
+            // 2. Otherwise fall back to global price history
+            const history = await getMedicinePriceHistory(med.id);
+            setBatchInfo({
+                quantity: 1,
+                subQuantity: 0,
+                unitCost: history?.purchase_price || 0,
+                subUnitCost: history?.purchase_sub_unit_price || 0,
+                batchNumber: history?.batch_number || '',
+                expiryDate: history?.expiry_date ? history.expiry_date.split('T')[0] : '',
+                salePrice: history?.sale_price || med.price,
+                saleSubUnitPrice: history?.sale_sub_unit_price || med.sub_unit_price || 0
+            });
+        }
+
+        // Auto-focus supplier dropdown
+        setTimeout(() => partyRef.current?.focus(), 100);
+    };
+
+    const addItemToInvoice = () => {
+        if (!selectedMed) return toast.error("Please select a medicine");
+        if (!batchInfo.batchNumber) return toast.error("Batch number is required");
+        if (!batchInfo.expiryDate) return toast.error("Expiry date is required");
+        if (batchInfo.unitCost <= 0) return toast.error("Unit cost must be greater than 0");
+
+        // Check if exactly same medicine + batch exists for merging
+        const existingIndex = items.findIndex(item =>
+            item.medicine_id === selectedMed.id &&
+            item.batch_number === batchInfo.batchNumber &&
+            item.expiry_date === batchInfo.expiryDate
+        );
+
+        if (existingIndex !== -1) {
+            // SMART MERGING: Update existing item
+            const updatedItems = [...items];
+            const existing = updatedItems[existingIndex];
+            updatedItems[existingIndex] = {
+                ...existing,
+                quantity: existing.quantity + batchInfo.quantity,
+                sub_quantity: existing.sub_quantity + batchInfo.subQuantity,
+                // We keep the latest prices entered
+                unit_cost: batchInfo.unitCost,
+                sale_price: batchInfo.salePrice
+            };
+            setItems(updatedItems);
+            toast.success(`Updated ${selectedMed.brand_name} (Batch: ${batchInfo.batchNumber}) quantity in cart`);
+        } else {
+            // NEW RECORD: Add to top
+            const newItem: PurchaseItem = {
+                medicine_id: selectedMed.id,
+                medicine_name: selectedMed.brand_name,
+                quantity: batchInfo.quantity,
+                sub_quantity: batchInfo.subQuantity,
+                unit_cost: batchInfo.unitCost,
+                sub_unit_cost: batchInfo.subUnitCost,
+                batch_number: batchInfo.batchNumber,
+                expiry_date: batchInfo.expiryDate,
+                sale_price: batchInfo.salePrice,
+                sale_sub_unit_price: batchInfo.saleSubUnitPrice
+            };
+            setItems([newItem, ...items]);
+            toast.success(`${newItem.medicine_name} added to invoice`);
+        }
+
+        // Reset entry area
+        setSelectedMed(null);
+        setSearchQuery('');
+        setBatchInfo({
+            quantity: 1,
+            subQuantity: 0,
+            unitCost: 0,
+            subUnitCost: 0,
+            batchNumber: '',
+            expiryDate: '',
+            salePrice: 0,
+            saleSubUnitPrice: 0
+        });
+
+        // Refocus search for next item
+        setTimeout(() => searchInputRef.current?.focus(), 100);
+    };
+
+    const removeItem = (index: number) => {
+        setItems(items.filter((_, i) => i !== index));
+    };
+
+    const calculateTotal = () => {
+        return items.reduce((sum, item) => {
+            return sum + (item.quantity * item.unit_cost) + (item.sub_quantity * item.sub_unit_cost);
+        }, 0);
+    };
+
+    const handleSaveInvoice = async () => {
+        if (!selectedParty) return toast.error("Please select a supplier");
+        if (!invoiceNo) return toast.error("Please enter invoice number");
+        if (items.length === 0) return toast.error("Add at least one item to invoice");
+
+        setIsSubmitting(true);
+        try {
+            const invoice: PurchaseInvoice = {
+                party_id: Number(selectedParty),
+                invoice_no: invoiceNo,
+                total_amount: calculateTotal(),
+                payment_status: 'Paid',
+                items: items
+            };
+
+            const res = await submitPurchase(invoice);
+            if (res.success) {
+                toast.success("Purchase invoice saved successfully!");
+                setItems([]);
+                const nextInv = await getLastInvoice();
+                if (nextInv) {
+                    const match = nextInv.match(/(\d+)$/);
+                    if (match) {
+                        const nextNum = parseInt(match[1]) + 1;
+                        setInvoiceNo(nextInv.replace(/\d+$/, nextNum.toString().padStart(match[1].length, '0')));
+                    }
+                }
+                setSelectedParty('');
+            } else {
+                toast.error(res.error || "Failed to save invoice");
+            }
+        } catch (err) {
+            toast.error("An error occurred during submission");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            containerRef.current?.requestFullscreen();
+            setIsFullscreen(true);
+        } else {
+            document.exitFullscreen();
+            setIsFullscreen(false);
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex h-[400px] items-center justify-center">
+                <Loader2 className="animate-spin text-emerald-500" size={48} />
+            </div>
+        );
+    }
+
+    return (
+        <div
+            ref={containerRef}
+            className={`flex flex-col gap-6 bg-slate-50/50 p-6 rounded-[2rem] transition-all ${isFullscreen ? 'fixed inset-0 z-[999] bg-white p-10 overflow-auto h-full' : ''}`}
+        >
+            {/* Top Header - Controls */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/30">
+                        <Layout size={20} />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-black text-slate-800 tracking-tight">Purchase Intake</h1>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Manage Inventory Stock</p>
+                    </div>
                 </div>
-                    <p className='text-red-500 text-sm h-5'>{errors.medicine?.message}</p>
+
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-slate-200 shadow-sm text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                        <Keyboard size={14} className="text-slate-400" />
+                        Use F1 for Search • Use Arrows to Navigate
+                    </div>
+                    <button
+                        onClick={toggleFullscreen}
+                        className="p-3 bg-white hover:bg-slate-50 text-slate-400 hover:text-emerald-600 rounded-xl transition-all border border-slate-200 shadow-sm"
+                    >
+                        {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+                    </button>
                 </div>
             </div>
-            <div className="flex items-end">
-                <Button className="h-fit  ">Add Medicine</Button>
-            </div>
-            <div id="quantity" className="flex items-end gap-4 flex-1 justify-between">
-                <div id="quantity" className="w-4/5">
-                <Label>Quantity :</Label>
-                <Input {...register("quantity",{valueAsNumber:true})} placeholder="Enter Quantity" className="" type='number'/>
-                    <p className='text-red-500 text-sm h-5'>{errors.quantity?.message}</p>
+
+            {/* Main Container */}
+            <div className="space-y-6">
+                {/* 1. Medicine Search - Primary Focus */}
+                <div className="relative group">
+                    <PurchaseMedicineSearch
+                        inputRef={searchInputRef}
+                        query={searchQuery}
+                        results={filteredMeds}
+                        isSearching={isSearching}
+                        onSearch={setSearchQuery}
+                        onSelect={handleSelectMedicine}
+                        placeholder="Press F1 to focus search..."
+                    />
+                </div>
+
+                {/* 2. Supplier & Invoice Row (below search) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Supplier / Party</Label>
+                        <select
+                            ref={partyRef}
+                            value={selectedParty}
+                            onChange={(e) => setSelectedParty(Number(e.target.value))}
+                            onKeyDown={(e) => e.key === 'Enter' && addItemToInvoice()}
+                            className="w-full h-12 px-4 rounded-xl border-2 border-slate-200 bg-white focus:border-emerald-500 outline-none transition-all font-bold text-slate-700"
+                        >
+                            <option value="">Choose Supplier...</option>
+                            {parties.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Invoice ID</Label>
+                        <Input
+                            value={invoiceNo}
+                            onChange={(e) => setInvoiceNo(e.target.value)}
+                            className="h-12 rounded-xl border-2 border-slate-200 font-bold"
+                            placeholder="Invoice Number..."
+                        />
+                    </div>
+                </div>
+
+                {/* 3. Entry Matrix - Horizontal Row */}
+                <div className={`p-5 rounded-[2rem] border-2 transition-all duration-500 ${selectedMed ? 'bg-emerald-50 border-emerald-200 shadow-xl' : 'bg-slate-100 border-slate-200 opacity-60'}`}>
+                    <div className="flex flex-wrap lg:flex-nowrap items-end gap-3">
+                        <div className="shrink-0 w-32 space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400">Qty</Label>
+                            <Input
+                                ref={qtyInputRef}
+                                type="number"
+                                value={batchInfo.quantity}
+                                onChange={(e) => setBatchInfo({ ...batchInfo, quantity: Number(e.target.value) })}
+                                onFocus={(e) => e.target.select()}
+                                onKeyDown={(e) => e.key === 'Enter' && addItemToInvoice()}
+                                className="h-12 border-slate-200 rounded-xl font-bold bg-white"
+                            />
+                        </div>
+                        <div className="shrink-0 w-32 space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400">Unit Cost</Label>
+                            <Input
+                                ref={costInputRef}
+                                type="number"
+                                value={batchInfo.unitCost}
+                                onChange={(e) => setBatchInfo({ ...batchInfo, unitCost: Number(e.target.value) })}
+                                onFocus={(e) => e.target.select()}
+                                onKeyDown={(e) => e.key === 'Enter' && addItemToInvoice()}
+                                className="h-12 border-slate-200 rounded-xl font-bold bg-white"
+                            />
+                        </div>
+                        <div className="shrink-0 w-36 space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400">Batch #</Label>
+                            <Input
+                                ref={batchInputRef}
+                                value={batchInfo.batchNumber}
+                                onChange={(e) => setBatchInfo({ ...batchInfo, batchNumber: e.target.value })}
+                                onKeyDown={(e) => e.key === 'Enter' && addItemToInvoice()}
+                                className="h-12 border-slate-200 rounded-xl font-bold bg-white"
+                            />
+                        </div>
+                        <div className="shrink-0 w-44 space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400">Expiry Date</Label>
+                            <Input
+                                ref={expiryInputRef}
+                                type="date"
+                                value={batchInfo.expiryDate}
+                                onChange={(e) => setBatchInfo({ ...batchInfo, expiryDate: e.target.value })}
+                                onKeyDown={(e) => e.key === 'Enter' && addItemToInvoice()}
+                                className="h-12 border-slate-200 rounded-xl font-bold bg-white"
+                            />
+                        </div>
+                        <div className="shrink-0 w-32 space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400">Retail Price</Label>
+                            <Input
+                                ref={salePriceInputRef}
+                                type="number"
+                                value={batchInfo.salePrice}
+                                onChange={(e) => setBatchInfo({ ...batchInfo, salePrice: Number(e.target.value) })}
+                                onKeyDown={(e) => e.key === 'Enter' && addItemToInvoice()}
+                                className="h-12 border-slate-200 rounded-xl font-bold bg-white text-emerald-600"
+                            />
+                        </div>
+                        <div className="flex-1 px-4 py-2 bg-white/50 rounded-xl border border-slate-200/50 flex flex-col justify-center overflow-hidden">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Entry Summary</span>
+                            <span className="font-bold text-slate-700 truncate">{selectedMed ? `${selectedMed.brand_name} (Stock: ${selectedMed.stock_quantity ?? 0})` : 'No Product Selected'}</span>
+                        </div>
+                        <div className="shrink-0">
+                            <Button
+                                onClick={addItemToInvoice}
+                                className="h-12 w-12 bg-emerald-600 hover:bg-emerald-500 rounded-xl p-0 flex items-center justify-center shadow-lg shadow-emerald-500/20"
+                            >
+                                <Plus size={24} />
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div id="sub_quantity" className="flex items-end gap-4 flex-1 justify-between">
-                <div id="sub_quantity" className="w-4/5">
-                <Label>Sub Quantity :</Label>
-                <Input {...register("sub_quantity",{valueAsNumber:true})} placeholder="Enter Sub Quantity" className="" type='number'/>
-                    <p className='text-red-500 text-sm h-5'>{errors.sub_quantity?.message}</p>
+
+            <div className="flex gap-6">
+                {/* 3. Left - Cart List */}
+                <div className="flex-1 bg-white border border-slate-200 rounded-[2.5rem] p-8 shadow-sm flex flex-col">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-black text-slate-800 flex items-center gap-2 uppercase tracking-tight">
+                            <Package className="text-emerald-500" size={18} /> Purchase Cart
+                        </h3>
+                        <span className="px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                            {items.length} Medicines in Basket
+                        </span>
+                    </div>
+
+                    <div className="flex-1 overflow-auto custom-scrollbar">
+                        {items.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4">
+                                <div className="p-10 bg-slate-50 rounded-full">
+                                    <ShoppingCart size={64} className="opacity-10" />
+                                </div>
+                                <p className="font-black uppercase text-[10px] tracking-[0.3em]">No items added yet</p>
+                            </div>
+                        ) : (
+                            <table className="w-full border-collapse">
+                                <thead className="sticky top-0 bg-white z-10 border-b border-slate-50">
+                                    <tr className="text-left">
+                                        <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Medicine</th>
+                                        <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Batch</th>
+                                        <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Qty</th>
+                                        <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Unit Cost</th>
+                                        <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Total</th>
+                                        <th className="pb-4"></th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {items.map((item, idx) => (
+                                        <tr key={idx} className="group hover:bg-slate-50/50 transition-colors">
+                                            <td className="py-5">
+                                                <div className="flex flex-col">
+                                                    <span className="font-black text-slate-800 leading-none mb-1">{item.medicine_name}</span>
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase">EXP: {item.expiry_date} • SALE: {item.sale_price}</span>
+                                                </div>
+                                            </td>
+                                            <td className="py-5 text-center">
+                                                <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[11px] font-black ring-1 ring-emerald-100">
+                                                    {item.batch_number}
+                                                </span>
+                                            </td>
+                                            <td className="py-5 text-center font-black text-lg text-slate-700">{item.quantity}</td>
+                                            <td className="py-5 text-right font-bold text-slate-500">{item.unit_cost.toLocaleString()}</td>
+                                            <td className="py-5 text-right font-black text-slate-800 tracking-tighter">Rs. {(item.quantity * item.unit_cost).toLocaleString()}</td>
+                                            <td className="py-5 text-right pl-4">
+                                                <button
+                                                    onClick={() => removeItem(idx)}
+                                                    className="p-2 text-rose-200 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
                 </div>
-            </div>
-            <div id="unit_cost" className="flex items-end gap-4 flex-1 justify-between">
-                <div id="unit_cost" className="w-4/5">
-                <Label>unit Cost :</Label>
-                <Input {...register("unit_cost",{valueAsNumber:true})} placeholder="Enter Unit Cost" className="" type='number'/>
-                    <p className='text-red-500 text-sm h-5'>{errors.unit_cost?.message}</p>
+
+                {/* 4. Right - Finalize Panel */}
+                <div className="w-full xl:w-[320px] flex flex-col gap-6">
+                    <div className="flex-1 bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl flex flex-col">
+                        <h2 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
+                            <div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div>
+                            Finalize Invoice
+                        </h2>
+
+                        <div className="space-y-6 flex-1">
+                            <div className="p-6 bg-white/5 rounded-2xl border border-white/10 space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-black text-slate-500 uppercase">Items Counts</span>
+                                    <span className="text-white font-bold">{items.length}</span>
+                                </div>
+                                <div className="flex justify-between items-end border-t border-white/5 pt-4">
+                                    <span className="text-[10px] font-black text-slate-500 uppercase">Grand Total</span>
+                                    <span className="text-3xl font-black text-emerald-400 tracking-tighter">Rs. {calculateTotal().toLocaleString()}</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex items-start gap-3">
+                                <Save className="text-emerald-500 shrink-0 mt-1" size={16} />
+                                <p className="text-[11px] text-emerald-200/80 leading-relaxed font-medium">
+                                    Saving this invoice will immediately increase your stock and record the purchase in audit logs.
+                                </p>
+                            </div>
+                        </div>
+
+                        <Button
+                            onClick={handleSaveInvoice}
+                            disabled={isSubmitting || items.length === 0}
+                            className="w-full h-20 bg-emerald-600 hover:bg-emerald-500 text-white rounded-[1.5rem] text-xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                        >
+                            {isSubmitting ? <Loader2 className="animate-spin" /> : <Save size={24} />}
+                            Post Invoice
+                            <span className="text-[10px] font-mono opacity-50">F2</span>
+                        </Button>
+                    </div>
                 </div>
-            </div>
-            <div id="sub_unit_cost" className="flex items-end gap-4 flex-1 justify-between">
-                <div id="unit_cost" className="w-4/5">
-                <Label>Sub unit Cost :</Label>
-                <Input {...register("sub_unit_cost",{valueAsNumber:true})} placeholder="Enter Sub Unit Cost" className="" type='number'/>
-                    <p className='text-red-500 text-sm h-5'>{errors.sub_unit_cost?.message}</p>
-                </div>
-            </div>
-            <div id="expiry-date" className="flex items-end gap-4 flex-1 justify-between">
-                <div id="expiry-date" className="w-4/5">
-                <Label>Expiry Date :</Label>
-                <Input {...register("expiry_date")} placeholder="Expiry Date"  type="Date"  className="" />
-                    <p className='text-red-500 text-sm h-5'>{errors.expiry_date?.message}</p>
-                </div>
-            </div>
-            <div id="batch-number" className="flex items-end gap-4 flex-1 justify-between">
-                <div id="batch-number" className="w-4/5">
-                <Label>Batch Number :</Label>
-                <Input {...register("batch_number",{valueAsNumber:true})} placeholder="Enter Batch Number" className="" type='number'/>
-                    <p className='text-red-500 text-sm h-5'>{errors.batch_number?.message}</p>
-                </div>
-            </div>
-            <div className="flex items-center ml-4 mt-4 col-span-2">
-             <Button type='submit' className="w-1/4 h-fit  ">Submit</Button>
             </div>
         </div>
-            </form>
-    )
+    );
 }

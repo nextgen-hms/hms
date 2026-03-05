@@ -160,7 +160,7 @@ export default function ParaDetailsForm() {
   );
 }
 
-function InputField({ label, err, as = "input", children, placeholder, ...rest }: any) {
+function InputField({ label, err, as = "input", children, placeholder, autoComplete = "off", ...rest }: any) {
   const Component = as;
   return (
     <div className="space-y-1 group">
@@ -170,6 +170,7 @@ function InputField({ label, err, as = "input", children, placeholder, ...rest }
       <div className="relative">
         <Component
           placeholder={placeholder}
+          autoComplete={autoComplete}
           rows={as === "textarea" ? 2 : undefined}
           className={`w-full ${as === "textarea" ? "py-3 min-h-[80px]" : "h-11"} px-4 bg-slate-50 border rounded-xl text-xs font-bold transition-all outline-none resize-none
             ${err

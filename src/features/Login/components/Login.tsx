@@ -74,9 +74,9 @@ export function Login() {
               <input
                 type="text"
                 value={userCode}
-                onChange={(e) => setUserCode(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && getUserData()}
+                onChange={(e) => setUserCode(e.target.value.toUpperCase())}
                 placeholder="User Code (e.g., DOC001)"
+                autoComplete="off"
                 className="w-full h-12 px-4 pl-11 text-gray-700 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500"
               />
               <User className="absolute left-3.5 top-3.5 h-5 w-5 text-gray-400" />
@@ -93,6 +93,7 @@ export function Login() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Full Name"
               disabled={!userCode}
+              autoComplete="off"
               className="w-full h-12 px-4 text-gray-700 text-sm bg-gray-50 border border-gray-200 rounded-xl disabled:opacity-50"
             />
 
@@ -102,6 +103,7 @@ export function Login() {
               onChange={(e) => setDesignation(e.target.value)}
               placeholder="Designation"
               disabled={!userCode}
+              autoComplete="off"
               className="w-full h-12 px-4 text-gray-700 text-sm bg-gray-50 border border-gray-200 rounded-xl disabled:opacity-50"
             />
 
@@ -112,6 +114,7 @@ export function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && verifyUserLogin()}
                 placeholder="Password"
+                autoComplete="current-password"
                 className="w-full h-12 px-4 pl-11 pr-11 text-gray-700 text-sm bg-gray-50 border border-gray-200 rounded-xl"
               />
               <Lock className="absolute left-3.5 top-3.5 h-5 w-5 text-gray-400" />

@@ -114,7 +114,7 @@ export default function ObstetricHistoryForm() {
   );
 }
 
-function InputField({ label, id, err, as = "input", children, placeholder, ...rest }: any) {
+function InputField({ label, id, err, as = "input", children, placeholder, autoComplete = "off", ...rest }: any) {
   const Component = as;
   return (
     <div className="space-y-1.5 group">
@@ -125,6 +125,7 @@ function InputField({ label, id, err, as = "input", children, placeholder, ...re
         <Component
           id={id}
           placeholder={placeholder}
+          autoComplete={autoComplete}
           rows={as === "textarea" ? 3 : undefined}
           className={`w-full ${as === "textarea" ? "py-3 min-h-[100px]" : "h-12"} px-4 bg-slate-50 border rounded-2xl text-sm font-bold transition-all outline-none resize-none
             ${err

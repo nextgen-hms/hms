@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Button } from "@/src/components/ui/Button";
 import { logoutUser } from "@/src/features/Login/api";
 import { UserProfile } from "./components/UserProfile";
+import { PurchaseReturn } from "@/src/features/pharmacy/purchaseReturn/components/PurchaseReturn";
 import {
   ShoppingCart,
   RotateCcw,
@@ -30,7 +31,6 @@ export default function Pharmacist({
 
   const tabs = [
     { id: "retail", label: "Retail", icon: <ShoppingCart size={16} /> },
-    { id: "returnMedicine", label: "Return", icon: <RotateCcw size={16} /> },
     { id: "purchases", label: "Purchases", icon: <PlusCircle size={16} /> },
     { id: "ledger", label: "Ledger", icon: <History size={16} /> },
     { id: "addParty", label: "Parties", icon: <Users size={16} /> },
@@ -116,11 +116,11 @@ export default function Pharmacist({
 
             {/* Parallel Route Content Wrapper */}
             <div className="flex-1 overflow-auto custom-scrollbar p-6">
-              <div className="h-full w-full animate-in fade-in zoom-in-95 duration-500">
+              <div className="min-h-full w-full animate-in fade-in zoom-in-95 duration-500">
                 {selectedTab === "retail" && retail}
-                {selectedTab === "returnMedicine" && returnMedicine}
                 {selectedTab === "purchases" && purchase}
-                {["ledger", "addParty", "purchaseReturn"].includes(selectedTab) && (
+                {selectedTab === "purchaseReturn" && <PurchaseReturn />}
+                {["ledger", "addParty"].includes(selectedTab) && (
                   <div className="flex items-center justify-center h-full opacity-30 italic text-slate-500">
                     {selectedTab.charAt(0).toUpperCase() + selectedTab.slice(1)} Module View
                   </div>

@@ -38,6 +38,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         payment,
         cashier: 'Current User',
         status: 'completed' as const,
+        mode: 'SALE' as const,
       };
       console.log(transaction);
 
@@ -67,6 +68,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         payment,
         cashier: 'Current User',
         status: 'held' as const,
+        mode: 'SALE' as const,
       };
 
       const response = await holdTransaction(transaction);

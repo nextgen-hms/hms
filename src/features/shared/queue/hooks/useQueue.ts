@@ -27,7 +27,14 @@ export function useQueue() {
   useEffect(() => {
     loadQueue();
     const interval = setInterval(loadQueue, 5000); // Poll every 5 seconds for more responsive UI
-    return () => clearInterval(interval);
+
+    const handleRefresh = () => loadQueue();
+    window.addEventListener("refresh-queue", handleRefresh);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("refresh-queue", handleRefresh);
+    };
   }, []);
 
   useEffect(() => {

@@ -24,10 +24,10 @@ export async function POST(request: NextRequest) {
           json_build_object(
             'medicine_name', m.brand_name,
             'generic_name', m.generic_name,
-            'qty', psd.qty,
-            'unit_price', psd.unit_price,
+            'qty', psd.quantity,
+            'unit_price', psd.unit_sale_price,
             'discount_percent', psd.discount_percent,
-            'total_price', psd.total_price
+            'total_price', psd.line_total
           )
         ) as items
       FROM pharmacy_sale ps

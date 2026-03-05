@@ -44,6 +44,7 @@ The system relies on a complex relational structure. Before any database-related
 
 ### 3. Pharmacy & Inventory
 - **Dual-Level Sync**: Stocks are updated in BOTH `medicine` (aggregate) and `medicine_batch` (expiry-specific) via `fn_tg_stockquantity_generic`.
+- **Sub-Unit Precision**: Supports "fragment" sales (e.g., selling 5 tablets from a box of 30) with automated price calculations and stock deduction.
 - **Audit Ledger**: Every movement is recorded in `medicine_transaction`.
 
 ---

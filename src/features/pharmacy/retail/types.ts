@@ -69,6 +69,8 @@ export interface PaymentDetails {
 }
 
 // Transaction Types
+export type POSMode = 'SALE' | 'RETURN';
+
 export interface Transaction {
   id: string;
   reference: string;
@@ -78,6 +80,8 @@ export interface Transaction {
   cashier: string;
   customer?: Customer;
   status: 'completed' | 'pending' | 'cancelled' | 'held';
+  mode: POSMode;
+  ref_sale_id?: number; // Link to original sale for returns
 }
 
 export interface Customer {

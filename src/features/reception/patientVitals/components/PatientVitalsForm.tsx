@@ -40,6 +40,7 @@ export function PatientVitalsForm() {
                 type="text"
                 value={pId}
                 placeholder="Ex: 1001"
+                autoComplete="off"
                 className="w-full h-12 bg-white/70 border border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 p-4 rounded-2xl outline-none transition-all placeholder:text-gray-400 text-sm shadow-sm hover:bg-white"
                 onChange={(e) => setpId(e.target.value)}
                 onKeyDown={(e) => {
@@ -136,7 +137,7 @@ export function PatientVitalsForm() {
   );
 }
 
-function Input({ label, id, reg, err, placeholder }: any) {
+function Input({ label, id, reg, err, placeholder, autoComplete = "off" }: any) {
   return (
     <div className="flex flex-col space-y-1.5">
       <Label htmlFor={id} className="text-slate-600 font-semibold ml-1">{label}</Label>
@@ -144,6 +145,7 @@ function Input({ label, id, reg, err, placeholder }: any) {
         id={id}
         type="text"
         placeholder={placeholder}
+        autoComplete={autoComplete}
         className="h-12 bg-white/70 border border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 rounded-2xl px-4 transition-all shadow-sm hover:bg-white outline-none text-sm"
         {...reg}
       />

@@ -12,9 +12,12 @@ export async function GET(req: NextRequest) {
 
         const res = await query(
             `SELECT patient_id, patient_name, age, gender, cnic, contact_number 
-       FROM patient 
-       WHERE patient_name ILIKE $1 OR cnic ILIKE $1 
-       LIMIT 10`,
+             FROM patient 
+             WHERE patient_name ILIKE $1 
+                OR cnic ILIKE $1 
+                OR patient_id::text ILIKE $1
+             ORDER BY patient_id DESC
+             LIMIT 10`,
             [`%${searchTerm}%`]
         );
 

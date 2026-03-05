@@ -8,6 +8,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 import { Button } from "@/src/components/ui/Button";
 import { logoutUser } from "@/src/features/Login/api";
 import Image from "next/image";
+import { fetchPatientInfo } from "@/src/features/reception/queueManagement/api";
 import { useEffect, useState } from "react";
 import { redirect } from "next/navigation";
 export default function Receptionist({
@@ -28,9 +29,32 @@ export default function Receptionist({
   const [selectedTab, setSelectedTab] = useState("queue");
   const { patientId } = usePatient();
   const { activeTab } = useSidebar();
+  const [activePatientData, setActivePatientData] = useState<any>(null);
   const [user, setUser] = useState<any>();
 
   console.log(activeTab);
+
+  // Listen for programmatic tab switches
+  useEffect(() => {
+    const handleSwitchTab = (e: any) => {
+      if (e.detail?.tab) {
+        setSelectedTab(e.detail.tab);
+      }
+    };
+    window.addEventListener("switch-reception-tab", handleSwitchTab);
+    return () => window.removeEventListener("switch-reception-tab", handleSwitchTab);
+  }, []);
+
+  // Fetch patient info when ID changes
+  useEffect(() => {
+    if (patientId) {
+      fetchPatientInfo(patientId)
+        .then(data => setActivePatientData(data))
+        .catch(() => setActivePatientData(null));
+    } else {
+      setActivePatientData(null);
+    }
+  }, [patientId]);
 
 
   return (
@@ -78,27 +102,51 @@ export default function Receptionist({
 
         {/* Right Side: Tabbed Components */}
         <section className="flex-1 flex flex-col h-full space-y-4 min-w-0">
-          {/* Dashboard Navigation Tabs */}
-          <nav className="flex items-center gap-1 p-1 bg-slate-200/50 backdrop-blur-sm rounded-2xl w-fit border border-slate-200/50">
-            {[
-              { id: "queue", label: "Queue Entry", icon: "📋" },
-              { id: "patientRegistration", label: "New Patient", icon: "👤" },
-              { id: "patientVitals", label: "Vital Signs", icon: "🌡️" },
-              { id: "clinicalDetails", label: "Clinical Record", icon: "🩺" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setSelectedTab(tab.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${selectedTab === tab.id
-                  ? "bg-white text-emerald-700 shadow-lg shadow-emerald-900/10 border border-slate-100"
-                  : "text-slate-500 hover:bg-white/50 hover:text-slate-700"
-                  }`}
-              >
-                <span className="text-lg">{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+          <div className="flex items-center justify-between gap-4">
+            {/* Dashboard Navigation Tabs */}
+            <nav className="flex items-center gap-1 p-1 bg-slate-200/50 backdrop-blur-sm rounded-2xl w-fit border border-slate-200/50">
+              {[
+                { id: "queue", label: "Queue Entry", icon: "📋" },
+                { id: "patientRegistration", label: "New Patient", icon: "👤" },
+                { id: "patientVitals", label: "Vital Signs", icon: "🌡️" },
+                { id: "clinicalDetails", label: "Clinical Record", icon: "🩺" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedTab(tab.id)}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${selectedTab === tab.id
+                    ? "bg-white text-emerald-700 shadow-lg shadow-emerald-900/10 border border-slate-100"
+                    : "text-slate-500 hover:bg-white/50 hover:text-slate-700"
+                    }`}
+                >
+                  <span className="text-lg">{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+
+            {/* Active Patient Badge */}
+            {activePatientData && (
+              <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-2xl animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="h-8 w-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white text-xs font-black shadow-sm">
+                  {activePatientData.patient_name?.[0]?.toUpperCase()}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-black text-emerald-900 truncate uppercase tracking-tight">
+                    {activePatientData.patient_name}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-bold text-emerald-600/70 bg-emerald-100/50 px-1.5 py-0.5 rounded-md">
+                      ID: {patientId}
+                    </span>
+                    <span className="text-[9px] font-bold text-slate-400">
+                      • {activePatientData.gender}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Dynamic Content Window */}
           <div className="flex-1 bg-white/40 backdrop-blur-sm border border-slate-200 rounded-[2.5rem] relative overflow-hidden shadow-inner">

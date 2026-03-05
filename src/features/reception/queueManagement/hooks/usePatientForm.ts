@@ -18,31 +18,55 @@ import { Doctor, Patient } from "../types";
 
 export function usePatientForm() {
   const { patientId, setPatientId } = usePatient();
-  const [pId, setpId] = useState("");
+  const [searchQuery, setSearchQuery] = useState(""); // Unified search for ID or Name
   const [patientName, setPatientName] = useState("");
-  const [searchName, setSearchName] = useState(""); // search input
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [visitReason, setVisitReason] = useState("");
   const [doctor, setDoctor] = useState("");
-  const [visitType, setVisitType] = useState("");
+  const [visitType, setVisitType] = useState("OPD");
   const [clinicNo, setClinicNo] = useState("");
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [isExistingVisit, setIsExistingVisit] = useState(false);
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [isSearching, setIsSearching] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const reactToPrintFn = useReactToPrint({ contentRef, documentTitle: `QueueSlip ${patientId}` });
 
-  // Fetch doctors + clinic no on mount
+  // Fetch doctors on mount
   useEffect(() => {
     async function init() {
-      const [clinicNo, docs] = await Promise.all([fetchNewClinicNo(), fetchDoctors()]);
-      setClinicNo(clinicNo);
+      const docs = await fetchDoctors();
       setDoctors(docs);
     }
     init();
   }, []);
+
+  // Fetch clinic no when visit type changes
+  useEffect(() => {
+    if (!visitType) return;
+    fetchNewClinicNo(visitType).then(setClinicNo);
+  }, [visitType]);
+
+  // Debounced Search Effect
+  useEffect(() => {
+    setHighlightedIndex(-1);
+    // If the searchQuery is exactly the same as the already loaded patient description, don't search again
+    if (searchQuery.length < 2 || searchQuery === patientName) {
+      setSearchResults([]);
+      return;
+    }
+
+    const handler = setTimeout(() => {
+      // If it's purely digits, it might be an ID - we can still search it 
+      // but usually ID lookups are exact. For now, we search everything.
+      searchByName(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
 
   async function getPatientVisitInfo(id: string) {
@@ -52,20 +76,20 @@ export function usePatientForm() {
       if (data && data.clinic_number) {
         setVisitReason(data.reason);
         setDoctor(data.doctor_id);
-        setVisitType(data.visit_type);
+        setVisitType(data.visit_type || "OPD");
         setClinicNo(data.clinic_number);
         setIsExistingVisit(true);
       } else {
         setIsExistingVisit(false);
         setVisitReason("");
         setDoctor("");
-        setVisitType("");
+        setVisitType("OPD");
       }
     } catch {
       setIsExistingVisit(false);
       setVisitReason("");
       setDoctor("");
-      setVisitType("");
+      setVisitType("OPD");
     }
   }
 
@@ -77,14 +101,16 @@ export function usePatientForm() {
       console.log(data);
 
       if (data && data.patient_id) {
-        setPatientName(data.patient_name);
-        setSearchName(data.patient_name); // Sync search input
-        setAge(data.age);
-        setGender(data.gender);
+        setPatientName(data.patient_name || "");
+        setAge(data.age != null ? String(data.age) : "");
+        setGender(data.gender || "");
         setSearchResults([]); // Clear search after selection
+        setHighlightedIndex(-1);
 
         // Update local and global ID
-        setpId(sid);
+        const displayName = data.patient_name || sid;
+        setSearchQuery(displayName);
+        setPatientName(displayName); // Set this so the effect can skip searching this specific name
         setPatientId(sid);
 
         toast.success("Patient Found");
@@ -116,72 +142,99 @@ export function usePatientForm() {
   };
 
 
-  async function addToQueue() {
-    if (!visitReason || !doctor || !visitType) {
-      toast.error("Incomplete form");
+  async function addToQueue(idOverride?: string) {
+    const targetId = idOverride || patientId;
+    if (!targetId || !visitReason || !doctor || !visitType) {
+      toast.error(targetId ? "Incomplete form" : "Please select a patient");
       return;
     }
-    await createVisit({
-      patient_id: patientId,
-      clinic_number: clinicNo,
-      reason: visitReason,
-      doctor_id: doctor,
-      visit_type: visitType,
-    });
-    toast.success("Patient added to queue");
+    setIsProcessing(true);
+    try {
+      const res = await createVisit({
+        patient_id: targetId,
+        clinic_number: clinicNo,
+        reason: visitReason,
+        doctor_id: doctor,
+        visit_type: visitType,
+      });
+
+      if (res.ok) {
+        toast.success("Patient added to queue");
+        // Dispatch instant UI refresh event
+        window.dispatchEvent(new Event("refresh-queue"));
+        // Reset form for next patient
+        resetInfo(true);
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Failed to add to queue");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Network error");
+    } finally {
+      setIsProcessing(false);
+    }
   }
 
   async function updateInfo() {
-    const res = await updateVisitInfo({
-      clinic_number: clinicNo,
-      reason: visitReason,
-      doctor_id: doctor,
-      visit_type: visitType,
-      status: "waiting",
-      patient_id: patientId,
-    });
-    if (res.ok) {
-      toast.success(`P000${patientId} updated`);
-    } else {
-      toast.error(`Update failed`);
+    setIsProcessing(true);
+    try {
+      const res = await updateVisitInfo({
+        clinic_number: clinicNo,
+        reason: visitReason,
+        doctor_id: doctor,
+        visit_type: visitType,
+        status: "waiting",
+        patient_id: patientId,
+      });
+      if (res.ok) {
+        toast.success(`P000${patientId} updated`);
+        if (patientId) await getPatientVisitInfo(patientId);
+      } else {
+        toast.error(`Update failed`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Network error");
+    } finally {
+      setIsProcessing(false);
     }
   }
 
   function resetInfo(full = true) {
     if (full) {
       setPatientId("");
-      setpId("");
+      setSearchQuery("");
     }
     setPatientName("");
-    setSearchName("");
+    setSearchQuery("");
     setAge("");
     setGender("");
     setDoctor("");
     setVisitReason("");
-    setVisitType("");
+    setVisitType("OPD");
     setIsExistingVisit(false);
     setSearchResults([]);
-    fetchNewClinicNo().then(setClinicNo);
+    setHighlightedIndex(-1);
   }
 
   useEffect(() => {
     // If global context has an ID, and it's different from our local ID, load it
-    if (patientId && patientId !== pId) {
-      setpId(patientId);
+    if (patientId && patientId !== searchQuery) {
+      setSearchQuery(patientId);
       getPatientInfo(patientId);
     }
   }, [patientId]);
 
   return {
-    pId, setpId,
-    searchName, setSearchName,
+    searchQuery, setSearchQuery,
     age, setAge,
     gender, setGender,
     visitReason, setVisitReason,
     doctor, setDoctor,
     visitType, setVisitType,
-    clinicNo, doctors,
-    searchResults, isExistingVisit, isSearching,
+    clinicNo, doctors, patientName,
+    searchResults, highlightedIndex, setHighlightedIndex, isExistingVisit, isSearching, isProcessing,
     getPatientInfo, searchByName, addToQueue, updateInfo, resetInfo,
     reactToPrintFn, contentRef,
     patientId, setPatientId,

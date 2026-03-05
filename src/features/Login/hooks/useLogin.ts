@@ -36,12 +36,28 @@ export function useLogin() {
     }
   };
 
-  const getUserData = async () => {
-    if (!userCode.trim()) {
-      setError("Please enter a Valid user code");
-      return;
-    }
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (userCode.trim()) {
+        const userCodeRegex = /^[A-Z]{3}\d{3}$/;
+        if (userCodeRegex.test(userCode)) {
+          getUserData();
+        } else {
+          setError("Invalid format (e.g., STF001)");
+          setName("");
+          setDesignation("");
+        }
+      } else {
+        setError("");
+        setName("");
+        setDesignation("");
+      }
+    }, 500);
 
+    return () => clearTimeout(delayDebounceFn);
+  }, [userCode]);
+
+  const getUserData = async () => {
     setIsFetchingInfo(true);
     setError("");
 

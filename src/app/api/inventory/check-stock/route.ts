@@ -27,9 +27,10 @@ export async function POST(request: NextRequest) {
       params = [batchId, medicineId];
     } else {
       sql = `
-        SELECT sub_units_per_unit, stock_quantity, stock_sub_quantity 
-        FROM medicine 
-        WHERE medicine_id = $1 AND is_active = true 
+        SELECT sub_units_per_unit, total_stock_quantity as stock_quantity, total_stock_sub_quantity as stock_sub_quantity 
+        FROM v_medicine_pos 
+        WHERE id = $1
+        LIMIT 1
       `;
       params = [medicineId];
     }

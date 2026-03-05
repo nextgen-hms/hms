@@ -4,13 +4,15 @@ interface CustomPriceInputProps {
   value: number | undefined;
   onChange: (value: number | undefined) => void;
   label?: string;
+  onEnter?: () => void;
 }
 
-export const CustomPriceInput: React.FC<CustomPriceInputProps> = ({
+export const CustomPriceInput = React.forwardRef<HTMLInputElement, CustomPriceInputProps>(({
   value,
   onChange,
   label = "Rate/Px",
-}) => {
+  onEnter,
+}, ref) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     if (newValue === "") {
@@ -20,6 +22,13 @@ export const CustomPriceInput: React.FC<CustomPriceInputProps> = ({
       if (!isNaN(parsed) && parsed >= 0) {
         onChange(parsed);
       }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onEnter?.();
     }
   };
 
@@ -34,9 +43,11 @@ export const CustomPriceInput: React.FC<CustomPriceInputProps> = ({
           PKR
         </span>
         <input
+          ref={ref}
           type="number"
           value={value ?? ""}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
           min="0"
           step="0.01"
           placeholder="0.00"
@@ -49,4 +60,4 @@ export const CustomPriceInput: React.FC<CustomPriceInputProps> = ({
       <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-indigo-500 scale-x-0 group-focus-within:scale-x-100 transition-transform duration-300 origin-center rounded-full"></div>
     </div>
   );
-};
+});

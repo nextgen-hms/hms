@@ -6,36 +6,47 @@ import { NextRequest, NextResponse } from "next/server";
 
 
 
-export async function PATCH(req:NextRequest){
-      const res= await req.json();
+export async function PATCH(req: NextRequest) {
+   const res = await req.json();
    console.log(res);
-   try{
-const v_res=await query('update visit set doctor_id = $2, visit_type=$3,clinic_number=$4,status =$5,reason=$6 where patient_id = $1 returning *',[res.patient_id,res.doctor_id,res.visit_type,res.clinic_number,res.status,res.reason]);
-   
-    console.log(res.rows);
-    
-   return NextResponse.json(v_res.rows[0]);
-   }catch(err){
+   try {
+      const v_res = await query('update visit set doctor_id = $2, visit_type=$3,clinic_number=$4,status =$5,reason=$6 where patient_id = $1 returning *', [res.patient_id, res.doctor_id, res.visit_type, res.clinic_number, res.status, res.reason]);
+
+      console.log(res.rows);
+
+      return NextResponse.json(v_res.rows[0]);
+   } catch (err) {
       console.error(err);
-      return NextResponse.json({error:"failed to update visist"},{status:500});
+      return NextResponse.json({ error: "failed to update visist" }, { status: 500 });
    }
 }
 
-export async function POST(req:NextRequest){
-   const res= await req.json();
+export async function POST(req: NextRequest) {
+   const res = await req.json();
    console.log(res);
-   try{
-const v_res=await query('insert into visit(patient_id,doctor_id,visit_type,clinic_number,status,reason) values($1,$2,$3,$4,$5,$6) returning *;',[res.patient_id,res.doctor_id,res.visit_type,res.clinic_number,"waiting",res.reason]);
-console.log(v_res.rows[0]);
- const bill_res=await query("insert into bill(patient_id,visit_id,total_amount,payment_status) values($1,$2,$3,$4) returning *",[res.patient_id,v_res.rows[0].visit_id,0,"Unpaid"]);
-   console.log(bill_res.rows[0]);
-   
-    
-   return NextResponse.json(v_res.rows[0]);
-   }catch(err){
+   try {
+      const checkRes = await query(
+         "SELECT visit_id FROM visit WHERE patient_id = $1 AND (visit_timestamp > current_date AND visit_timestamp < current_date + interval '1 day') AND status NOT IN ('completed', 'discharged') AND is_deleted = false LIMIT 1",
+         [res.patient_id]
+      );
+
+      if (checkRes.rows.length > 0) {
+         return NextResponse.json(
+            { error: "Active visit already exists for this patient today" },
+            { status: 409 }
+         );
+      }
+
+      const v_res = await query('insert into visit(patient_id,doctor_id,visit_type,clinic_number,status,reason) values($1,$2,$3,$4,$5,$6) returning *;', [res.patient_id, res.doctor_id, res.visit_type, res.clinic_number, "waiting", res.reason]);
+      console.log(v_res.rows[0]);
+      const bill_res = await query("insert into bill(patient_id,visit_id,total_amount,payment_status) values($1,$2,$3,$4) returning *", [res.patient_id, v_res.rows[0].visit_id, 0, "Unpaid"]);
+      console.log(bill_res.rows[0]);
+
+      return NextResponse.json(v_res.rows[0]);
+   } catch (err: any) {
       console.error(err);
-      return NextResponse.json(err);
+      return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
    }
-  
-    
+
+
 }

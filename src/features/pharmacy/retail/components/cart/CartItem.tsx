@@ -45,7 +45,7 @@ export const CartItem: React.FC<CartItemProps> = ({
   return (
     <div
       onClick={onSelect}
-      className={`group grid grid-cols-[2.5fr_1fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.5fr] gap-4 px-6 py-5 
+      className={`group grid grid-cols-[3.5fr_1.2fr_0.8fr_0.8fr_1fr_1fr_1fr_1.2fr_1.5fr] gap-4 px-6 py-5 
                   border-b border-slate-100/50 cursor-pointer transition-all duration-300
                   items-center relative overflow-hidden
                   ${isSelected ? "bg-indigo-50/50 shadow-[inset_4px_0_0_#6366f1]" : "hover:bg-slate-50/50"}
@@ -84,7 +84,7 @@ export const CartItem: React.FC<CartItemProps> = ({
               onChange={setEditQty}
               label=""
               min={0}
-              available={item.medicine.batch_stock_quantity ?? item.medicine.stock_quantity}
+              available={item.medicine.batch_stock_quantity ?? (item.medicine as any).total_stock_quantity}
             />
           </div>
 
@@ -93,7 +93,11 @@ export const CartItem: React.FC<CartItemProps> = ({
               value={editSubQty}
               onChange={setEditSubQty}
               label=""
-              available={item.medicine.batch_stock_sub_quantity ?? item.medicine.stock_sub_quantity}
+              perUnit={item.medicine.sub_units_per_unit}
+              available={
+                ((item.medicine.batch_stock_quantity ?? (item.medicine as any).total_stock_quantity ?? 0) * (item.medicine.sub_units_per_unit || 1)) +
+                (item.medicine.batch_stock_sub_quantity ?? (item.medicine as any).total_stock_sub_quantity ?? 0)
+              }
             />
           </div>
 

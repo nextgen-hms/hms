@@ -1,41 +1,46 @@
 
-export type  Party={
-    party_id:number,
-    name:string,
-}
+export type Party = {
+    id: number;
+    name: string;
+};
 
-export type PurchaseForm={
-    party:string,
-    medicine:string,
-    quantity:number,
-    sub_quantity:number,
-    unit_cost:number,
-    sub_unit_cost:number,
-    batch_number:number,
-    expiry_date:string
-}
-export type Medicine={
-    medicine_id:number,
-    generic_name:string,
-    brand_name:string,
-    category:string,
-    dosage_value:string,
-    dosage_unit:string,
-    form:string,
-    stock_quantity:string,
-    price:string,
-    created_at:string,
-    barcode:string,
-    sku:string,
-    manufacturer:string,
-    min_stock_level:number,
-    is_active:boolean,
-    requires_prescription:boolean,
-    search_vector:string,
-    sub_unit:string,
-    sub_units_per_unit:number,
-    sub_unit_price:number,
-    allow_sub_unit_sale:boolean,
-    stock_sub_quantity:number;
+export type PurchaseItem = {
+    medicine_id: number;
+    medicine_name: string;
+    quantity: number;
+    sub_quantity: number;
+    unit_cost: number;
+    sub_unit_cost: number;
+    batch_number: string;
+    expiry_date: string;
+    sale_price: number;
+    sale_sub_unit_price: number;
+};
 
-}
+export type PurchaseInvoice = {
+    party_id: number;
+    invoice_no: string;
+    total_amount: number;
+    payment_status: string;
+    items: PurchaseItem[];
+};
+
+export type Medicine = {
+    id: number;
+    generic_name: string;
+    brand_name: string;
+    category: string;
+    dosage_value: number;
+    dosage_unit: string;
+    form: string;
+    price: number;
+    stock_quantity: number;
+    stock_sub_quantity: number;
+    sub_unit: string;
+    sub_units_per_unit: number;
+    sub_unit_price: number;
+    allow_sub_unit_sale: boolean;
+    barcode: string;
+    sku: string;
+    manufacturer: string;
+};

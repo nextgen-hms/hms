@@ -16,8 +16,6 @@ export const useCart = () => {
     customPrice?: number
   ) => {
     // Validate stock
-    console.log(medicine);
-
     const stockValidation = validateStock(medicine, quantity, subQuantity);
     if (!stockValidation.valid) {
       throw new Error(stockValidation.message);
@@ -38,22 +36,42 @@ export const useCart = () => {
 
     const discountedPrice = price - (price * discountPercent / 100);
 
-    const newItem: CartItem = {
-      id: uuidv4(),
-      medicine,
-      quantity,
-      subQuantity,
-      price,
-      discountedPrice,
-      discountPercent,
-      customPrice,
-      lineTotal,
-      batchId: medicine.batch_id,
-      batchNumber: medicine.batch_number
-    };
+    setCart(prev => {
+      const existingIdx = prev.findIndex(item =>
+        item.medicine.id === medicine.id &&
+        item.batchId === medicine.batch_id
+      );
 
-    setCart(prev => [...prev, newItem]);
-    return newItem;
+      if (existingIdx > -1) {
+        const updated = [...prev];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          quantity,
+          subQuantity,
+          discountPercent,
+          customPrice,
+          price,
+          discountedPrice,
+          lineTotal
+        };
+        return updated;
+      }
+
+      const newItem: CartItem = {
+        id: uuidv4(),
+        medicine,
+        quantity,
+        subQuantity,
+        price,
+        discountedPrice,
+        discountPercent,
+        customPrice,
+        lineTotal,
+        batchId: medicine.batch_id,
+        batchNumber: medicine.batch_number
+      };
+      return [...prev, newItem];
+    });
   }, []);
 
   const updateItem = useCallback((

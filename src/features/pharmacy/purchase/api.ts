@@ -1,25 +1,62 @@
-import {Party} from './types'
+import { ApiResponse } from '@/src/lib/types';
+import { Party, Medicine, PurchaseInvoice } from './types'
 
-export async function getAllPartiesName(){
-  const res=await fetch('/api/party');
-  if(!res.ok) throw new Error("Failed to fetch Data from  /api/party");
-  const data= await res.json();
-  const parties=data.map((p:Party)=>{
-    return(
-      {
-        id:p.party_id,
-        name:p.name,
-      }
-    )
-  })
-  return parties ;
+export async function getAllPartiesName(): Promise<Party[]> {
+  const res = await fetch('/api/party');
+  if (!res.ok) throw new Error("Failed to fetch Data from /api/party");
+  const data = await res.json();
+  return data.map((p: any) => ({
+    id: p.party_id,
+    name: p.name,
+  }));
 }
 
-export async function getAllMedicines(){
-  const res=await fetch('/api/medicine');
-  if(!res.ok) throw new Error("Failed to fetch Data from api/medicine");
-  const data=await res.json();
-  return data;
+export async function getAllMedicines(): Promise<Medicine[]> {
+  const res = await fetch('/api/medicine');
+  if (!res.ok) throw new Error("Failed to fetch Data from api/medicine");
+  const data = await res.json();
+  return data.map((m: any) => ({
+    ...m,
+    id: m.medicine_id
+  }));
 }
 
+export async function submitPurchase(invoice: PurchaseInvoice): Promise<ApiResponse<any>> {
+  const response = await fetch('/api/pharmacy/purchase', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(invoice),
+  });
 
+  return await response.json();
+}
+
+/**
+ * Fetches the last invoice number from the database to suggest a sequence
+ */
+export async function getLastInvoice(): Promise<string | null> {
+  try {
+    const res = await fetch('/api/pharmacy/purchase/utils?type=last-invoice');
+    const response: ApiResponse<any> = await res.json();
+    return response.success && response.data ? response.data.invoice_no : null;
+  } catch (err) {
+    console.error('Failed to fetch last invoice', err);
+    return null;
+  }
+}
+
+/**
+ * Fetches the price history of a medicine (most recent batch data)
+ */
+export async function getMedicinePriceHistory(medicineId: number): Promise<any | null> {
+  try {
+    const res = await fetch(`/api/pharmacy/purchase/utils?type=price-history&medicine_id=${medicineId}`);
+    const response: ApiResponse<any> = await res.json();
+    return response.success ? response.data : null;
+  } catch (err) {
+    console.error('Failed to fetch price history', err);
+    return null;
+  }
+}

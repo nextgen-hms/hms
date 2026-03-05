@@ -11,8 +11,8 @@ export async function fetchPatientVisit(patientId: string) {
   return res.json();
 }
 
-export async function fetchNewClinicNo() {
-  const res = await fetch("/api/patient/getNewClinicNo");
+export async function fetchNewClinicNo(visitType: string = "OPD") {
+  const res = await fetch(`/api/patient/getNewClinicNo?visitType=${visitType}`);
   const data = await res.json();
   return data.clinicNo;
 }

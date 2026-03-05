@@ -1,9 +1,9 @@
-import { 
-  Medicine, 
-  Transaction, 
-  ApiResponse, 
+import {
+  Medicine,
+  Transaction,
+  ApiResponse,
   SearchResponse,
-  CartItem 
+  CartItem
 } from './types';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api';
@@ -11,7 +11,7 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api';
 /**
  * Search medicines by barcode, SKU, or name
  */
-export const searchMedicines = async ( 
+export const searchMedicines = async (
   query: string,
   type: 'barcode' | 'sku' | 'name' = 'name'
 ): Promise<ApiResponse<SearchResponse>> => {
@@ -91,6 +91,28 @@ export const submitTransaction = async (
     return {
       success: false,
       error: 'Failed to submit transaction'
+    };
+  }
+};
+
+/**
+ * Submit return transaction
+ */
+export const submitReturn = async (
+  transaction: Omit<Transaction, 'id' | 'timestamp'>
+): Promise<ApiResponse<Transaction>> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/transactions/return`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(transaction)
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    return {
+      success: false,
+      error: 'Failed to submit return'
     };
   }
 };

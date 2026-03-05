@@ -48,11 +48,14 @@ This document tracks daily progress, architectural decisions, and the roadmap.
         - `F4`: New sale reset.
         - `Enter`: Rapid confirmation from quantity fields.
     - **Intelligent Focus Management**: Added automatic autofocus transitions from product selection to quantity entry for rapid SKU processing.
+- **Login Redirection Stabilization**: Fixed critical production redirect issues by ensuring efficient routing state management in `useLogin.ts` (stabilized with `router.replace`).
 - **Refined Selection UI**: Enhanced search results to display detailed inventory availability (e.g., "10 Boxes + 5 Tablets") and batch-specific pricing.
 
-## Future Plans
-- **Module Expansion**: Implement Sale Returns and Purchase Return modules.
-- **Reporting Engine**: Develop daily closing and profit/loss dashboards for the pharmacy manager.
+## 2026-02-07 (Planned)
+### Upcoming Objectives
+- **Medicine Return Module**: Implement customer return workflows with inventory restoration.
+- **Medicine Purchase Module**: Streamline supplier procurement and batch entry.
+- **Medicine Purchase Return**: Handle supplier return logistics and financial adjustments.
 
 ---
-*Next Update: End of day Feb 6, 2026.*
+*Next Update: End of day Feb 7, 2026.*

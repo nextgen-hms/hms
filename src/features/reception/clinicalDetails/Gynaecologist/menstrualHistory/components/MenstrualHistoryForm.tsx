@@ -108,7 +108,7 @@ export default function MenstrualHistoryForm() {
   );
 }
 
-function InputField({ label, err, as = "input", children, placeholder, ...rest }: any) {
+function InputField({ label, err, as = "input", children, placeholder, autoComplete = "off", ...rest }: any) {
   const Component = as;
   return (
     <div className="space-y-1.5 group">
@@ -118,6 +118,7 @@ function InputField({ label, err, as = "input", children, placeholder, ...rest }
       <div className="relative">
         <Component
           placeholder={placeholder}
+          autoComplete={autoComplete}
           className={`w-full h-12 px-4 bg-slate-50 border rounded-2xl text-sm font-bold transition-all outline-none
             ${err
               ? "border-red-200 bg-red-50 text-red-900 placeholder:text-red-300"

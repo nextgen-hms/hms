@@ -3,11 +3,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { BarcodeScanner, MedicineSearch } from './search';
 import { QuantityInput, SubQuantityInput, DiscountInput, CustomPriceInput } from './product-entry';
 import { CartTable } from './cart';
-import { CheckoutCard } from './payment/CheckoutCard';
+import { CheckoutCard, CheckoutCardHandle } from './payment/CheckoutCard';
 import { useCart, usePayment, useMedicineSearch, useBarcode } from '../hooks';
-import { Medicine } from '../types';
+import { Medicine, POSMode } from '../types';
 import AddProductButton from './product-entry/AddProductButton';
-import { Maximize, Minimize, Layout, ShoppingCart, Activity } from 'lucide-react';
+import { Maximize, Minimize, Layout, ShoppingCart, Activity, RefreshCcw, ArrowRightLeft, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const PharmacyPOS: React.FC = () => {
@@ -23,6 +23,7 @@ const PharmacyPOS: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [itemSearched, setItemSearched] = useState<Medicine>();
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [posMode, setPosMode] = useState<POSMode>('SALE');
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +50,36 @@ const PharmacyPOS: React.FC = () => {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const qtyInputRef = useRef<HTMLInputElement>(null);
-  const payInputRef = useRef<HTMLInputElement>(null);
+  const subQtyInputRef = useRef<HTMLInputElement>(null);
+  const discInputRef = useRef<HTMLInputElement>(null);
+  const priceInputRef = useRef<HTMLInputElement>(null);
+  const checkoutRef = useRef<CheckoutCardHandle>(null);
+
+  // Ordered refs for arrow-key navigation between entry fields
+  const fieldRefs = [qtyInputRef, subQtyInputRef, discInputRef, priceInputRef];
+
+  // Navigate between entry fields with Left/Right arrows
+  useEffect(() => {
+    const handleArrowNav = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const activeEl = document.activeElement;
+      const currentIdx = fieldRefs.findIndex(ref => ref.current === activeEl);
+      if (currentIdx === -1) return; // Not in an entry field
+
+      e.preventDefault();
+      if (e.key === 'ArrowRight' && currentIdx < fieldRefs.length - 1) {
+        fieldRefs[currentIdx + 1].current?.focus();
+      } else if (e.key === 'ArrowLeft' && currentIdx > 0) {
+        fieldRefs[currentIdx - 1].current?.focus();
+      } else if (e.key === 'ArrowLeft' && currentIdx === 0) {
+        // Jump back to search
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleArrowNav);
+    return () => window.removeEventListener('keydown', handleArrowNav);
+  }, []);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -80,6 +110,14 @@ const PharmacyPOS: React.FC = () => {
         setSearchQuery('');
         toast.success('New Sale Started');
       }
+      // F10: Toggle Mode
+      if (e.key === 'F10') {
+        e.preventDefault();
+        setPosMode(prev => prev === 'SALE' ? 'RETURN' : 'SALE');
+        toast(`Switched to ${posMode === 'SALE' ? 'RETURN' : 'SALE'} Mode`, {
+          icon: posMode === 'SALE' ? '♻️' : '🛒'
+        });
+      }
     };
 
     window.addEventListener('keydown', handleGlobalKeyDown);
@@ -89,15 +127,27 @@ const PharmacyPOS: React.FC = () => {
   // Handle add item to cart
   const handleAddItem = (medicine: Medicine) => {
     try {
-      setQuantity(1);
-      setSubQuantity(0);
-      setDiscountPercent(0);
+      // Check if medicine with this batch is already in cart
+      const existingInCart = cart.find(item =>
+        item.medicine.id === medicine.id &&
+        item.batchId === medicine.batch_id
+      );
 
-      // Use batch price if available, otherwise global price
-      const priceToUse = medicine.batch_sale_price ?? medicine.price;
-      setCustomPrice(priceToUse);
+      if (existingInCart) {
+        setQuantity(existingInCart.quantity);
+        setSubQuantity(existingInCart.subQuantity);
+        setDiscountPercent(existingInCart.discountPercent);
+        setCustomPrice(existingInCart.customPrice);
+        toast(`Editing existing item in cart`, { icon: '📝' });
+      } else {
+        setQuantity(1);
+        setSubQuantity(0);
+        setDiscountPercent(0);
+        const priceToUse = medicine.batch_sale_price ?? medicine.price;
+        setCustomPrice(priceToUse);
+      }
+
       setItemSearched(medicine);
-
       const expiryDate = medicine.expiry_date
         ? new Date(medicine.expiry_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
         : 'N/A';
@@ -117,11 +167,29 @@ const PharmacyPOS: React.FC = () => {
     search(query);
   };
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      checkoutRef.current?.focusAmountReceived();
+      toast('Payment Panel Focused', { icon: '💳', duration: 1000 });
+    }
+  };
+
   const handleSearchSelected = () => {
     if (!itemSearched) return;
     addItem(itemSearched, quantity, subQuantity, discountPercent, customPrice);
+
+    // Reset all fields for the next entry
     setSearchQuery('');
     setItemSearched(undefined);
+    clearResults();
+    setQuantity(1);
+    setSubQuantity(0);
+    setDiscountPercent(0);
+    setCustomPrice(undefined);
+
+    // Refocus search for next item
+    setTimeout(() => searchInputRef.current?.focus(), 100);
   };
 
   return (
@@ -129,25 +197,46 @@ const PharmacyPOS: React.FC = () => {
       ref={containerRef}
       className={`flex min-h-screen bg-slate-50 font-sans gap-6 p-6 flex-col xl:flex-row backdrop-blur-sm ${isFullscreen ? 'bg-white p-10 overflow-auto h-screen w-screen fixed inset-0 z-[9999]' : ''}`}
     >
-      {/* 1. Left Column: Search & Batch (Command Center) */}
-      <div className="flex flex-col gap-6 w-full xl:w-[380px]">
-        <div className="flex flex-col gap-6 bg-white/80 backdrop-blur-2xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 h-full">
+      {/* Main Content Area: Entry and Cart stacked vertically */}
+      <div className="flex flex-col gap-6 flex-1 min-w-0">
+        {/* 1. Medicine Entry (Top) - Higher z-index for search dropdown */}
+        <div className={`flex flex-col gap-4 bg-white/80 backdrop-blur-2xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border transition-all duration-500 relative z-20 ${posMode === 'SALE' ? 'border-white/60' : 'border-rose-200/60 shadow-rose-500/5'
+          }`}>
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
               <div className="p-2 bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-500/20">
                 <Layout size={18} />
               </div>
-              Stock Quick
+              Medicine Entry
             </h2>
-            <button
-              onClick={toggleFullscreen}
-              className="p-2 bg-slate-100/80 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 rounded-xl transition-all border border-slate-200/50"
-              title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-            >
-              {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
-            </button>
+
+            <div className="flex items-center gap-3">
+              {/* Mode Toggle Indicator */}
+              <div
+                onClick={() => setPosMode(prev => prev === 'SALE' ? 'RETURN' : 'SALE')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 cursor-pointer transition-all duration-300 ${posMode === 'SALE'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  : 'bg-rose-50 border-rose-200 text-rose-700'
+                  }`}
+              >
+                {posMode === 'SALE' ? <ShoppingCart size={16} /> : <RotateCcw size={16} />}
+                <span className="text-xs font-black uppercase tracking-widest">
+                  {posMode === 'SALE' ? 'Sale Mode' : 'Return Mode'}
+                </span>
+                <span className="text-[10px] bg-white/50 px-1.5 py-0.5 rounded font-mono">F10</span>
+              </div>
+
+              <button
+                onClick={toggleFullscreen}
+                className="p-2 bg-slate-100/80 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 rounded-xl transition-all border border-slate-200/50"
+                title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+              >
+                {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+              </button>
+            </div>
           </div>
 
+          {/* Search Bar - Full Width */}
           <MedicineSearch
             inputRef={searchInputRef}
             query={searchQuery}
@@ -155,61 +244,72 @@ const PharmacyPOS: React.FC = () => {
             isSearching={isSearching}
             onSearch={handleSearch}
             onSelect={handleAddItem}
+            onKeyDown={handleSearchKeyDown}
             placeholder="Search Medicine (F1)"
           />
 
-          <div className="space-y-4">
-            <div className={`p-5 rounded-2xl border transition-all ${itemSearched ? 'bg-indigo-50/50 border-indigo-100 ring-4 ring-indigo-50/20' : 'bg-slate-50/50 border-slate-100 border-dashed opacity-50'}`}>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest">Line Config</p>
-                {itemSearched && <Activity size={14} className="text-indigo-400 animate-pulse" />}
-              </div>
+          {/* Fields Row - All in one horizontal line */}
+          <div className={`flex flex-wrap lg:flex-nowrap items-end gap-3 p-4 rounded-2xl border transition-all duration-500 ${itemSearched
+            ? (posMode === 'SALE' ? 'bg-indigo-50/30 border-indigo-100' : 'bg-rose-50/30 border-rose-100')
+            : 'bg-slate-50/50 border-slate-100 border-dashed opacity-60'
+            }`}>
+            <div className="w-28 shrink-0">
+              <QuantityInput
+                ref={qtyInputRef}
+                value={quantity}
+                onChange={setQuantity}
+                label="Qty"
+                min={0}
+                available={itemSearched?.batch_stock_quantity ?? (itemSearched as any)?.total_stock_quantity}
+                onEnter={handleSearchSelected}
+              />
+            </div>
+            <div className="w-40 shrink-0">
+              <SubQuantityInput
+                ref={subQtyInputRef}
+                value={subQuantity}
+                onChange={setSubQuantity}
+                label="Sub-Qty"
+                perUnit={itemSearched?.sub_units_per_unit}
+                available={
+                  itemSearched
+                    ? ((itemSearched.batch_stock_quantity ?? 0) * (itemSearched.sub_units_per_unit || 1)) + (itemSearched.batch_stock_sub_quantity ?? 0)
+                    : (itemSearched as any)?.total_stock_sub_quantity
+                }
+                onEnter={handleSearchSelected}
+              />
+            </div>
+            <div className="w-36 shrink-0">
+              <DiscountInput ref={discInputRef} value={discountPercent} onChange={setDiscountPercent} label="Disc %" onEnter={handleSearchSelected} />
+            </div>
+            <div className="w-28 shrink-0">
+              <CustomPriceInput ref={priceInputRef} value={customPrice} onChange={setCustomPrice} label="Price" onEnter={handleSearchSelected} />
+            </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <QuantityInput
-                  ref={qtyInputRef}
-                  value={quantity}
-                  onChange={setQuantity}
-                  label="Qty"
-                  min={0}
-                  available={itemSearched?.batch_stock_quantity ?? itemSearched?.stock_quantity}
-                  onEnter={handleSearchSelected}
-                />
-                <SubQuantityInput
-                  value={subQuantity}
-                  onChange={setSubQuantity}
-                  label="Sub-Qty"
-                  available={itemSearched?.batch_stock_sub_quantity ?? itemSearched?.stock_sub_quantity}
-                  onEnter={handleSearchSelected}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <DiscountInput value={discountPercent} onChange={setDiscountPercent} label="Disc %" />
-                <CustomPriceInput value={customPrice} onChange={setCustomPrice} label="Price" />
-              </div>
-
-              {itemSearched && (
-                <div className="mb-4 p-3 bg-white rounded-xl border border-indigo-100 shadow-sm animate-in fade-in slide-in-from-top-2">
-                  <p className="text-[11px] text-slate-400 font-medium">Auto-Locked Match</p>
+            {/* Matched Medicine Info */}
+            {itemSearched && (
+              <div className="flex-1 min-w-[160px] p-2 bg-white rounded-xl border border-indigo-100 shadow-sm flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-slate-400 font-medium leading-tight">Match</p>
                   <p className="text-sm font-bold text-indigo-600 truncate">{itemSearched.brand_name}</p>
-                  {itemSearched.batch_number && (
-                    <span className="text-[10px] font-mono bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded mt-1 inline-block">
-                      BN: {itemSearched.batch_number}
-                    </span>
-                  )}
                 </div>
-              )}
+                {itemSearched.batch_number && (
+                  <span className="text-[10px] font-mono bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded shrink-0">
+                    BN: {itemSearched.batch_number}
+                  </span>
+                )}
+              </div>
+            )}
 
+            {/* Add Button */}
+            <div className="shrink-0">
               <AddProductButton handleSearchSelected={handleSearchSelected} />
             </div>
           </div>
         </div>
-      </div>
 
-      {/* 2. Center Column: Live Billing Detail */}
-      <div className="flex flex-col gap-6 flex-1">
-        <div className="flex flex-col flex-1 bg-white/70 backdrop-blur-xl rounded-[2rem] px-6 py-6 shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-white/40 overflow-hidden">
+        {/* 2. Active Billing Cart (Bottom) */}
+        <div className="flex flex-col flex-1 bg-white/70 backdrop-blur-xl rounded-[2rem] px-6 py-6 shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-white/40 overflow-hidden min-h-[400px]">
           <div className="flex items-center justify-between mb-6 px-2">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-emerald-500 text-white rounded-2xl shadow-lg shadow-emerald-500/20">
@@ -249,6 +349,8 @@ const PharmacyPOS: React.FC = () => {
 
           <div className="flex-1 relative z-10">
             <CheckoutCard
+              ref={checkoutRef}
+              mode={posMode}
               cart={cart}
               payment={payment}
               onPaymentTypeChange={setPaymentType}
@@ -259,6 +361,7 @@ const PharmacyPOS: React.FC = () => {
                 resetPayment();
               }}
               onClear={clearCart}
+              onBackToSearch={() => searchInputRef.current?.focus()}
             />
           </div>
 

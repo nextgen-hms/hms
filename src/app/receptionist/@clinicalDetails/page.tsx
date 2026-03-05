@@ -68,6 +68,7 @@ export default function ClinicalRecordsLayout() {
               id="pid"
               type="text"
               placeholder="Enter ID and press Enter..."
+              autoComplete="off"
               className="w-full h-12 pl-12 pr-4 bg-white/40 backdrop-blur-md border border-slate-200 rounded-2xl text-slate-700 font-bold placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all shadow-sm"
               value={pId}
               onChange={(e) => setpId(e.target.value)}

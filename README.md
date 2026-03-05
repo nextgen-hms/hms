@@ -89,16 +89,15 @@ The HMS core is powered by a robust PostgreSQL schema designed for high transact
 
 ## 🏁 Project Status & Roadmap
 
-### **Current Phase: Core Stability**
-- ✅ Refined medicine batch inventory synchronization.
-- ✅ Consolidated clinical workflow status tracking.
-- ✅ Validated Laboratory parameter-level reporting.
-- ✅ Corrected schema-wide typos and normalized relations.
+### **Current Phase: Core Stability & Retail Excellence**
+- ✅ **Production-Ready POS**: Sub-unit (fragment) sale logic and real-time stock indicators.
+- ✅ **Infrastructure Fixes**: Stabilized authentication redirection for production environments.
+- ✅ **Database Precision**: Batch-level inventory tracking with audit ledger synchronization.
 
-### **Next Objectives**
-1. **Premium POS UI**: Enhancing the pharmacy retail interface with animations and HSL-based themes.
-2. **Advanced Permissions**: Implementing granular role-based access for different hospital departments.
-3. **Insurance Integration**: Mapping billing entities to healthcare insurance providers.
+### **Next Objectives (Feb 7)**
+1. **Medicine Return**: Customer sale return workflows.
+2. **Medicine Purchase**: Supplier procurement and stock intake.
+3. **Purchase Return**: Supplier return and credit management.
 
 ---
 

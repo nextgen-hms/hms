@@ -32,5 +32,7 @@ The `tg_stockquantity_generic` trigger on `medicine_transaction` executes `fn_tg
     2.  If `batch_id` is present in the transaction, updates the **specific** `medicine_batch` record to maintain parity.
 
 ## Constraints
-- `check_sub_quantity_valid`: Ensures `stock_sub_quantity` is always non-negative and less than `sub_units_per_unit`.
 - Medicines with no sub-units default `sub_units_per_unit` to 1 in the logic.
+
+## POS Integration (Feb 6 Update)
+The retail POS now supports **Fragment Sales**. When a pharmacist enters a quantity that represents a sub-unit (e.g., 5 tablets), the system calculates the remaining `stock_quantity` (whole units) and `stock_sub_quantity` (remainder) accurately, deducting from the specific `batch_id` selected.

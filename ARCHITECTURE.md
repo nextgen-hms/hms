@@ -179,15 +179,21 @@ User Action → React View (Client)
 
 ### **2. Inventory Synchronization Flow (Pharmacy)**
 
-Example: Record a New Sale
+Example: Record a New Sale (with Sub-Unit Logic)
 1. Pharmacist selects medicine and specific **Batch**.
-2. Form posts to `/api/dispense`.
-3. `pharmacy_sale_detail` is updated with raw data.
+2. System calculates fragment availability (e.g., 10 boxes, 5 loose tablets).
+3. Form posts to `/api/dispense` with `unit_price` and `sub_unit_price`.
 4. **Trigger**: `fn_tg_sale_detail_to_txn` automatically creates a record in `medicine_transaction`.
-5. **Trigger**: `fn_tg_stockquantity_generic` calculates new inventory for both the specific `medicine_batch` and the overall `medicine` record.
+5. **Trigger**: `fn_tg_stockquantity_generic` calculates new inventory for both the specific `medicine_batch` and the overall `medicine` record, handling sub-unit math (e.g., deducting 1 tablet from a box of 10).
 6. The UI reflects the new stock levels instantly via revalidation.
 
-### **3. Clinical Consultation Flow**
+### **3. Authentication & Redirection Strategy**
+
+HMS uses a **Next.js-Native Navigation Strategy** for post-authentication routing:
+- **Redirection**: Controlled via `useLogin.ts` using `router.replace` for reliable, client-side state transitions in production.
+- **Middleware**: Validates JWT tokens in HTTP-only cookies to protect dashboard routes.
+
+### **4. Clinical Consultation Flow**
 
 1. Receptionist initiates a `visit` entry.
 2. Doctor workspace updates via dynamic queue (`/api/queue`).
