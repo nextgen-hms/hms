@@ -1,6 +1,4 @@
 
-
-
 import { query } from "@/database/db";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -8,11 +6,17 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(req: NextRequest) {
    const res = await req.json();
-   console.log(res);
    try {
-      const v_res = await query('update visit set doctor_id = $2, visit_type=$3,clinic_number=$4,status =$5,reason=$6 where patient_id = $1 returning *', [res.patient_id, res.doctor_id, res.visit_type, res.clinic_number, res.status, res.reason]);
-
-      console.log(res.rows);
+      if (!res.visit_id) {
+         return NextResponse.json({ error: "visit_id is required" }, { status: 400 });
+      }
+      const v_res = await query(
+         "update visit set doctor_id = $2, visit_type = $3, clinic_number = $4, status = $5, reason = $6 where visit_id = $1 and is_deleted = false returning *",
+         [res.visit_id, res.doctor_id, res.visit_type, res.clinic_number, res.status, res.reason]
+      );
+      if (v_res.rows.length === 0) {
+         return NextResponse.json({ error: "visit not found" }, { status: 404 });
+      }
 
       return NextResponse.json(v_res.rows[0]);
    } catch (err) {
@@ -49,4 +53,24 @@ export async function POST(req: NextRequest) {
    }
 
 
+}
+
+export async function DELETE(req: NextRequest) {
+   const res = await req.json();
+   try {
+      if (!res.visit_id) {
+         return NextResponse.json({ error: "visit_id is required" }, { status: 400 });
+      }
+      const deletedVisit = await query(
+         "update visit set is_deleted = true where visit_id = $1 and is_deleted = false returning *",
+         [res.visit_id]
+      );
+      if (deletedVisit.rows.length === 0) {
+         return NextResponse.json({ error: "visit not found" }, { status: 404 });
+      }
+      return NextResponse.json(deletedVisit.rows[0], { status: 200 });
+   } catch (err) {
+      console.error(err);
+      return NextResponse.json({ error: "failed to delete visit" }, { status: 500 });
+   }
 }

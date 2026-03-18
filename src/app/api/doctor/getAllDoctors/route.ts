@@ -1,8 +1,8 @@
 import { query } from "@/database/db";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 
-export async function GET(req:NextRequest){
+export async function GET(){
     try{
 
         const res=await query('select doctor_id,doctor_name from doctor;');

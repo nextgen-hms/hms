@@ -64,8 +64,11 @@ export function usePatientRegistration() {
   }, [setPatientId]);
 
   function selectSearchResult(patient: PatientSearchResult) {
-    loadPatient(String(patient.patient_id));
-    return String(patient.patient_id);
+    const id = String(patient.patient_id);
+    setPatientId(id);
+    setShowResults(false);
+    setSearchQuery("");
+    return id;
   }
 
   function clearPatient() {

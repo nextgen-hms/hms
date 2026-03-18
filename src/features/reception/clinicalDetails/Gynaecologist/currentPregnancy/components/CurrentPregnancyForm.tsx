@@ -8,19 +8,41 @@ import { useEffect } from "react";
 import { usePatient } from "@/contexts/PatientIdContext";
 
 export default function CurrentPregnancyForm() {
-  const { patientId } = usePatient();
+  const { patientId, selectedVisitId } = usePatient();
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<CurrentPregnancyFormData>({
     resolver: zodResolver(CurrentPregnancySchema),
     mode: "onChange",
   });
 
-  const { visitId, fetchCurrentPregnancy, addInfo, updateInfo } = useCurrentPregnancy(patientId);
+  const { fetchCurrentPregnancy, addInfo, updateInfo, mode, statusMessage } = useCurrentPregnancy(patientId, selectedVisitId);
 
   useEffect(() => {
-    if (!patientId) return;
-    fetchCurrentPregnancy().then(data => reset(data));
-  }, [patientId, reset, fetchCurrentPregnancy]);
+    if (!patientId || !selectedVisitId) {
+      reset({
+        patient_id: patientId || "",
+        visit_id: selectedVisitId || "",
+        multiple_pregnancy: "false",
+        complications: "",
+        ultrasound_findings: "",
+        fetal_heart_rate_bpm: "",
+        placenta_position: "",
+        presentation: "",
+        gestational_age_weeks: "",
+        notes: "",
+      });
+      return;
+    }
+    fetchCurrentPregnancy().then(data => {
+      if (data) {
+        reset({
+          ...data,
+          patient_id: patientId,
+          visit_id: selectedVisitId,
+        });
+      }
+    });
+  }, [patientId, selectedVisitId, reset, fetchCurrentPregnancy]);
 
   return (
     <div className="w-full max-w-5xl mx-auto">
@@ -36,7 +58,16 @@ export default function CurrentPregnancyForm() {
         </div>
         <div className="px-4 py-2 bg-slate-100/80 backdrop-blur-sm rounded-xl border border-slate-200">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Active Visit Reference</span>
-          <span className="text-sm font-bold text-slate-700">#{visitId || '---'}</span>
+          <span className="text-sm font-bold text-slate-700">#{selectedVisitId || '---'}</span>
+        </div>
+      </div>
+
+      <div className={`mb-6 rounded-2xl border px-4 py-3 text-sm font-medium ${mode === "update" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+        <div className="flex items-center justify-between gap-3">
+          <span>{statusMessage}</span>
+          <span className="shrink-0 rounded-xl bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-widest">
+            {mode === "update" ? "Update Mode" : "Create Mode"}
+          </span>
         </div>
       </div>
 
@@ -118,14 +149,9 @@ export default function CurrentPregnancyForm() {
             onClick={() => reset()}
           />
           <FormButton
-            text="Update Records"
-            variant="secondary"
-            onClick={handleSubmit(updateInfo)}
-          />
-          <FormButton
-            text="Finalize Entry"
+            text={mode === "update" ? "Update Record" : "Save Record"}
             variant="primary"
-            onClick={handleSubmit(addInfo)}
+            onClick={handleSubmit(mode === "update" ? updateInfo : addInfo)}
           />
         </div>
       </form>

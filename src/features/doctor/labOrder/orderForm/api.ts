@@ -4,16 +4,19 @@ import { LabTest } from "./types";
 
 // Fetch all lab tests
 export async function fetchAllLabTests(): Promise<LabTest[]> {
-  const res = await fetch("/api/labTests/getallLabtests");
+  const res = await fetch("/api/lab");
   if (!res.ok) throw new Error(`Failed to fetch lab tests: ${res.status}`);
   const data: LabTest[] = await res.json();
   return data;
 }
 
 // Create a new lab order
-export async function createLabOrder(patientId: string, tests: { doctor_id: number; test_id?: string }[]) {
+export async function createLabOrder(
+  patientId: string,
+  tests: { test_id?: string; urgency?: string }[]
+) {
   const payload = { patient_id: patientId, tests };
-  const res = await fetch("/api/labTests", {
+  const res = await fetch("/api/doctor/lab-orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

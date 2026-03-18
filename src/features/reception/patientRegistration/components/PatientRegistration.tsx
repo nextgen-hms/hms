@@ -75,14 +75,8 @@ export default function PatientRegistrationForm() {
   }
 
   function handleSelectResult(patient: any) {
-    const id = selectSearchResult(patient);
+    selectSearchResult(patient);
     setHighlightedIndex(-1);
-    loadPatient(id).then((data) => {
-      if (data) {
-        populateForm(data);
-        lastLoadedIdRef.current = id;
-      }
-    });
   }
 
   function handleSearchKeyDown(e: React.KeyboardEvent) {

@@ -13,7 +13,11 @@ export function usePastVisits() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!patientId) return;
+      if (!patientId) {
+        setVisits([]);
+        setPreviousPrescriptions([]);
+        return;
+      }
       try {
         setLoading(true);
         const [visitsData, prescriptionsData] = await Promise.all([

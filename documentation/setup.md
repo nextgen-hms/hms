@@ -1,55 +1,51 @@
-# ⚙️ HMS Setup & Development
+# Setup
 
-Step-by-step guide to get the development environment running locally.
+## Requirements
 
-## 📋 Prerequisites
+- Node.js `20+`
+- `pnpm`
+- PostgreSQL `17+`
+- `psql`
 
-- **Node.js**: v20 or higher
-- **pnpm**: v9 or higher
-- **PostgreSQL**: v16+ (v18 recommended)
-- **Operating System**: Linux/macOS/Windows
+## Install
 
-## 🚀 Getting Started
+```bash
+pnpm install
+```
 
-1. **Clone the repository**:
-   ```bash
-   git clone <repo-url>
-   cd hms
-   ```
+## Database
 
-2. **Install dependencies**:
-   ```bash
-   pnpm install
-   ```
+Create a local database:
 
-3. **Database Setup**:
-   - Create a database named `hims` in PostgreSQL.
-   - Run the schema and seed files:
-     ```bash
-     psql -d hims -f db_structure.sql
-     psql -d hims -f seed.sql
-     ```
+```sql
+CREATE DATABASE hms;
+```
 
-4. **Environment Variables**:
-   Create a `.env` file in the root:
-   ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/hims"
-   NEXTAUTH_SECRET="your-secret"
-   ```
+Load schema and optional data:
 
-5. **Run Development Server**:
-   ```bash
-   pnpm dev
-   ```
-   The app will be available at `http://localhost:3000`.
+```bash
+psql -d hms -f db_structure.sql
+psql -d hms -f seed_data.sql
+```
 
-## 🛠️ Development Tools
+## Environment
 
-- **Database Modeler**: `pg_modeler_hms.dbm` can be opened with pgModeler for visual schema editing.
-- **Linting**: Run `pnpm lint` to check for code style issues.
-- **Type Checking**: Run `pnpm type-check` to verify TypeScript integrity.
+Create `.env.local`:
 
----
+```env
+DATABASE_URL=postgresql://postgres:password@localhost:5432/hms
+secret_key=replace-me
+```
 
-> [!IMPORTANT]
-> Ensure PostgreSQL is running locally before starting the dev server, as the app establishes a database connection on boot.
+## Run
+
+```bash
+pnpm dev
+```
+
+## Useful checks
+
+```bash
+pnpm lint
+pnpm docs
+```

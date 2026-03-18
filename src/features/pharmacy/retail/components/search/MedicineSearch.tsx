@@ -149,6 +149,11 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({
                   <span className={`text-[10px] font-bold uppercase tracking-widest truncate ${index === focusedIndex ? 'text-indigo-200/80' : 'text-slate-400'}`}>
                     {medicine.generic_name}
                   </span>
+                  {medicine.manufacturer && (
+                    <span className={`text-[10px] font-medium truncate mt-0.5 ${index === focusedIndex ? 'text-indigo-100' : 'text-slate-500'}`}>
+                      By: {medicine.manufacturer}
+                    </span>
+                  )}
                 </div>
 
                 {/* 2. Dosage & Form */}

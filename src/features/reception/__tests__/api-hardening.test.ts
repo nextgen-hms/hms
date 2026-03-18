@@ -1,0 +1,128 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const { queryMock } = vi.hoisted(() => ({
+  queryMock: vi.fn(),
+}));
+
+vi.mock("@/database/db", () => ({
+  query: queryMock,
+}));
+
+vi.mock("@/src/lib/utils", () => ({
+  getCurrentStaffId: vi.fn(() => 1),
+}));
+
+import { PATCH as patchVisit } from "@/src/app/api/visit/route";
+import { PATCH as patchVisitStatus } from "@/src/app/api/visit/status/route";
+import { POST as postPara } from "@/src/app/api/clinicalDetails/gynaecologist/para/route";
+import { POST as postVitals } from "@/src/app/api/patientVitals/route";
+import { GET as getCurrentPregnancy } from "@/src/app/api/clinicalDetails/gynaecologist/currentPregnancy/[patientId]/route";
+
+describe("reception API hardening", () => {
+  beforeEach(() => {
+    queryMock.mockReset();
+  });
+
+  it("updates visits by visit_id only", async () => {
+    queryMock.mockResolvedValueOnce({ rows: [{ visit_id: 44, patient_id: 1 }] });
+
+    const response = await patchVisit({
+      json: async () => ({
+        visit_id: 44,
+        doctor_id: 2,
+        visit_type: "OPD",
+        clinic_number: 201,
+        status: "waiting",
+        reason: "Follow up",
+      }),
+    } as any);
+
+    expect(response.status).toBe(200);
+    expect(queryMock).toHaveBeenCalledTimes(1);
+    expect(queryMock.mock.calls[0]?.[0]).toContain("where visit_id = $1");
+    expect(queryMock.mock.calls[0]?.[0]).not.toContain("where patient_id");
+  });
+
+  it("routes status changes through update_and_log_visit_status", async () => {
+    queryMock
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ visit_id: 44, status: "seen_by_doctor" }] });
+
+    const response = await patchVisitStatus({
+      json: async () => ({
+        visit_id: 44,
+        status: "seen_by_doctor",
+      }),
+    } as any);
+
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(queryMock.mock.calls[0]?.[0]).toContain("call update_and_log_visit_status");
+    expect(queryMock.mock.calls[0]?.[1]).toEqual([44, "seen_by_doctor", null, 1]);
+    expect(body.data.status).toBe("seen_by_doctor");
+  });
+
+  it("updates para count only for the targeted obstetric history row", async () => {
+    queryMock
+      .mockResolvedValueOnce({ rows: [{ para_id: 1 }] })
+      .mockResolvedValueOnce({ rows: [{ obstetric_history_id: 55, para: 1 }] });
+
+    const response = await postPara({
+      json: async () => ({
+        para: [
+          {
+            obstetric_history_id: 55,
+            para_number: 1,
+            birth_year: 2020,
+            birth_month: 5,
+            gender: "Female",
+            delivery_type: "Normal",
+            alive: "true",
+            birth_weight_grams: 3200,
+            complications: "",
+            notes: "",
+            gestational_age_weeks: 38,
+          },
+        ],
+      }),
+    } as any);
+
+    expect(response.status).toBe(200);
+    expect(queryMock.mock.calls[1]?.[0]).toContain("where obstetric_history_id = $2");
+    expect(queryMock.mock.calls[1]?.[1]).toEqual([1, 55]);
+  });
+
+  it("creates vitals using the explicit visit_id contract", async () => {
+    queryMock.mockResolvedValueOnce({ rows: [{ vital_id: 9, visit_id: 44 }] });
+
+    const response = await postVitals({
+      json: async () => ({
+        visit_id: 44,
+        blood_pressure: "120/80",
+        heart_rate: 80,
+        temperature: 98,
+        weight: 60,
+        height: 170,
+        blood_group: "AB-",
+      }),
+    } as any);
+
+    expect(response.status).toBe(200);
+    expect(queryMock).toHaveBeenCalledTimes(1);
+    expect(queryMock.mock.calls[0]?.[0]).toContain("insert into patient_vitals");
+    expect(queryMock.mock.calls[0]?.[1]?.[0]).toBe(44);
+  });
+
+  it("reads current pregnancy by visit_id instead of patient_id", async () => {
+    queryMock.mockResolvedValueOnce({ rows: [{ visit_id: 44, patient_id: 1 }] });
+
+    const response = await getCurrentPregnancy({} as any, {
+      params: Promise.resolve({ patientId: "44" }),
+    } as any);
+
+    expect(response.status).toBe(200);
+    expect(queryMock.mock.calls[0]?.[0]).toContain("where visit_id = $1");
+    expect(queryMock.mock.calls[0]?.[1]).toEqual(["44"]);
+  });
+});

@@ -1,120 +1,89 @@
-# 🏥 Hospital Management System (HMS)
+# HMS
 
-> **A State-of-the-Art, Data-First Healthcare Management Platform**
+Hospital Management System for reception, doctor consultation, laboratory workflow, and pharmacy/POS operations.
 
-HMS is a comprehensive, enterprise-grade **Hospital Management System** built with **Next.js 15** and **PostgreSQL**. Designed for modern healthcare facilities, it streamlines patient registration, clinical consultations, pharmacy inventory, and laboratory workflows with a focus on data integrity, type safety, and visual excellence.
+## Current Baseline
 
----
+- Frontend: Next.js `16.1.6`, React `19.1.0`, TypeScript `5`
+- Styling/UI: Tailwind CSS `4`, Radix UI primitives, Lucide icons, `react-hot-toast`
+- Backend: Next.js route handlers with direct `pg` access
+- Database: Supabase PostgreSQL `17.6.1`
+- Auth: JWT cookie auth with role checks in `src/middleware.ts`
 
-## 🚀 Project Vision
+## Verified Database Scope
 
-Our mission is to provide a robust, high-performance digital backbone for healthcare providers. HMS replaces fragmented systems with a unified, **database-driven architecture** that ensures clinical accuracy and operational efficiency. By leveraging modern web standards and deep PostgreSQL logic, we deliver a system that is as reliable as it is simple to use.
+The live `public` schema currently contains:
 
----
+- `38` tables
+- `11` function signatures across `9` unique function names
+- `1` procedure
+- `6` triggers
+- `3` views: `v_daily_sales_summary`, `v_low_stock_medicines`, `v_medicine_pos`
 
-## ✨ Key Features
+Core routines:
 
-### 🩺 **Patient Lifecycle Management**
-- **Dynamic Registration**: Capture complete demographic and medical history.
-- **OPD/IPD Workflows**: Seamless management of Outpatient and Inpatient encounters.
-- **Visit Queuing**: Real-time patient queuing with daily sequential numbering.
-- **Audit Compliance**: Exhaustive timestamped history for every visit status change.
+- `check_stock_available(required_medicine_id, required_quantity, required_sub_quantity)`
+- `fn_tg_purchase_detail_to_txn()`
+- `fn_tg_purchase_return_detail_to_txn()`
+- `fn_tg_sale_detail_to_txn()`
+- `fn_tg_sale_return_detail_to_txn()`
+- `fn_tg_stockquantity_generic()`
+- `get_clinic_number()`
+- `get_clinic_number(p_patient_id integer)`
+- `get_clinic_number(p_visit_type text)`
+- `get_stock_display(p_medicine_id integer)`
+- `medicine_search_vector_update()`
+- `update_and_log_visit_status(...)` as a stored procedure
 
-### 👨‍⚕️ **Clinical Excellence**
-- **E-Prescribing**: Precise medicine and laboratory test ordering integrated with inventory.
-- **Specialized OB/GYN**: Dedicated tracking for obstetric history, menstrual cycles, and pregnancy details.
-- **Vitals Tracking**: Longitudinal monitoring of patient growth and physiological signs.
-- **Clinical Notes**: Rich documentation for consultations and medical assessments.
+## Product Areas
 
-### 💊 **Advanced Pharmacy & Inventory**
-- **Batch-Level Tracking**: Specific unit management with expiry monitoring and cost-basis tracking.
-- **Real-Time Sync**: Automated inventory updates via dual-update database triggers.
-- **POS Operations**: Streamlined retail interface with integrated inventory deduction.
-- **Supply Chain**: Manage purchase orders, supplier relations, and multi-tier return flows.
+- Reception: patient registration, visit creation, queue handling, vitals, OB/GYN clinical forms
+- Doctor: queue view, patient details, prescriptions, lab ordering, past visits
+- Lab: lab orders and result entry workflows
+- Pharmacy: OTC/POS sales, purchase intake, returns, receipt/audit actions
 
-### 🔬 **Laboratory Information System (LIS)**
-- **Parameter Management**: Granular control over test components and reference ranges.
-- **Workflow Automation**: From order collection to multi-stage result verification.
-- **Report Generation**: Professional, validated PDF reports for patients and doctors.
+## Architecture Notes
 
----
+- The project is feature-organized under `src/features/*`.
+- App routes and dashboards live under `src/app/*` and use parallel route layouts for role-specific workspaces.
+- The database is the intended source of truth for inventory movement and visit-status auditing.
+- Some route handlers still perform direct table updates instead of consistently delegating to stored procedures/triggers. Contributors should verify database, backend, and frontend together before changing behavior.
 
-## 📚 Documentation Index
+## Key Paths
 
-For detailed technical and operational information, please refer to the following guides:
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [DATABASE.md](./DATABASE.md)
+- [documentation/README.md](./documentation/README.md)
+- [.agents/skills/hms-dev/SKILL.md](./.agents/skills/hms-dev/SKILL.md)
 
-### **Core Reference**
-- [📘 Documentation Index](./documentation/README.md) - High-level overview of all technical manuals.
-- [🏗️ Architecture Guide](./ARCHITECTURE.md) - Deep dive into system design and project structure.
-- [🗄️ Database Reference](./DATABASE.md) - Complete schema, triggers, and stored functions map.
-- [📝 Contributing Guide](./contributing.md) - Guidelines for setting up, coding styles, and PRs.
+## Local Setup
 
-### **Technical Deep Dives**
-- [🎨 Frontend Architecture](./documentation/frontend.md) - Component patterns, hooks, and state management.
-- [🧩 Feature Modules](./documentation/features.md) - Breakdown of Doctor, Pharmacy, Lab, and Reception logic.
-- [⚙️ Setup & Development](./documentation/setup.md) - Step-by-step local environment configuration.
+1. Install dependencies:
 
-### **Project Management**
-- [🌐 Project Context](./documentation/context.md) - Functional overview and feature dependencies.
-- [🚀 Technical Roadmap](./documentation/next_steps.md) - Future phases and optimization goals.
-- [📈 Progress Logs](./documentation/progress.md) - Daily development milestones and change logs.
+```bash
+pnpm install
+```
 
----
+2. Create `.env.local`:
 
-## 🛠️ Technology Stack
+```env
+DATABASE_URL=postgresql://postgres:password@localhost:5432/hms
+secret_key=replace-me
+```
 
-| Layer | Technology | Version | Purpose |
-|-------|------------|---------|---------|
-| **Framework** | Next.js | 15.5.0 | Core App Router & SSR |
-| **UI Library** | React | 19.1.0 | Modern Component Architecture |
-| **Language** | TypeScript | 5.x | End-to-end Type Safety |
-| **Styling** | TailwindCSS | 4.x | Utility-first Design System |
-| **Database** | PostgreSQL | 16+ | Primary Relational Engine |
-| **Validation** | Zod | 4.x | Schema-driven Data Integrity |
-| **Forms** | React Hook Form| 7.x | Performant Form Management |
+3. Load schema and optional seed data:
 
----
+```bash
+psql -d hms -f db_structure.sql
+psql -d hms -f seed_data.sql
+```
 
-## 📊 Database at a Glance
+4. Start the app:
 
-The HMS core is powered by a robust PostgreSQL schema designed for high transactional integrity:
+```bash
+pnpm dev
+```
 
-- **38 Tables**: Categorized into Clinical, Inventory, Financial, and Administration modules.
-- **10 Functions**: Handling clinic numbering, stock availability, and complex arithmetic.
-- **6 Advanced Triggers**: Ensuring real-time synchronization between sales, purchases, and batch quantities.
-- **1 Stored Procedure**: Managing atomic visit status transitions and logs.
-- **2 Reporting Views**: `v_daily_sales_summary` and `v_low_stock_medicines`.
+## Documentation Status
 
----
-
-## 🏁 Project Status & Roadmap
-
-### **Current Phase: Core Stability & Retail Excellence**
-- ✅ **Production-Ready POS**: Sub-unit (fragment) sale logic and real-time stock indicators.
-- ✅ **Infrastructure Fixes**: Stabilized authentication redirection for production environments.
-- ✅ **Database Precision**: Batch-level inventory tracking with audit ledger synchronization.
-
-### **Next Objectives (Feb 7)**
-1. **Medicine Return**: Customer sale return workflows.
-2. **Medicine Purchase**: Supplier procurement and stock intake.
-3. **Purchase Return**: Supplier return and credit management.
-
----
-
-## 📜 License
-
-This project is licensed under the **MIT License** - see the [LICENSE](./LICENSE) file for details.
-
----
-
-## 👥 The Team
-
-Built with ❤️ for the global healthcare community.
-
-**Core Contributors:**
-- **Bablu**
-- **Faiq**
-
----
-
-**Together, let's build better healthcare management solutions!** 🏥✨
+The hand-written docs in this repo have been aligned to the current codebase and live Supabase schema. Generated HTML under `docs/` is treated as derived output and is not the canonical source.

@@ -1,40 +1,82 @@
 "use client"
 import { PatientContextProvider } from "@/contexts/PatientIdContext";
 import Image from "next/image";
-import { useState } from "react";
-import { redirect } from "next/navigation";
-import { Button } from "@/src/components/ui/Button";
-import { logoutUser } from "@/src/features/Login/api";
-import { UserProfile } from "./components/UserProfile";
+import { Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { PurchaseReturn } from "@/src/features/pharmacy/purchaseReturn/components/PurchaseReturn";
+import { PartiesView } from "@/src/features/pharmacy/parties";
+import { TransactionsView } from "@/src/features/pharmacy/transactions";
+import { SessionControls } from "@/src/components/session/SessionControls";
 import {
   ShoppingCart,
-  RotateCcw,
   PlusCircle,
   History,
   Users,
   ArrowLeftRight,
-  LogOut,
   Layout
 } from "lucide-react";
+
 
 export default function Pharmacist({
   retail,
   returnMedicine,
-  purchase
+  purchase,
+  medicines
 }: {
   retail: React.ReactNode;
   returnMedicine: React.ReactNode;
   purchase: React.ReactNode;
+  medicines: React.ReactNode;
 }) {
-  const [selectedTab, setSelectedTab] = useState("retail");
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center">Loading...</div>}>
+      <PharmacistContent 
+        retail={retail} 
+        returnMedicine={returnMedicine} 
+        purchase={purchase} 
+        medicines={medicines} 
+      />
+    </Suspense>
+  )
+}
+
+function PharmacistContent({
+  retail,
+  returnMedicine,
+  purchase,
+  medicines
+}: {
+  retail: React.ReactNode;
+  returnMedicine: React.ReactNode;
+  purchase: React.ReactNode;
+  medicines: React.ReactNode;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  void returnMedicine;
+  
+  const selectedTab = searchParams.get('tab') || 'retail';
+
+  const setSelectedTab = (tabId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tabId);
+    
+    // Clear action-specific params when manually switching tabs
+    params.delete('mode');
+    params.delete('ref');
+    
+    router.push(`${pathname}?${params.toString()}`);
+  }
 
   const tabs = [
     { id: "retail", label: "Retail", icon: <ShoppingCart size={16} /> },
     { id: "purchases", label: "Purchases", icon: <PlusCircle size={16} /> },
-    { id: "ledger", label: "Ledger", icon: <History size={16} /> },
+    { id: "transactions", label: "Transactions", icon: <History size={16} /> },
     { id: "addParty", label: "Parties", icon: <Users size={16} /> },
     { id: "purchaseReturn", label: "P. Return", icon: <ArrowLeftRight size={16} /> },
+    { id: "medicines", label: "Medicines", icon: <PlusCircle size={16} /> },
   ];
 
   return (
@@ -53,27 +95,7 @@ export default function Pharmacist({
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="px-4 py-1.5 bg-slate-50 rounded-full border border-slate-100 flex items-center gap-2">
-            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-            <span className="text-[11px] font-bold text-slate-500 uppercase">Live Session</span>
-          </div>
-
-          {/* User Profile Display */}
-          <UserProfile />
-
-          <Button
-            variant="outline"
-            className="rounded-xl border-slate-200 hover:border-rose-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 transition-all gap-2 h-10"
-            onClick={async () => {
-              await logoutUser();
-              redirect("/");
-            }}
-          >
-            <LogOut size={16} />
-            <span className="font-bold text-sm">Logout</span>
-          </Button>
-        </div>
+        <SessionControls />
       </div>
 
       {/* Main Content Area */}
@@ -120,11 +142,9 @@ export default function Pharmacist({
                 {selectedTab === "retail" && retail}
                 {selectedTab === "purchases" && purchase}
                 {selectedTab === "purchaseReturn" && <PurchaseReturn />}
-                {["ledger", "addParty"].includes(selectedTab) && (
-                  <div className="flex items-center justify-center h-full opacity-30 italic text-slate-500">
-                    {selectedTab.charAt(0).toUpperCase() + selectedTab.slice(1)} Module View
-                  </div>
-                )}
+                {selectedTab === "medicines" && medicines}
+                {selectedTab === "addParty" && <PartiesView />}
+                {selectedTab === "transactions" && <TransactionsView />}
               </div>
             </div>
           </div>

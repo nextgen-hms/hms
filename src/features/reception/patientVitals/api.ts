@@ -1,8 +1,8 @@
 // features/patient-vitals/api/patientVitalsService.ts
 import { PatientVitals } from "./types";
 
-export async function fetchPatientVitals(patientId: string) {
-  const res = await fetch(`/api/patientVitals/${patientId}`);
+export async function fetchPatientVitals(visitId: string) {
+  const res = await fetch(`/api/patientVitals/${visitId}`);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to fetch vitals");
   return data;

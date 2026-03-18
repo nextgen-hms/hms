@@ -17,7 +17,8 @@ import {
 import { Doctor, Patient } from "../types";
 
 export function usePatientForm() {
-  const { patientId, setPatientId } = usePatient();
+  const { patientId, selectedVisitId, setPatientId, setPatientVisit, setSelectedVisitId } = usePatient();
+  const syncedPatientIdRef = useRef<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(""); // Unified search for ID or Name
   const [patientName, setPatientName] = useState("");
   const [age, setAge] = useState("");
@@ -50,26 +51,7 @@ export function usePatientForm() {
     fetchNewClinicNo(visitType).then(setClinicNo);
   }, [visitType]);
 
-  // Debounced Search Effect
-  useEffect(() => {
-    setHighlightedIndex(-1);
-    // If the searchQuery is exactly the same as the already loaded patient description, don't search again
-    if (searchQuery.length < 2 || searchQuery === patientName) {
-      setSearchResults([]);
-      return;
-    }
-
-    const handler = setTimeout(() => {
-      // If it's purely digits, it might be an ID - we can still search it 
-      // but usually ID lookups are exact. For now, we search everything.
-      searchByName(searchQuery);
-    }, 500);
-
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
-
-
-  async function getPatientVisitInfo(id: string) {
+  const getPatientVisitInfo = useCallback(async (id: string) => {
     if (!id) return;
     try {
       const data = await fetchPatientVisit(id);
@@ -79,28 +61,50 @@ export function usePatientForm() {
         setVisitType(data.visit_type || "OPD");
         setClinicNo(data.clinic_number);
         setIsExistingVisit(true);
+        setSelectedVisitId(String(data.visit_id));
       } else {
         setIsExistingVisit(false);
         setVisitReason("");
         setDoctor("");
         setVisitType("OPD");
+        setSelectedVisitId(null);
       }
     } catch {
       setIsExistingVisit(false);
       setVisitReason("");
       setDoctor("");
       setVisitType("OPD");
+      setSelectedVisitId(null);
     }
-  }
+  }, [setSelectedVisitId]);
 
-  async function getPatientInfo(id: string | number) {
+  const resetInfo = useCallback((full = true) => {
+    syncedPatientIdRef.current = null;
+    if (full) {
+      setPatientId("");
+      setSearchQuery("");
+    }
+    setSelectedVisitId(null);
+    setPatientName("");
+    setSearchQuery("");
+    setAge("");
+    setGender("");
+    setDoctor("");
+    setVisitReason("");
+    setVisitType("OPD");
+    setIsExistingVisit(false);
+    setSearchResults([]);
+    setHighlightedIndex(-1);
+  }, [setPatientId, setSelectedVisitId]);
+
+  const getPatientInfo = useCallback(async (id: string | number) => {
     if (!id) return;
     const sid = id.toString();
     try {
       const data = await fetchPatientInfo(sid);
-      console.log(data);
 
       if (data && data.patient_id) {
+        syncedPatientIdRef.current = sid;
         setPatientName(data.patient_name || "");
         setAge(data.age != null ? String(data.age) : "");
         setGender(data.gender || "");
@@ -116,16 +120,19 @@ export function usePatientForm() {
         toast.success("Patient Found");
         await getPatientVisitInfo(sid);
       } else {
+        syncedPatientIdRef.current = null;
         toast.error("Patient not found");
         resetInfo(false); // Clear demographic fields but keep ID
       }
     } catch (err) {
       console.error("Fetch Patient Error:", err);
+      syncedPatientIdRef.current = null;
       toast.error("Error fetching patient");
       resetInfo(false);
     }
-  }
-  const searchByName = async (name: string) => {
+  }, [getPatientVisitInfo, resetInfo, setPatientId]);
+
+  const searchByName = useCallback(async (name: string) => {
     if (name.length < 2) {
       setSearchResults([]);
       return;
@@ -139,7 +146,21 @@ export function usePatientForm() {
     } finally {
       setIsSearching(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    setHighlightedIndex(-1);
+    if (searchQuery.length < 2 || searchQuery === patientName) {
+      setSearchResults([]);
+      return;
+    }
+
+    const handler = setTimeout(() => {
+      searchByName(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchQuery, patientName, searchByName]);
 
 
   async function addToQueue(idOverride?: string) {
@@ -159,11 +180,12 @@ export function usePatientForm() {
       });
 
       if (res.ok) {
+        const visit = await res.json();
+        setPatientVisit(String(targetId), String(visit.visit_id));
+        setIsExistingVisit(true);
         toast.success("Patient added to queue");
         // Dispatch instant UI refresh event
         window.dispatchEvent(new Event("refresh-queue"));
-        // Reset form for next patient
-        resetInfo(true);
       } else {
         const errorData = await res.json();
         toast.error(errorData.error || "Failed to add to queue");
@@ -179,16 +201,20 @@ export function usePatientForm() {
   async function updateInfo() {
     setIsProcessing(true);
     try {
+      if (!selectedVisitId) {
+        toast.error("Select the exact visit before updating");
+        return;
+      }
       const res = await updateVisitInfo({
+        visit_id: selectedVisitId,
         clinic_number: clinicNo,
         reason: visitReason,
         doctor_id: doctor,
         visit_type: visitType,
         status: "waiting",
-        patient_id: patientId,
       });
       if (res.ok) {
-        toast.success(`P000${patientId} updated`);
+        toast.success(`Visit #${selectedVisitId} updated`);
         if (patientId) await getPatientVisitInfo(patientId);
       } else {
         toast.error(`Update failed`);
@@ -201,30 +227,18 @@ export function usePatientForm() {
     }
   }
 
-  function resetInfo(full = true) {
-    if (full) {
-      setPatientId("");
-      setSearchQuery("");
-    }
-    setPatientName("");
-    setSearchQuery("");
-    setAge("");
-    setGender("");
-    setDoctor("");
-    setVisitReason("");
-    setVisitType("OPD");
-    setIsExistingVisit(false);
-    setSearchResults([]);
-    setHighlightedIndex(-1);
-  }
-
   useEffect(() => {
-    // If global context has an ID, and it's different from our local ID, load it
-    if (patientId && patientId !== searchQuery) {
-      setSearchQuery(patientId);
-      getPatientInfo(patientId);
+    if (!patientId) {
+      syncedPatientIdRef.current = null;
+      return;
     }
-  }, [patientId]);
+
+    if (syncedPatientIdRef.current === patientId) {
+      return;
+    }
+
+    void getPatientInfo(patientId);
+  }, [patientId, getPatientInfo]);
 
   return {
     searchQuery, setSearchQuery,
@@ -237,6 +251,6 @@ export function usePatientForm() {
     searchResults, highlightedIndex, setHighlightedIndex, isExistingVisit, isSearching, isProcessing,
     getPatientInfo, searchByName, addToQueue, updateInfo, resetInfo,
     reactToPrintFn, contentRef,
-    patientId, setPatientId,
+    patientId, selectedVisitId, setPatientId,
   };
 }

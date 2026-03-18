@@ -1,96 +1,224 @@
 "use client";
-import { PatientContextProvider } from "@/contexts/PatientIdContext";
-import { Button } from "@/src/components/ui/Button";
-import { logoutUser } from "@/src/features/Login/api";
-import { Heading1 } from "lucide-react";
+
+import { PatientContextProvider, usePatient } from "@/contexts/PatientIdContext";
+import { SessionControls } from "@/src/components/session/SessionControls";
+import { DoctorWorkspaceProvider, useDoctorWorkspace } from "@/src/features/doctor/workspace/DoctorWorkspaceContext";
+import {
+  ClipboardList,
+  FlaskConical,
+  LayoutDashboard,
+  Pill,
+  UserRound,
+} from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
-import { redirect } from "next/navigation"
-export default function Receptionist({
+import { useEffect, useMemo, useState } from "react";
+
+type PatientBadge = {
+  patient_name: string;
+  gender: string | null;
+  age: string | number | null;
+};
+
+type DoctorTabId =
+  | "patientDetails"
+  | "pharmacyOrder"
+  | "labOrder"
+  | "pastVisits"
+  | "dashboard";
+
+function DoctorWorkspace({
   queue,
   patientDetails,
   pharmacyOrder,
   labOrder,
-  pastVisits
+  pastVisits,
+  reportResults,
 }: {
   queue: React.ReactNode;
   patientDetails: React.ReactNode;
   pharmacyOrder: React.ReactNode;
   labOrder: React.ReactNode;
   pastVisits: React.ReactNode;
+  reportResults: React.ReactNode;
 }) {
-  const [selectedTab, setSelectedTab] = useState("patientDetails");
+  const { patientId, selectedVisitId } = usePatient();
+  const { isQueueCollapsed } = useDoctorWorkspace();
+  const [selectedTab, setSelectedTab] = useState<DoctorTabId>("patientDetails");
+  const [activePatient, setActivePatient] = useState<PatientBadge | null>(null);
+
+  useEffect(() => {
+    async function loadActivePatient() {
+      if (!patientId) {
+        setActivePatient(null);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/patient/${patientId}`);
+        if (!res.ok) {
+          setActivePatient(null);
+          return;
+        }
+
+        const data = await res.json();
+        setActivePatient({
+          patient_name: data.patient_name,
+          gender: data.gender,
+          age: data.age,
+        });
+      } catch (error) {
+        console.error(error);
+        setActivePatient(null);
+      }
+    }
+
+    loadActivePatient();
+  }, [patientId]);
+
+  useEffect(() => {
+    function handleSwitchTab(event: Event) {
+      const customEvent = event as CustomEvent<{ tab?: DoctorTabId }>;
+      if (customEvent.detail?.tab) {
+        setSelectedTab(customEvent.detail.tab);
+      }
+    }
+
+    window.addEventListener("switch-doctor-tab", handleSwitchTab);
+    return () => window.removeEventListener("switch-doctor-tab", handleSwitchTab);
+  }, []);
+
+  const tabs = useMemo(
+    () => [
+      { id: "patientDetails" as const, label: "Patient", icon: UserRound },
+      { id: "pharmacyOrder" as const, label: "Medicines", icon: Pill },
+      { id: "labOrder" as const, label: "Labs", icon: FlaskConical },
+      { id: "pastVisits" as const, label: "History", icon: ClipboardList },
+      { id: "dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
+    ],
+    []
+  );
+
+  const selectedTabLabel = tabs.find((tab) => tab.id === selectedTab)?.label ?? "Workspace";
+  const workspaceSubtitle = activePatient
+    ? "Queue-driven clinical workspace for the selected patient."
+    : "Select a patient from the queue to begin clinical work.";
 
   return (
-    <div className="flex flex-col h-screen w-screen ">
-      {/* Clinic Header */}
-      <div className=" border-1 border-black/30  flex items-center justify-center">
-        <div className="relative h-[7dvh] w-[7dvh]">
-          <Image src="/logo.png" alt="Clinic Logo" fill sizes="7dvh"></Image>
+    <div className="flex min-h-screen w-screen flex-col overflow-hidden bg-[linear-gradient(180deg,#f8fcfb_0%,#eef6f4_48%,#e7f0ef_100%)] text-slate-900">
+      <header className="relative z-20 flex h-20 items-center justify-between border-b border-emerald-100/80 bg-white/85 px-6 backdrop-blur-xl xl:px-8">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 p-2 shadow-sm">
+            <Image src="/logo.png" alt="Clinic Logo" width={32} height={32} className="object-contain" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-black tracking-tight text-slate-900">
+              Dr. Fauzia Ishaq&apos;s Clinic
+            </h1>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-600">
+              Doctor Care Workspace
+            </p>
+          </div>
         </div>
-        <h1 className="text-3xl font-bold text-green-800/80">
-          Fouzia Ishaq Clinic
-        </h1>
-        <Button onClick={async () => {
-          await logoutUser()
-          redirect("/")
-        }} className="absolute right-2">Logout</Button>
-      </div>
-      {/* Receptionist Header */}
-      <div className=" border-1  border-black/30  flex items-center justify-center">
-        <h1 className="text-2xl p-4 font-bold text-green-800/80">
-          Doctor's View
-        </h1>
-      </div>
-      {/* container containg  qeue and tabs and their implemntations */}
-      <div id="container-containing-queue-and-tabs" className="flex  space-x-4  w-full h-full">
-        <PatientContextProvider>
-          {/* queue paralell route */}
-          <div id="Queue" className="">{queue}</div>
-          {/* div containing tabs and their implemetations */}
-          <div className=" p-2 rounded-2xl border-black/30 border-2  w-full">
-            <div id="tab" className=" w-[60%]  p-2 border-2 border-black/30    rounded-4xl flex items-center gap-2 bg-gray-300 ">
-              <button className={`  px-4    text-center ${selectedTab === "patientDetails" ? "bg-green-400 rounded-3xl border-black/30 border-2" : null}`}
-                onClick={() => setSelectedTab("patientDetails")}
-              >
-                Patient Details
-              </button>
-              <button className={` px-4      text-center  ${selectedTab === "pharmacy" ? "bg-green-400 rounded-3xl border-black/30 border-2" : null}`}
-                onClick={() => setSelectedTab("pharmacy")}
-              >
-                Pharmacy Order
-              </button>
-              <button className={` px-4     text-center  ${selectedTab === "labOrder" ? "bg-green-400 rounded-3xl border-black/30 border-2" : null}`}
-                onClick={() => setSelectedTab("labOrder")}
-              >
-                Lab Order
-              </button>
-              <button className={` px-4     text-center  ${selectedTab === "pastVisits" ? "bg-green-400 rounded-3xl border-black/30 border-2" : null}`}
-                onClick={() => setSelectedTab("pastVisits")}
-              >
-                Past visits
-              </button>
-              <button className={` px-4     text-center  ${selectedTab === "reportResults" ? "bg-green-400 rounded-3xl border-black/30 border-2" : null}`}
-                onClick={() => setSelectedTab("reportResults")}
-              >
-                Report Results
-              </button>
-            </div>
 
-            <div id="tab-paralell-routes" className=" ">
-              {selectedTab === "patientDetails" ? patientDetails : null}
-              {selectedTab === "pharmacy" ? pharmacyOrder : null}
-              {selectedTab === "labOrder" ? labOrder : null}
-              {selectedTab === "pastVisits" ? pastVisits : null}
-            </div>
+        <SessionControls />
+      </header>
 
+      <main
+        className="flex flex-1 gap-4 overflow-hidden p-4 transition-all duration-300 xl:p-5"
+      >
+        <aside
+          className={`flex h-full min-w-0 transition-all duration-300 ${
+            isQueueCollapsed ? "w-[76px]" : "w-[320px] xl:w-[348px]"
+          }`}
+        >
+          {queue}
+        </aside>
+
+        <section className="flex min-w-0 flex-1 flex-col gap-4">
+          <div className="sticky top-0 z-10 rounded-[1.75rem] border border-white/70 bg-white/88 px-4 py-3 shadow-[0_18px_50px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
+                      {selectedTabLabel}
+                    </span>
+                    {selectedVisitId && (
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600">
+                        Visit #{selectedVisitId}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                    <span className="truncate text-base font-black tracking-tight text-slate-900">
+                      {activePatient?.patient_name ?? "No patient selected"}
+                    </span>
+                    <span className="text-slate-300">|</span>
+                    <span className="text-slate-600">ID {patientId ?? "None"}</span>
+                    <span className="text-slate-600">{activePatient?.gender ?? "Gender unavailable"}</span>
+                    <span className="text-slate-600">
+                      Age {activePatient?.age != null && activePatient?.age !== "" ? activePatient.age : "-"}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 xl:max-w-sm">{workspaceSubtitle}</p>
+              </div>
+
+              <nav className="flex min-w-0 flex-wrap items-center gap-2">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = selectedTab === tab.id;
+
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setSelectedTab(tab.id)}
+                      className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+                        isActive
+                          ? "border border-emerald-200 bg-emerald-600 text-white shadow-lg shadow-emerald-900/10"
+                          : "border border-slate-200 bg-slate-50 text-slate-600 hover:bg-white hover:text-slate-900"
+                      }`}
+                    >
+                      <Icon size={15} />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
           </div>
 
-
-        </PatientContextProvider>
-
-      </div>
-
+          <div className="relative min-h-0 flex-1 overflow-hidden rounded-[2rem] border border-white/70 bg-white/75 shadow-[0_24px_80px_rgba(15,23,42,0.07)] backdrop-blur-xl">
+            <div className="absolute inset-0 overflow-auto p-4 xl:p-5">
+              <div className="h-full animate-in fade-in zoom-in-95 duration-300">
+                {selectedTab === "patientDetails" && patientDetails}
+                {selectedTab === "pharmacyOrder" && pharmacyOrder}
+                {selectedTab === "labOrder" && labOrder}
+                {selectedTab === "pastVisits" && pastVisits}
+                {selectedTab === "dashboard" && reportResults}
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
+  );
+}
+
+export default function DoctorLayout(props: {
+  queue: React.ReactNode;
+  patientDetails: React.ReactNode;
+  pharmacyOrder: React.ReactNode;
+  labOrder: React.ReactNode;
+  pastVisits: React.ReactNode;
+  reportResults: React.ReactNode;
+}) {
+  return (
+    <PatientContextProvider>
+      <DoctorWorkspaceProvider>
+        <DoctorWorkspace {...props} />
+      </DoctorWorkspaceProvider>
+    </PatientContextProvider>
   );
 }

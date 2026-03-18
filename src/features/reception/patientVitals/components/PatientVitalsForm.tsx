@@ -1,20 +1,21 @@
 // features/patient-vitals/components/PatientVitalsForm.tsx
 "use client";
 
-import { Controller, useFormContext } from "react-hook-form";
 import { usePatientVitals } from "../hooks/usePatientVitals";
 
 export function PatientVitalsForm() {
   const {
     pId,
     setpId,
-    patientId,
+    selectedVisitId,
     setPatientId,
     register,
     handleSubmit,
     errors,
     addPatient,
     updateInfo,
+    mode,
+    statusMessage,
   } = usePatientVitals();
 
   return (
@@ -25,8 +26,22 @@ export function PatientVitalsForm() {
             <h2 className="text-2xl font-bold text-slate-800">Biometric Intake</h2>
             <p className="text-sm text-slate-500">Record patient vital signs and physical metrics</p>
           </div>
-          <div className="h-12 w-12 bg-emerald-100 rounded-2xl flex items-center justify-center p-2 shadow-inner">
-            <span className="text-2xl">🌡️</span>
+          <div className="text-right">
+            <div className="h-12 w-12 bg-emerald-100 rounded-2xl flex items-center justify-center p-2 shadow-inner ml-auto">
+              <span className="text-2xl">🌡️</span>
+            </div>
+            <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Visit #{selectedVisitId || "---"}
+            </p>
+          </div>
+        </div>
+
+        <div className={`mb-6 rounded-2xl border px-4 py-3 text-sm font-medium ${mode === "update" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+          <div className="flex items-center justify-between gap-3">
+            <span>{statusMessage}</span>
+            <span className="shrink-0 rounded-xl bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-widest">
+              {mode === "update" ? "Update Mode" : "Create Mode"}
+            </span>
           </div>
         </div>
 
@@ -107,28 +122,23 @@ export function PatientVitalsForm() {
               className="h-12 bg-white/70 border border-slate-200 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl px-4 outline-none text-sm transition-all shadow-sm hover:bg-white"
             >
               <option value="" hidden>Select Type</option>
-              {["A+", "B+", "AB+", "A-", "B-", "O+", "O-"].map((g) => (
+              {["A+", "B+", "AB+", "A-", "B-", "AB-", "O+", "O-"].map((g) => (
                 <option key={g} value={g}>{g}</option>
               ))}
             </select>
           </div>
 
           {/* Action Buttons */}
-          <div className="col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
             <ButtonComp
-              text="Add Vitals"
-              onClick={() => handleSubmit(addPatient)()}
+              text={mode === "update" ? "Update Vitals" : "Save Vitals"}
+              onClick={() => handleSubmit(mode === "update" ? updateInfo : addPatient)()}
               variant="primary"
-            />
-            <ButtonComp
-              text="Update Vitals"
-              onClick={() => handleSubmit(updateInfo)()}
-              variant="secondary"
             />
             <ButtonComp
               text="Reset Form"
               type="reset"
-              variant="outline"
+              variant="secondary"
             />
           </div>
         </form>

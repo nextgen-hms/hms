@@ -1,19 +1,19 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { fetchQueue, deleteVisit } from "../api";
 import { QueueItem } from "../types";
 
-export function useQueue() {
+export function useQueue(queueEndpoint = "/api/queue", allowDelete = true) {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [filtered, setFiltered] = useState<QueueItem[]>([]);
   const [selectedQueue, setSelectedQueue] = useState<"ALL" | "OPD" | "Emergency">("ALL");
   const [loading, setLoading] = useState(true);
 
-  async function loadQueue() {
+  const loadQueue = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchQueue();
+      const data = await fetchQueue(queueEndpoint);
       setQueue(data);
       setFiltered(data);
     } catch (err) {
@@ -22,7 +22,7 @@ export function useQueue() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [queueEndpoint]);
 
   useEffect(() => {
     loadQueue();
@@ -35,7 +35,7 @@ export function useQueue() {
       clearInterval(interval);
       window.removeEventListener("refresh-queue", handleRefresh);
     };
-  }, []);
+  }, [loadQueue]);
 
   useEffect(() => {
     if (selectedQueue === "ALL") setFiltered(queue);
@@ -47,11 +47,13 @@ export function useQueue() {
     else setFiltered(queue.filter((q) => q.patient_name.toLowerCase().includes(name.toLowerCase())));
   }
 
-  async function handleDelete(patientId: string) {
+  async function handleDelete(visitId: string | number) {
+    if (!allowDelete) return;
+
     try {
-      await deleteVisit(patientId);
-      setQueue((prev) => prev.filter((q) => q.patient_id !== patientId));
-      toast.success(`Deleted visit for ${patientId}`);
+      await deleteVisit(String(visitId));
+      setQueue((prev) => prev.filter((q) => String(q.visit_id) !== String(visitId)));
+      toast.success(`Deleted visit #${visitId}`);
     } catch {
       toast.error("Failed to delete visit");
     }
@@ -65,5 +67,6 @@ export function useQueue() {
     filterByName,
     deleteVisit: handleDelete,
     refreshQueue: loadQueue,
+    allowDelete,
   };
 }

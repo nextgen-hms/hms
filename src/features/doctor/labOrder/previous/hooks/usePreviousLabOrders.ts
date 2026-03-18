@@ -12,7 +12,10 @@ export function usePreviousLabOrders() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!patientId) return;
+      if (!patientId) {
+        setPreviousData([]);
+        return;
+      }
       try {
         setLoading(true);
         const data = await api.fetchPreviousLabOrders(patientId);

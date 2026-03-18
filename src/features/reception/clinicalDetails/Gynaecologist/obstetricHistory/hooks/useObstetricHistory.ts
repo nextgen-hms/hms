@@ -1,17 +1,17 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { getObstetricHistory, addObstetricHistory, updateObstetricHistory } from "../api";
 
 export const useObstetricHistory = (patientId: string | null, reset: (data: any) => void) => {
+  const [hasRecord, setHasRecord] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("No obstetric history record loaded.");
 
-  useEffect(() => {
-    if (patientId) fetchHistory();
-  }, [patientId]);
-
-  async function fetchHistory() {
+  const fetchHistory = useCallback(async () => {
     if (!patientId) return;
     try {
       const data = await getObstetricHistory(patientId);
+      setHasRecord(true);
+      setStatusMessage("Existing obstetric history loaded.");
       toast.success("Successfully fetched obstetric history");
       reset({
         ...data,
@@ -20,9 +20,14 @@ export const useObstetricHistory = (patientId: string | null, reset: (data: any)
       });
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message);
+      setHasRecord(false);
+      setStatusMessage("No obstetric history exists yet for this patient.");
     }
-  }
+  }, [patientId, reset]);
+
+  useEffect(() => {
+    if (patientId) fetchHistory();
+  }, [patientId, fetchHistory]);
 
   async function addInfo(data: any) {
     if (!patientId) return;
@@ -48,5 +53,5 @@ export const useObstetricHistory = (patientId: string | null, reset: (data: any)
     }
   }
 
-  return { fetchHistory, addInfo, updateInfo };
+  return { fetchHistory, addInfo, updateInfo, hasRecord, statusMessage };
 };

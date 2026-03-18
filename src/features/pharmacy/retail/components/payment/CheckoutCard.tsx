@@ -1,8 +1,8 @@
 "use client"
 import React, { useState } from 'react';
 import { CartItem, PaymentDetails, PaymentType } from '../../types';
-import { CreditCard, Banknote, ShieldCheck, Smartphone, Hash, Save, Printer, Play, RefreshCw, Trash2, Layout, RotateCcw } from 'lucide-react';
-import { submitTransaction, submitReturn, holdTransaction, printReceipt, openCashDrawer } from '../../api';
+import { CreditCard, Banknote, ShieldCheck, Smartphone, Hash, Save, Printer, Play, RefreshCw, Trash2, Layout, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { submitTransaction, submitReturn, updateTransaction, updateSaleReturn, holdTransaction, printReceipt, openCashDrawer } from '../../api';
 import { generateReference, formatCurrency } from '../../utils';
 import { POSMode } from '../../types';
 import toast from 'react-hot-toast';
@@ -17,6 +17,8 @@ interface CheckoutCardProps {
     onClear: () => void;
     onBackToSearch?: () => void;
     mode: POSMode;
+    isEditing?: boolean;
+    editId?: string | null;
 }
 
 export interface CheckoutCardHandle {
@@ -32,7 +34,9 @@ export const CheckoutCard = React.forwardRef<CheckoutCardHandle, CheckoutCardPro
     onComplete,
     onClear,
     onBackToSearch,
-    mode
+    mode,
+    isEditing,
+    editId
 }, ref) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
@@ -72,9 +76,13 @@ export const CheckoutCard = React.forwardRef<CheckoutCardHandle, CheckoutCardPro
                 mode
             };
 
-            const response = mode === 'SALE'
-                ? await submitTransaction(transaction)
-                : await submitReturn(transaction);
+            const response = isEditing && editId
+                ? (mode === 'RETURN'
+                    ? await updateSaleReturn(editId, transaction)
+                    : await updateTransaction(editId, transaction))
+                : (mode === 'SALE'
+                    ? await submitTransaction(transaction)
+                    : await submitReturn(transaction));
 
             if (response.success && response.data) {
                 const newTxId = response.data.id;
@@ -88,7 +96,7 @@ export const CheckoutCard = React.forwardRef<CheckoutCardHandle, CheckoutCardPro
                 }
 
                 if (payment.type === PaymentType.CASH) await openCashDrawer();
-                toast.success('Transaction completed successfully!');
+                toast.success(isEditing ? 'Transaction updated successfully!' : 'Transaction completed successfully!');
                 onComplete();
             } else toast.error(response.error || 'Transaction failed');
         } catch (err) {
@@ -256,12 +264,14 @@ export const CheckoutCard = React.forwardRef<CheckoutCardHandle, CheckoutCardPro
                     >
                         {isProcessing ? (
                             <RefreshCw className="animate-spin" />
+                        ) : isEditing ? (
+                            <CheckCircle2 size={20} />
                         ) : mode === 'SALE' ? (
                             <Play fill="currentColor" size={20} />
                         ) : (
                             <RotateCcw size={20} />
                         )}
-                        {mode === 'SALE' ? 'Complete Sale' : 'Process Return'}
+                        {isEditing ? (mode === 'RETURN' ? 'Update Return' : 'Update Sale') : (mode === 'SALE' ? 'Complete Sale' : 'Process Return')}
                     </button>
 
                     <button

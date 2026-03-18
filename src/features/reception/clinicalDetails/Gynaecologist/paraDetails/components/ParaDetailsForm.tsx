@@ -4,8 +4,8 @@ import { useFieldArray } from "react-hook-form";
 import { useParaDetails } from "../hooks/useParaDetails";
 
 export default function ParaDetailsForm() {
-  const { methods, control, addPara, updateParaData, obstetricHistoryId } = useParaDetails();
-  const { register, handleSubmit, reset } = methods;
+  const { methods, control, addPara, updateParaData, obstetricHistoryId, hasExistingRecords, statusMessage } = useParaDetails();
+  const { register, handleSubmit } = methods;
   const { fields, append, remove } = useFieldArray({ control, name: "para" });
 
   const addNewPara = () => {
@@ -48,6 +48,15 @@ export default function ParaDetailsForm() {
           >
             <span>➕</span> Add Record
           </button>
+        </div>
+      </div>
+
+      <div className={`mb-6 rounded-2xl border px-4 py-3 text-sm font-medium ${hasExistingRecords ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+        <div className="flex items-center justify-between gap-3">
+          <span>{statusMessage}</span>
+          <span className="shrink-0 rounded-xl bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-widest">
+            {hasExistingRecords ? "Update Mode" : "Create Mode"}
+          </span>
         </div>
       </div>
 
@@ -146,14 +155,9 @@ export default function ParaDetailsForm() {
 
       <div className="sticky bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-slate-100 flex items-center justify-end gap-4 z-10">
         <FormButton
-          text="Submit All"
+          text={hasExistingRecords ? "Update Information" : "Submit All"}
           variant="primary"
-          onClick={handleSubmit(addPara)}
-        />
-        <FormButton
-          text="Update Information"
-          variant="secondary"
-          onClick={handleSubmit(updateParaData)}
+          onClick={handleSubmit(hasExistingRecords ? updateParaData : addPara)}
         />
       </div>
     </div>

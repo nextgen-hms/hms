@@ -1,5 +1,7 @@
-import { NewLabOrderForm } from "@/src/features/doctor/labOrder/orderForm";
+"use client";
 
-export default function NewLabOrderFormPage(){
-  return <NewLabOrderForm/>;
+import NewLabOrderForm from "@/src/features/doctor/labOrder/orderForm/components/NewLabOrderForm";
+
+export default function NewLabOrderFormPage() {
+  return <NewLabOrderForm />;
 }

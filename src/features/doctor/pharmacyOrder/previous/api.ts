@@ -2,7 +2,7 @@
 import { Prescription } from "./types";
 
 export async function fetchPreviousPrescriptions(patientId: string): Promise<Prescription[]> {
-  const res = await fetch(`/api/prescription/${patientId}`);
+  const res = await fetch(`/api/doctor/prescriptions/${patientId}`);
   if (!res.ok) {
     throw new Error("Failed to fetch prescriptions");
   }
@@ -11,6 +11,6 @@ export async function fetchPreviousPrescriptions(patientId: string): Promise<Pre
   // Format dates
   return data.map(d => ({
     ...d,
-    order_date: d.order_date?.split("T")[0],
+    order_date: d.order_date || "",
   }));
 }

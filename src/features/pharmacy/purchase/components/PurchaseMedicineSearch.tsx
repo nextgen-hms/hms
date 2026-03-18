@@ -127,6 +127,11 @@ export const PurchaseMedicineSearch: React.FC<PurchaseMedicineSearchProps> = ({
                                 <span className={`text-[10px] font-bold uppercase tracking-widest ${index === focusedIndex ? "text-emerald-100" : "text-slate-400"}`}>
                                     {medicine.generic_name} • {medicine.form}
                                 </span>
+                                {medicine.manufacturer && (
+                                    <span className={`text-[10px] font-medium truncate mt-0.5 ${index === focusedIndex ? 'text-emerald-100/80' : 'text-slate-500'}`}>
+                                        By: {medicine.manufacturer}
+                                    </span>
+                                )}
                             </div>
                             <div className="flex items-center gap-3">
                                 <div className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${index === focusedIndex ? "bg-white/20" : "bg-slate-100 text-slate-500"}`}>

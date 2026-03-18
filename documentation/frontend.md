@@ -1,48 +1,45 @@
-# 🎨 HMS Frontend Documentation
+# HMS Frontend
 
-The HMS frontend is a modern, reactive interface built with **Next.js 15** and **Tailwind CSS 4**. It prioritizes a premium aesthetic and smooth user experience for clinical staff.
+## Frontend Stack
 
-## 🛠️ Core Stack
+- Next.js App Router
+- React client components
+- Tailwind CSS 4
+- Radix UI primitives
+- Lucide icons
+- React Hook Form + Zod
+- `react-hot-toast`
 
-- **Framework**: Next.js 15 (App Router)
-- **UI Components**: [Radix UI](https://www.radix-ui.com/) & [Lucide React](https://lucide.dev/)
-- **Styling**: Vanilla Tailwind CSS 4 with HSL variables
-- **Forms**: React Hook Form + Zod
-- **Notifications**: React Hot Toast
+## UI Organization
 
-## 📂 Logical Structure
+### App routes
 
-The frontend is split into **Pages** (in `src/app`) and **Feature Logic** (in `src/features`).
+- `(auth)` for login
+- `doctor`, `lab`, `pharmacy`, `receptionist` for role workspaces
+- `api` for backend endpoints
 
-### 1. App Router (`src/app`)
-- `(auth)/`: Login and registration routes.
-- `dashboard/`: Main application shell with sidebar.
-- `doctor/`, `pharmacy/`, `lab/`, `receptionist/`: Module-specific route handles.
-- `api/`: Backend endpoints (though Server Actions are preferred for mutations).
+### Feature modules
 
-### 2. Features (`src/features`)
-Each feature folder contains:
-- `components/`: UI specific to that feature (e.g., `PrescriptionCard`, `StockUpdater`).
-- `hooks/`: Custom React hooks for data fetching (e.g., `usePatients`, `useMedicines`).
-- `types/`: TypeScript interfaces and Zod schemas.
-- `utils/`: Formatting and calculation helpers.
+- `src/features/Login`
+- `src/features/doctor`
+- `src/features/laboratory`
+- `src/features/pharmacy`
+- `src/features/reception`
+- `src/features/shared`
 
-### 3. Shared Components (`src/components` & `src/features/shared`)
-Generic UI elements like `Button`, `Input`, `Dialog`, and `DataTable`.
+### Shared UI
 
-## 🔄 State Management
+- `src/components/ui/*` provides common controls like `Button`, `Input`, `Label`, `Card`
 
-- **Server State**: Managed by Next.js. We use `revalidatePath` and `revalidateTag` to keep data fresh after mutations.
-- **Global State**: Minimal use of React Context for `AuthContext` (User session) and `ThemeContext`.
-- **Form State**: Fully managed by `react-hook-form` to ensure high performance and validation.
+## Frontend Patterns
 
-## 🌈 Styling Guidelines
+- Role dashboards are layout-driven and mostly client-rendered
+- Cross-panel state relies on React context instead of a global state library
+- Many operational forms are `react-hook-form` based
+- Pharmacy POS is the most advanced current frontend workflow and includes keyboard shortcuts, cart state, and search integration
 
-- **Colors**: Use HSL variables (e.g., `--primary`, `--background`) to support easy theme switching and accessible contrast.
-- **Glassmorphism**: Subtle backgrounds with `backdrop-blur` for a premium "Apple-like" feel.
-- **Transitions**: Every interactive element should have a `transition-all` or `transition-colors` with a `duration-200`.
+## Current Frontend Caveats
 
----
-
-> [!TIP]
-> Use the `DataTable` component from `src/features/shared` for all listings. It includes built-in pagination, sorting, and filtering logic.
+- The visual language differs between modules; pharmacy and receptionist are more polished than doctor and lab
+- Some components still use older naming and structure patterns
+- The docs should not claim a fully standardized design system yet

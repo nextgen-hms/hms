@@ -1,27 +1,31 @@
-
-
 export type Visit = {
-  patientId: string;
-  patientName: string;
-  age: string;
-  gender: string;
-  clinicNo: string;
-  doctor: string;
+  visit_id: string;
+  patient_id: string;
+  patient_name: string;
+  age: string | number | null;
+  gender: string | null;
+  clinic_number: string | number | null;
+  doctor_name: string;
   status: string;
-  visitReason: string;
-  visitType: string;
+  reason: string | null;
+  visit_type: string;
+  visit_timestamp: string;
 };
 
 export type Prescription = {
-  patientId: string;
-  orderDate: string;
+  prescription_id: string;
+  order_date: string;
   category: string;
-  generic: string;
-  brandName: string;
-  dose: string;
+  generic_name: string;
+  brand_name: string;
+  dosage_value: number | null;
+  dosage_unit: string | null;
+  form: string | null;
+  prescribed_quantity: number;
+  dispensed_quantity: number;
   frequency: string;
   duration: string;
-  unit: string;
-  quantity:string;
-  prescribedBy: string;
+  instructions: string | null;
+  prescribed_by: string;
+  dispensed_by: string | null;
 };

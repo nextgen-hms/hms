@@ -12,7 +12,11 @@ export function usePreviousPrescriptions() {
 
   useEffect(() => {
     async function loadData() {
-      if (!patientId) return;
+      if (!patientId) {
+        setPrescriptions([]);
+        setError(null);
+        return;
+      }
 
       setLoading(true);
       try {

@@ -1,47 +1,82 @@
+import {
+  DoctorProfile,
+  PatientContextSummary,
+  RecentPrescription,
+  RecentVisit,
+  VisitInfo,
+} from "./types";
 
-import { PatientInfo, VisitInfo, Doctor } from "./types";
-
-export async function fetchPatientInfo(patientId: string): Promise<PatientInfo> {
-  const res = await fetch(`api/patient/${patientId}`);
-  if (!res.ok) throw new Error("Failed to fetch patient info");
-  return await res.json();
+export async function fetchDoctorProfile(): Promise<DoctorProfile> {
+  const res = await fetch("/api/doctor/me");
+  if (!res.ok) throw new Error("Failed to fetch doctor profile");
+  return res.json();
 }
 
-export async function fetchVisitInfo(patientId: string): Promise<VisitInfo> {
-  const res = await fetch(`api/visit/${patientId}`);
-  if (!res.ok) throw new Error("No visit found for today");
-  return await res.json();
+export async function fetchPatientContextSummary(
+  patientId: string
+): Promise<PatientContextSummary> {
+  const res = await fetch(`/api/doctor/patient-context/${patientId}`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || "Failed to fetch patient context");
+  }
+  return res.json();
 }
 
-export async function fetchDoctors(): Promise<Doctor[]> {
-  const res = await fetch("api/doctor/getAllDoctors");
-  if (!res.ok) throw new Error("Failed to fetch doctors");
-  return await res.json();
-}
-
-export async function patchVisitInfo(visit: Partial<VisitInfo> & { patient_id: string }) {
-  const res = await fetch("api/visit", {
+export async function patchVisitInfo(
+  visitId: string,
+  visit: Partial<Pick<VisitInfo, "reason" | "visit_type" | "clinic_number">>
+): Promise<VisitInfo> {
+  const res = await fetch(`/api/doctor/visit/${visitId}`, {
     method: "PATCH",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(visit),
   });
-  if (!res.ok) throw new Error("Failed to update visit info");
-  return await res.json();
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || "Failed to update visit");
+  }
+
+  return res.json();
 }
 
-export async function updateVisitStatusAPI(visit_id: string, status: string, updated_by_doctor: string) {
-  // Update visit status
-  const res_status = await fetch("api/visit/status", {
-    method: "PATCH",
-    body: JSON.stringify({ visit_id, status }),
-  });
-  if (!res_status.ok) throw new Error("Failed to update status");
-
-  // Add status history
-  const res_history = await fetch("api/visit/visitStatusHistory", {
+export async function updateVisitStatus(
+  visitId: string,
+  status: "waiting" | "seen_by_doctor"
+): Promise<{ visit: VisitInfo }> {
+  const res = await fetch(`/api/doctor/visit/${visitId}/status`, {
     method: "POST",
-    body: JSON.stringify({ visit_id, status, updated_by_doctor, updated_by_staff: null }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
   });
-  if (!res_history.ok) throw new Error("Failed to add visit status history");
 
-  return { statusUpdated: true };
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || "Failed to update visit status");
+  }
+
+  return res.json();
+}
+
+export async function fetchPastVisits(patientId: string): Promise<RecentVisit[]> {
+  const res = await fetch(`/api/doctor/past-visits/${patientId}`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || "Failed to fetch visit history");
+  }
+
+  return res.json();
+}
+
+export async function fetchPreviousPrescriptions(
+  patientId: string
+): Promise<RecentPrescription[]> {
+  const res = await fetch(`/api/doctor/prescriptions/${patientId}`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || "Failed to fetch prescription history");
+  }
+
+  return res.json();
 }

@@ -62,11 +62,16 @@ export const usePayment = (cart: CartItem[]) => {
     });
   }, []);
 
+  const loadPayment = useCallback((details: PaymentDetails) => {
+    setPayment(details);
+  }, []);
+
   return {
     payment,
     setPaymentType,
     setPaidAmount,
     setAdjustment,
-    resetPayment
+    resetPayment,
+    loadPayment
   };
 };

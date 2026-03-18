@@ -12,7 +12,7 @@ export default function MenstrualHistoryForm() {
     mode: "onChange",
   });
 
-  const { fetchHistory, addInfo, updateInfo } = useMenstrualHistory(patientId, reset);
+  const { addInfo, updateInfo, hasRecord, statusMessage } = useMenstrualHistory(patientId, reset);
 
   return (
     <div className="w-full max-w-5xl mx-auto">
@@ -23,6 +23,15 @@ export default function MenstrualHistoryForm() {
         <div>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight">Menstrual History</h2>
           <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Clinical Record Documentation</p>
+        </div>
+      </div>
+
+      <div className={`mb-6 rounded-2xl border px-4 py-3 text-sm font-medium ${hasRecord ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+        <div className="flex items-center justify-between gap-3">
+          <span>{statusMessage}</span>
+          <span className="shrink-0 rounded-xl bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-widest">
+            {hasRecord ? "Update Mode" : "Create Mode"}
+          </span>
         </div>
       </div>
 
@@ -93,14 +102,9 @@ export default function MenstrualHistoryForm() {
             onClick={() => reset()}
           />
           <FormButton
-            text="Update Records"
-            variant="secondary"
-            onClick={handleSubmit(updateInfo)}
-          />
-          <FormButton
-            text="Save history"
+            text={hasRecord ? "Update Record" : "Save History"}
             variant="primary"
-            onClick={handleSubmit(addInfo)}
+            onClick={handleSubmit(hasRecord ? updateInfo : addInfo)}
           />
         </div>
       </form>

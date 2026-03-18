@@ -31,6 +31,13 @@ export async function createVisit(payload: any) {
   });
 }
 
+export async function deleteVisitById(visitId: string) {
+  return fetch("/api/visit", {
+    method: "DELETE",
+    body: JSON.stringify({ visit_id: visitId }),
+  });
+}
+
 export async function fetchDoctors() {
   const res = await fetch("/api/doctor/getAllDoctors");
   if (!res.ok) throw new Error("Failed to fetch doctors");

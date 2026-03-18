@@ -4,7 +4,10 @@ export const patientSchema = z.object({
   patient_name: z.string().min(3, "Enter at least 3 characters"),
   age: z.string().min(1, "Age is required"),
   gender: z.string().min(1, "Select Gender"),
-  cnic: z.string().regex(/^\d{5}-\d{7}-\d$/, "Format: XXXXX-XXXXXXX-X"),
+  cnic: z.union([
+    z.literal(""),
+    z.string().regex(/^\d{5}-\d{7}-\d$/, "Format: XXXXX-XXXXXXX-X"),
+  ]).optional(),
   contact_number: z.string().optional(),
   address: z.string().optional(),
 });

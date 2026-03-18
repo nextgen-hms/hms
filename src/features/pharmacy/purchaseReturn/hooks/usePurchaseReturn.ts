@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import toast from "react-hot-toast";
+import { useSearchParams } from "next/navigation";
 
 export interface PurchaseItem {
     id: number;
@@ -30,7 +31,10 @@ export interface PurchaseInvoice {
 }
 
 export const usePurchaseReturn = () => {
-    const [searchQuery, setSearchQuery] = useState("");
+    const searchParams = useSearchParams();
+    const initialQuery = searchParams.get('tab') === 'purchaseReturn' ? (searchParams.get('ref') || '') : '';
+
+    const [searchQuery, setSearchQuery] = useState(initialQuery);
     const [invoices, setInvoices] = useState<PurchaseInvoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = useState<PurchaseInvoice | null>(null);
     const [isSearching, setIsSearching] = useState(false);

@@ -1,15 +1,20 @@
 import { query } from "@/database/db";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 
 
-export async function GET(req:NextRequest) {
+export async function GET() {
     try {
-        const  res=await query("select distinct category from medicine");
-        console.log(res.rows);
+        const  res=await query(`
+            SELECT name AS category
+            FROM medicine_category
+            WHERE is_active = true
+            ORDER BY name ASC
+        `);
         return NextResponse.json(res.rows)
         
     } catch (err) {
          console.error(err);
+         return NextResponse.json({ error: "Failed to fetch categories" }, { status: 500 });
     }
 }

@@ -69,7 +69,7 @@ export interface PaymentDetails {
 }
 
 // Transaction Types
-export type POSMode = 'SALE' | 'RETURN';
+export type POSMode = 'SALE' | 'RETURN' | 'EDIT';
 
 export interface Transaction {
   id: string;

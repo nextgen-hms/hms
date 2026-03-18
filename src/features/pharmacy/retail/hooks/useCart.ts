@@ -110,6 +110,11 @@ export const useCart = () => {
     setSelectedItem(null);
   }, []);
 
+  const loadCart = useCallback((items: CartItem[]) => {
+    setCart(items);
+    setSelectedItem(null);
+  }, []);
+
   const selectItem = useCallback((itemId: string | null) => {
     if (!itemId) {
       setSelectedItem(null);
@@ -127,6 +132,7 @@ export const useCart = () => {
     updateItem,
     removeItem,
     clearCart,
+    loadCart,
     selectItem
   };
 };

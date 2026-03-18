@@ -1,18 +1,23 @@
 "use client"
 import React, { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { BarcodeScanner, MedicineSearch } from './search';
 import { QuantityInput, SubQuantityInput, DiscountInput, CustomPriceInput } from './product-entry';
 import { CartTable } from './cart';
 import { CheckoutCard, CheckoutCardHandle } from './payment/CheckoutCard';
 import { useCart, usePayment, useMedicineSearch, useBarcode } from '../hooks';
-import { Medicine, POSMode } from '../types';
+import { Medicine, POSMode, ApiResponse, Transaction } from '../types';
 import AddProductButton from './product-entry/AddProductButton';
 import { Maximize, Minimize, Layout, ShoppingCart, Activity, RefreshCcw, ArrowRightLeft, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const PharmacyPOS: React.FC = () => {
-  const { cart, selectedItem, addItem, updateItem, removeItem, clearCart, selectItem } = useCart();
-  const { payment, setPaymentType, setPaidAmount, setAdjustment, resetPayment } = usePayment(cart);
+  const searchParams = useSearchParams();
+  const modeParam = searchParams.get('mode');
+  const initialMode: POSMode = modeParam === 'return' ? 'RETURN' : modeParam === 'edit_return' ? 'RETURN' : 'SALE';
+
+  const { cart, selectedItem, addItem, updateItem, removeItem, clearCart, loadCart, selectItem } = useCart();
+  const { payment, setPaymentType, setPaidAmount, setAdjustment, resetPayment, loadPayment } = usePayment(cart);
   const { results, isSearching, search, clearResults } = useMedicineSearch();
 
   // Product entry state
@@ -23,9 +28,67 @@ const PharmacyPOS: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [itemSearched, setItemSearched] = useState<Medicine>();
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [posMode, setPosMode] = useState<POSMode>('SALE');
+  const [posMode, setPosMode] = useState<POSMode>(initialMode);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Load transaction for editing if ref is provided
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    const ref = searchParams.get('ref');
+
+    if (mode === 'edit' && ref) {
+      setIsEditing(true);
+      setEditId(ref);
+      setPosMode('EDIT');
+
+      const fetchTransaction = async () => {
+        try {
+          const response = await fetch(`/api/transactions/${ref}`);
+          const res: ApiResponse<Transaction> = await response.json();
+          if (res.success && res.data) {
+            loadCart(res.data.items);
+            loadPayment(res.data.payment);
+            toast.success(`Loaded sale ${res.data.reference || ref} for editing`);
+          } else {
+            toast.error(res.error || 'Failed to load transaction');
+          }
+        } catch (error) {
+          console.error('Fetch error:', error);
+          toast.error('Local network error while loading transaction');
+        }
+      };
+
+      fetchTransaction();
+    }
+
+    if (mode === 'edit_return' && ref) {
+      setIsEditing(true);
+      setEditId(ref);
+      setPosMode('RETURN');
+
+      const fetchReturn = async () => {
+        try {
+          const response = await fetch(`/api/transactions/return/${ref}`);
+          const res: ApiResponse<Transaction> = await response.json();
+          if (res.success && res.data) {
+            loadCart(res.data.items);
+            loadPayment(res.data.payment);
+            toast.success(`Loaded return #${ref} for editing`);
+          } else {
+            toast.error(res.error || 'Failed to load return');
+          }
+        } catch (error) {
+          console.error('Fetch error:', error);
+          toast.error('Local network error while loading return');
+        }
+      };
+
+      fetchReturn();
+    }
+  }, [searchParams, loadCart, loadPayment]);
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -108,14 +171,17 @@ const PharmacyPOS: React.FC = () => {
         clearCart();
         setItemSearched(undefined);
         setSearchQuery('');
+        setIsEditing(false);
+        setEditId(null);
+        setPosMode('SALE');
         toast.success('New Sale Started');
       }
       // F10: Toggle Mode
       if (e.key === 'F10') {
         e.preventDefault();
-        setPosMode(prev => prev === 'SALE' ? 'RETURN' : 'SALE');
-        toast(`Switched to ${posMode === 'SALE' ? 'RETURN' : 'SALE'} Mode`, {
-          icon: posMode === 'SALE' ? '♻️' : '🛒'
+        setPosMode(prev => prev === 'SALE' ? 'RETURN' : (prev === 'RETURN' ? 'SALE' : 'SALE'));
+        toast(`Switched to Mode`, {
+          icon: '🔄'
         });
       }
     };

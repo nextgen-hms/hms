@@ -1,7 +1,3 @@
-
-
-export type OptionType = { value: string; label: string };
-
 export type LabTest = {
   test_id: string;
   test_name: string;
@@ -11,7 +7,9 @@ export type LabTest = {
 
 export type LabOrderFormValues = {
   tests: {
-    category: OptionType | null;
-    test: OptionType | null;
+    test_id: string;
+    test_name: string;
+    category: string;
+    price: number;
   }[];
 };

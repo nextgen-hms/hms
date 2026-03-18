@@ -1,23 +1,18 @@
 "use client";
 import {
-  PatientContextProvider,
   usePatient,
 } from "@/contexts/PatientIdContext";
-import { SidebarProvider } from "@/contexts/SidebarContext";
-import { useSidebar } from "@/contexts/SidebarContext";
-import { Button } from "@/src/components/ui/Button";
-import { logoutUser } from "@/src/features/Login/api";
+import { SessionControls } from "@/src/components/session/SessionControls";
 import Image from "next/image";
 import { fetchPatientInfo } from "@/src/features/reception/queueManagement/api";
 import { useEffect, useState } from "react";
-import { redirect } from "next/navigation";
 export default function Receptionist({
   queue,
   queueManagement,
   patientRegistration,
   patientVitals,
   clinicalDetails,
-  sidebar,
+  sidebar: _sidebar,
 }: {
   queue: React.ReactNode;
   queueManagement: React.ReactNode;
@@ -28,11 +23,9 @@ export default function Receptionist({
 }) {
   const [selectedTab, setSelectedTab] = useState("queue");
   const { patientId } = usePatient();
-  const { activeTab } = useSidebar();
   const [activePatientData, setActivePatientData] = useState<any>(null);
-  const [user, setUser] = useState<any>();
 
-  console.log(activeTab);
+  void _sidebar;
 
   // Listen for programmatic tab switches
   useEffect(() => {
@@ -75,22 +68,7 @@ export default function Receptionist({
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex flex-col text-right mr-4">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Receptionist Desk</span>
-            <span className="text-sm font-bold text-slate-700 capitalize">Active Session</span>
-          </div>
-          <Button
-            variant="outline"
-            onClick={async () => {
-              await logoutUser();
-              redirect("/");
-            }}
-            className="rounded-xl border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all font-bold px-6 h-11"
-          >
-            Logout
-          </Button>
-        </div>
+        <SessionControls />
       </header>
 
       {/* Main Content Area */}

@@ -1,24 +1,29 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { getMenstrualHistory, addMenstrualHistory, updateMenstrualHistory } from "../api";
 
 export const useMenstrualHistory = (patientId: string | null, reset: (data: any) => void) => {
+  const [hasRecord, setHasRecord] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("No menstrual history record loaded.");
 
-  useEffect(() => {
-    if (patientId) fetchHistory();
-  }, [patientId]);
-
-  async function fetchHistory() {
+  const fetchHistory = useCallback(async () => {
     if (!patientId) return;
     try {
       const data = await getMenstrualHistory(patientId);
+      setHasRecord(true);
+      setStatusMessage("Existing menstrual history loaded.");
       toast.success("Successfully fetched menstrual history");
       reset(data);
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message);
+      setHasRecord(false);
+      setStatusMessage("No menstrual history exists yet for this patient.");
     }
-  }
+  }, [patientId, reset]);
+
+  useEffect(() => {
+    if (patientId) fetchHistory();
+  }, [patientId, fetchHistory]);
 
   async function addInfo(data: any) {
     if (!patientId) return;
@@ -44,5 +49,5 @@ export const useMenstrualHistory = (patientId: string | null, reset: (data: any)
     }
   }
 
-  return { fetchHistory, addInfo, updateInfo };
+  return { fetchHistory, addInfo, updateInfo, hasRecord, statusMessage };
 };

@@ -118,6 +118,52 @@ export const submitReturn = async (
 };
 
 /**
+ * Update transaction
+ */
+export const updateTransaction = async (
+  id: string,
+  transaction: any
+): Promise<ApiResponse<Transaction>> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(transaction),
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    return {
+      success: false,
+      error: 'Failed to update transaction'
+    };
+  }
+};
+
+/**
+ * Update sale return
+ */
+export const updateSaleReturn = async (
+  id: string,
+  transaction: any
+): Promise<ApiResponse<Transaction>> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/transactions/return/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(transaction),
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    return {
+      success: false,
+      error: 'Failed to update sale return'
+    };
+  }
+};
+
+/**
  * Hold transaction
  */
 export const holdTransaction = async (

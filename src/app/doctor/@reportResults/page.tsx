@@ -1,10 +1,7 @@
+"use client";
 
+import { DoctorDashboard } from "@/src/features/doctor/dashboard";
 
-export default function reportResults(){
-
-
-
-    return(
-        <h1>reports results will be appeared here</h1>
-    )
+export default function DoctorDashboardPage() {
+  return <DoctorDashboard />;
 }

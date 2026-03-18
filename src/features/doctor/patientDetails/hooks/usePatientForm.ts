@@ -1,82 +1,146 @@
+"use client";
 
-import { useState, useEffect } from "react";
-import { usePatient } from "@/contexts/PatientIdContext";
-import { PatientInfo, VisitInfo, Doctor } from "../types";
-import * as api from "../api";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { usePatient } from "@/contexts/PatientIdContext";
+import {
+  PatientContextSummary,
+  DoctorProfile,
+  RecentPrescription,
+  RecentVisit,
+} from "../types";
+import * as api from "../api";
 
 export function usePatientForm() {
-  const { patientId, setPatientId } = usePatient();
-  const [pId, setpId] = useState("");
-  const [patientInfo, setPatientInfo] = useState<PatientInfo | null>(null);
-  const [visitInfo, setVisitInfo] = useState<VisitInfo | null>(null);
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [isChecked, setIsChecked] = useState(false);
+  const { patientId } = usePatient();
+  const [doctor, setDoctor] = useState<DoctorProfile | null>(null);
+  const [contextSummary, setContextSummary] = useState<PatientContextSummary | null>(null);
+  const [recentVisits, setRecentVisits] = useState<RecentVisit[]>([]);
+  const [recentPrescriptions, setRecentPrescriptions] = useState<RecentPrescription[]>([]);
+  const [reasonDraft, setReasonDraft] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchAllDoctors() {
+    async function loadDoctor() {
       try {
-        const docs = await api.fetchDoctors();
-        setDoctors(docs);
+        const profile = await api.fetchDoctorProfile();
+        setDoctor(profile);
       } catch (err) {
         console.error(err);
-        toast.error("Failed to fetch doctors");
       }
     }
-    fetchAllDoctors();
+
+    loadDoctor();
   }, []);
 
   useEffect(() => {
-    async function fetchPatientData() {
-      if (!patientId) return;
+    async function loadPatientContext() {
+      if (!patientId) {
+        setContextSummary(null);
+        setRecentVisits([]);
+        setRecentPrescriptions([]);
+        setReasonDraft("");
+        setError(null);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
       try {
-        const patient = await api.fetchPatientInfo(patientId);
-        setPatientInfo(patient);
-        toast.success("Patient Found");
-        const visit = await api.fetchVisitInfo(patientId);
-        setVisitInfo(visit);
-        setIsChecked(visit.status === "seen_by_doctor");
-      } catch (err: any) {
+        const [summary, visits, prescriptions] = await Promise.all([
+          api.fetchPatientContextSummary(patientId),
+          api.fetchPastVisits(patientId).catch(() => []),
+          api.fetchPreviousPrescriptions(patientId).catch(() => []),
+        ]);
+
+        setContextSummary(summary);
+        setRecentVisits(
+          visits.filter((item) => item.visit_id !== summary.activeVisit.visit_id).slice(0, 3)
+        );
+        setRecentPrescriptions(prescriptions.slice(0, 4));
+        setReasonDraft(summary.activeVisit.reason ?? "");
+      } catch (err) {
         console.error(err);
-        toast.error(err.message || "Failed to fetch patient data");
+        const message =
+          err instanceof Error ? err.message : "Failed to load patient visit";
+        setContextSummary(null);
+        setRecentVisits([]);
+        setRecentPrescriptions([]);
+        setReasonDraft("");
+        setError(message);
+      } finally {
+        setIsLoading(false);
       }
     }
-    fetchPatientData();
+
+    loadPatientContext();
   }, [patientId]);
 
-  const updateVisitInfo = async (updatedVisit: Partial<VisitInfo>) => {
-    if (!patientId) return;
-    try {
-      await api.patchVisitInfo({ ...updatedVisit, patient_id: patientId });
-      toast.success("Visit info updated");
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Failed to update visit info");
-    }
-  };
+  async function saveVisitReason() {
+    if (!contextSummary?.activeVisit) return;
 
-  const updateVisitStatus = async (status: boolean) => {
-    if (!visitInfo || !visitInfo.visit_id) return;
+    setIsSaving(true);
     try {
-      await api.updateVisitStatusAPI(visitInfo.visit_id, status ? "seen_by_doctor" : "waiting", visitInfo.doctor_id);
-      setIsChecked(status);
-      toast.success("Status updated successfully");
-    } catch (err: any) {
+      const updatedVisit = await api.patchVisitInfo(contextSummary.activeVisit.visit_id, {
+        reason: reasonDraft,
+      });
+
+      setContextSummary((current) =>
+        current
+          ? {
+              ...current,
+              activeVisit: { ...current.activeVisit, ...updatedVisit },
+            }
+          : current
+      );
+      toast.success("Visit details updated");
+    } catch (err) {
       console.error(err);
-      toast.error(err.message || "Failed to update status");
+      toast.error(err instanceof Error ? err.message : "Failed to update visit");
+    } finally {
+      setIsSaving(false);
     }
-  };
+  }
+
+  async function toggleVisitStatus(nextSeen: boolean) {
+    if (!contextSummary?.activeVisit) return;
+
+    setIsSaving(true);
+    try {
+      const nextStatus = nextSeen ? "seen_by_doctor" : "waiting";
+      const response = await api.updateVisitStatus(contextSummary.activeVisit.visit_id, nextStatus);
+      setContextSummary((current) =>
+        current
+          ? {
+              ...current,
+              activeVisit: { ...current.activeVisit, ...response.visit },
+            }
+          : current
+      );
+      window.dispatchEvent(new Event("refresh-queue"));
+      toast.success("Visit status updated");
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to update status");
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return {
-    pId,
-    setpId,
-    patientInfo,
-    visitInfo,
-    doctors,
-    isChecked,
-    setIsChecked,
-    setPatientId,
-    updateVisitInfo,
-    updateVisitStatus,
+    doctor,
+    contextSummary,
+    recentVisits,
+    recentPrescriptions,
+    reasonDraft,
+    setReasonDraft,
+    isLoading,
+    isSaving,
+    error,
+    saveVisitReason,
+    toggleVisitStatus,
   };
 }

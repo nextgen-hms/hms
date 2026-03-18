@@ -5,8 +5,6 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req:NextRequest){
      const data=await req.json();
       const inserted=[];
-    console.log(data);
-
  
    for (const p of data.para){
         try{
@@ -21,10 +19,11 @@ export async function POST(req:NextRequest){
     }  
   console.log(inserted);
      try{
-          console.log(data.para.length);
-          
-          const u_res=await query('update obstetric_history set para = $1 returning *',[data.para.length]);
-           console.log(u_res.rows[0]);
+          const obstetricHistoryId = data.para[0]?.obstetric_history_id;
+          if (!obstetricHistoryId) {
+            return NextResponse.json({ error: "obstetric_history_id is required" }, { status: 400 });
+          }
+          await query('update obstetric_history set para = $1 where obstetric_history_id = $2 returning *',[data.para.length, obstetricHistoryId]);
            
      }
      catch(err){
@@ -37,7 +36,7 @@ export async function POST(req:NextRequest){
 
 export async function PATCH(req: NextRequest) {
   const data = await req.json();
-  let updated: any[] = [];
+  const updated: any[] = [];
 
   try {
     // 1. Get all current para_numbers in DB for this obstetric_history_id

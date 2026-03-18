@@ -1,7 +1,6 @@
 "use client";
 import { ChangeEvent, KeyboardEvent, useEffect, useRef } from "react";
 import { usePatientForm } from "../hooks/usePatientForm";
-import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
 import { Label } from "@/src/components/ui/Label";
 import toast from "react-hot-toast";
@@ -11,7 +10,6 @@ export function PatientForm() {
     searchQuery,
     setSearchQuery,
     age,
-    setAge,
     gender,
     setGender,
     visitReason,
@@ -24,7 +22,7 @@ export function PatientForm() {
     searchResults, highlightedIndex, setHighlightedIndex, isExistingVisit, isSearching, isProcessing,
     getPatientInfo, searchByName, addToQueue, updateInfo, resetInfo,
     patientId,
-    setPatientId,
+    selectedVisitId,
   } = usePatientForm();
 
   const formRef = useRef<HTMLDivElement>(null);
@@ -191,6 +189,11 @@ export function PatientForm() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+          {isExistingVisit && (
+            <div className="md:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+              Existing active visit found. Updates will only affect visit #{selectedVisitId || "---"}.
+            </div>
+          )}
           {/* Unified Search Field */}
           <div className="md:col-span-2 space-y-1.5 relative">
             <Label className="text-slate-600 font-semibold ml-1">Search Patient (Name or ID)</Label>
@@ -242,20 +245,12 @@ export function PatientForm() {
                         <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{p.gender}</span>
                         <span className="text-[10px] text-slate-400 mt-0.5">{p.age} Yrs</span>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          getPatientInfo(p.patient_id);
-                          if (doctor) {
-                            addToQueue(p.patient_id);
-                          } else {
-                            toast.success("Patient selected. Please assign a doctor.");
-                          }
-                        }}
-                        className="opacity-0 group-hover:opacity-100 transition-all bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-lg shadow-emerald-900/10 flex items-center gap-2"
+                      <span
+                        className="opacity-0 group-hover:opacity-100 transition-all bg-emerald-600 text-white text-[10px] font-black px-4 py-2 rounded-xl shadow-lg shadow-emerald-900/10 flex items-center gap-2"
+                        aria-hidden="true"
                       >
                         ENTER <span>↵</span>
-                      </button>
+                      </span>
                     </div>
                   </button>
                 ))}
@@ -386,35 +381,3 @@ export function PatientForm() {
   );
 }
 
-// 🔹 Select Field (Keep this for now, can be moved to components/ui later)
-function SelectField({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value?: string;
-  onChange?: (e: ChangeEvent<HTMLSelectElement>) => void;
-  options: { label: string; value: string }[];
-}) {
-  return (
-    <div className="flex flex-col space-y-2">
-      <label className="text-sm font-medium text-gray-700 px-2">{label}</label>
-      <select
-        className="bg-gray-100 w-[80%] px-4 py-2 rounded-lg border border-gray-300 outline-none text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-        value={value ?? ""}
-        onChange={onChange}
-      >
-        <option value="" disabled hidden>
-          Select
-        </option>
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}

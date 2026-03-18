@@ -1,10 +1,25 @@
 "use client";
-import { useQueue } from "../hooks/useQueue";
-import { usePatient } from "@/contexts/PatientIdContext";
-import { Search } from "lucide-react";
 
-export function Queue() {
-  const { setPatientId } = usePatient();
+import { usePatient } from "@/contexts/PatientIdContext";
+import { useOptionalDoctorWorkspace } from "@/src/features/doctor/workspace/DoctorWorkspaceContext";
+import { Clock3, PanelLeftOpen, Search, Stethoscope } from "lucide-react";
+import { useQueue } from "../hooks/useQueue";
+
+type QueueProps = {
+  endpoint?: string;
+  allowDelete?: boolean;
+  title?: string;
+};
+
+export function Queue({
+  endpoint = "/api/queue",
+  allowDelete = true,
+  title = "Patient Queue",
+}: QueueProps) {
+  const { patientId, selectedVisitId, setPatientVisit } = usePatient();
+  const workspace = useOptionalDoctorWorkspace();
+  const isQueueCollapsed = workspace?.isQueueCollapsed ?? false;
+  const toggleQueueCollapsed = workspace?.toggleQueueCollapsed ?? (() => {});
   const {
     queue,
     loading,
@@ -12,108 +27,177 @@ export function Queue() {
     setSelectedQueue,
     filterByName,
     deleteVisit,
-  } = useQueue();
+    allowDelete: deleteEnabled,
+  } = useQueue(endpoint, allowDelete);
+  const activeQueueItem = queue.find(
+    (item) =>
+      String(item.patient_id) === String(patientId) &&
+      (!selectedVisitId || String(item.visit_id) === String(selectedVisitId))
+  );
+
+  if (isQueueCollapsed) {
+    return (
+      <div className="flex h-full w-full flex-col items-center rounded-[2rem] border border-white/70 bg-white/80 px-2 py-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+        <button
+          type="button"
+          onClick={toggleQueueCollapsed}
+          className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-emerald-200 hover:text-emerald-700"
+          aria-label="Open queue"
+        >
+          <PanelLeftOpen size={18} />
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-full p-4 space-y-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl shadow-xl flex flex-col">
-      {/* Queue Header & Filters */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-green-900/80 px-2 flex items-center justify-between">
-          Patient Queue
-          {loading && <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />}
-        </h2>
+    <div className="flex h-full flex-col rounded-[2rem] border border-white/70 bg-white/80 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-black tracking-tight text-slate-900">{title}</h2>
+            {loading && <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />}
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            Select a patient, then work from one clinical workspace.
+          </p>
+        </div>
 
-        <div className="p-1 gap-1 bg-black/5 rounded-2xl flex items-center">
-          {["ALL", "OPD", "Emergency"].map((type) => (
-            <button
-              key={type}
-              className={`flex-1 py-1.5 text-sm font-medium transition-all ${selectedQueue === type
-                ? "bg-white shadow-sm rounded-xl text-green-800 border-white/50 border"
-                : "text-gray-500 hover:text-gray-700"
-                }`}
-              onClick={() => setSelectedQueue(type as any)}
-            >
-              {type}
-            </button>
-          ))}
+        <button
+          type="button"
+          onClick={toggleQueueCollapsed}
+          className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700"
+        >
+          Collapse
+        </button>
+      </div>
+
+      <div className="mt-4 rounded-[1.5rem] border border-emerald-100 bg-emerald-50/80 px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700">
+              Active Patient
+            </div>
+            <div className="mt-1 text-sm font-bold text-slate-800">
+              {activeQueueItem?.patient_name ?? "No patient selected"}
+            </div>
+          </div>
+          <div className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600">
+            {queue.length} in queue
+          </div>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative group">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-green-600 transition-colors">
-          <Search size={18} />
-        </div>
+      <div className="mt-4 flex items-center gap-2 rounded-2xl bg-slate-100 p-1">
+        {["ALL", "OPD", "Emergency"].map((type) => (
+          <button
+            key={type}
+            type="button"
+            className={`flex-1 rounded-[1rem] px-3 py-2 text-sm font-bold transition ${
+              selectedQueue === type
+                ? "bg-white text-emerald-700 shadow-sm"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+            onClick={() => setSelectedQueue(type as "ALL" | "OPD" | "Emergency")}
+          >
+            {type}
+          </button>
+        ))}
+      </div>
+
+      <label className="relative mt-4 block">
+        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+          <Search size={16} />
+        </span>
         <input
           type="text"
-          className="bg-white/50 backdrop-blur-sm border border-black/5 focus:border-green-500/50 focus:ring-4 focus:ring-green-500/10 p-2 pl-10 rounded-xl w-full outline-none transition-all placeholder:text-gray-400 text-sm"
-          placeholder="Search patient..."
-          onChange={(e) => filterByName(e.target.value)}
+          className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/10"
+          placeholder="Search patient or clinic number"
+          onChange={(event) => filterByName(event.target.value)}
         />
-      </div>
+      </label>
 
-      {/* Queue List Container */}
-      <div className="flex-1 min-h-0 custom-scrollbar overflow-auto pr-1 space-y-3">
+      <div className="mt-4 flex-1 space-y-3 overflow-auto pr-1">
         {loading && queue.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 space-y-2">
-            <div className="w-8 h-8 border-2 border-green-500/30 border-t-green-600 rounded-full animate-spin" />
-            <p className="text-xs text-gray-500 font-medium">Loading patients...</p>
+          <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50/70 text-slate-500">
+            <div className="h-8 w-8 rounded-full border-2 border-emerald-200 border-t-emerald-600 animate-spin" />
+            <p className="text-sm font-medium">Loading queue...</p>
           </div>
         ) : queue.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-gray-400">
-            <p className="text-sm italic">Queue is clear</p>
+          <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50/70 text-slate-500">
+            <Clock3 size={24} className="text-slate-300" />
+            <p className="text-sm font-medium">Queue is clear</p>
           </div>
         ) : (
-          queue.map((p) => (
-            <div
-              key={p.patient_id}
-              className={`group relative bg-white/60 hover:bg-white backdrop-blur-sm p-3 border border-white/40 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden border-l-4 ${p.visit_type === "Emergency"
-                  ? "border-l-red-500 bg-red-50/20"
-                  : "border-l-green-500/30 hover:border-l-green-500"
+          queue.map((item) => {
+            const isSelected =
+              String(item.patient_id) === String(patientId) &&
+              (!selectedVisitId || String(item.visit_id) === String(selectedVisitId));
+
+            return (
+              <div
+                key={String(item.visit_id)}
+                className={`group relative cursor-pointer overflow-hidden rounded-[1.5rem] border px-4 py-4 transition ${
+                  isSelected
+                    ? "border-emerald-200 bg-emerald-50 shadow-[0_10px_30px_rgba(5,150,105,0.12)]"
+                    : "border-slate-200 bg-white hover:border-emerald-100 hover:bg-emerald-50/40"
                 }`}
-              onClick={() => setPatientId(p.patient_id)}
-            >
-              <button
-                className="absolute right-2 top-2 h-7 w-7 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 grid place-items-center"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteVisit(p.patient_id);
-                }}
+                onClick={() => setPatientVisit(String(item.patient_id), String(item.visit_id))}
               >
-                <Search size={14} className="rotate-45" />
-                <span className="sr-only">Delete</span>
-              </button>
+                {deleteEnabled && (
+                  <button
+                    type="button"
+                    className="absolute right-3 top-3 opacity-0 transition group-hover:opacity-100 rounded-xl border border-red-100 bg-red-50 px-2 py-1 text-[11px] font-bold text-red-600"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      deleteVisit(item.visit_id);
+                    }}
+                  >
+                    Remove
+                  </button>
+                )}
 
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-bold ${p.visit_type === 'Emergency' ? 'text-red-700 bg-red-100' : 'text-green-700 bg-green-100'} px-1.5 py-0.5 rounded leading-none uppercase`}>
-                      #{p.clinic_number}
-                    </span>
-                    <h3 className="font-bold text-slate-800 truncate max-w-[140px]">
-                      {p.patient_name}
-                    </h3>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${
+                          item.visit_type === "Emergency"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-emerald-100 text-emerald-700"
+                        }`}
+                      >
+                        #{item.clinic_number}
+                      </span>
+                      {item.status && (
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                          {item.status}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-3 text-base font-black tracking-tight text-slate-900">
+                      {item.patient_name}
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                      <span className="inline-flex items-center gap-1">
+                        <Stethoscope size={13} />
+                        Dr. {item.doctor_name}
+                      </span>
+                      <span>{item.visit_type}</span>
+                    </div>
                   </div>
 
-                  <div className="text-[11px] text-slate-500 font-medium flex flex-col space-y-0.5">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                      Dr. {p.doctor_name}
+                  {isSelected && (
+                    <span className="rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">
+                      Active
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className={`w-1.5 h-1.5 rounded-full ${p.visit_type === 'Emergency' ? 'bg-red-400' : 'bg-slate-300'}`} />
-                      {p.visit_type}
-                    </span>
-                  </div>
+                  )}
                 </div>
               </div>
-
-              {/* Status Indicator Bar */}
-              <div className="mt-2 h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div className={`h-full ${p.visit_type === 'Emergency' ? 'bg-red-500 animate-pulse' : 'bg-green-500/50'} w-1/3 rounded-full`} />
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
