@@ -67,7 +67,7 @@ export async function GET(
 
     // Map to cart-compatible items
     const items = detailsResult.rows.map(row => ({
-      id: row.detail_id.toString(),
+      id: row.id.toString(),
       medicine: {
         id: row.medicine_id,
         generic_name: row.generic_name,
@@ -75,18 +75,18 @@ export async function GET(
         dosage_value: row.dosage_value,
         dosage_unit: row.dosage_unit,
         sub_units_per_unit: row.sub_units_per_unit,
-        price: row.medicine_base_price,
-        sub_unit_price: row.medicine_base_sub_price,
+        price: Number(row.medicine_base_price ?? 0),
+        sub_unit_price: Number(row.medicine_base_sub_price ?? 0),
         batch_id: row.batch_id,
         batch_number: row.batch_number,
         expiry_date: row.expiry_date,
         batch_stock_quantity: row.batch_stock_quantity,
         batch_stock_sub_quantity: row.batch_stock_sub_quantity,
-        batch_sale_price: row.batch_sale_price,
-        batch_sale_sub_unit_price: row.batch_sale_sub_unit_price
+        batch_sale_price: Number(row.batch_sale_price ?? 0),
+        batch_sale_sub_unit_price: Number(row.batch_sale_sub_unit_price ?? 0)
       },
-      quantity: row.returned_quantity,
-      subQuantity: row.returned_sub_quantity || 0,
+      quantity: Number(row.returned_quantity ?? 0),
+      subQuantity: Number(row.returned_sub_quantity ?? 0),
       price: Number(row.returned_unit_price),
       discountedPrice: Number(row.returned_unit_price),
       discountPercent: 0,
@@ -171,7 +171,7 @@ export async function PUT(
 
     // 2. Fetch existing return details
     const existingDetailsResult = await client.query(`
-      SELECT detail_id, medicine_id, batch_id
+      SELECT id, medicine_id, batch_id
       FROM sale_return_detail
       WHERE return_id = $1
     `, [id]);
@@ -194,8 +194,8 @@ export async function PUT(
 
     for (const item of itemsToDelete) {
       await client.query(`
-        DELETE FROM sale_return_detail WHERE detail_id = $1
-      `, [item.detail_id]);
+        DELETE FROM sale_return_detail WHERE id = $1
+      `, [item.id]);
     }
 
     // Update or Insert
@@ -215,13 +215,13 @@ export async function PUT(
             returned_unit_price = $2,
             returned_sub_quantity = $3,
             returned_sub_unit_price = $4
-          WHERE detail_id = $5
+          WHERE id = $5
         `, [
           item.quantity,
           item.price,
           item.subQuantity || 0,
           subUnitPrice,
-          existing.detail_id
+          existing.id
         ]);
       } else {
         await client.query(`

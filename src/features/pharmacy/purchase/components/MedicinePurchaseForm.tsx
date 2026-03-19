@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
     Plus,
     Trash2,
@@ -20,12 +21,20 @@ import {
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
 import { Label } from "@/src/components/ui/Label";
-import { getAllMedicines, getAllPartiesName, submitPurchase, getLastInvoice, getMedicinePriceHistory } from "../api";
+import { getAllMedicines, getAllPartiesName, submitPurchase, getLastInvoice, getMedicinePriceHistory, fetchPurchase, updatePurchase } from "../api";
 import { Medicine, Party, PurchaseItem, PurchaseInvoice } from "../types";
 import { PurchaseMedicineSearch } from "./PurchaseMedicineSearch";
 import toast from 'react-hot-toast';
 
 export default function MedicinePurchaseForm() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+
+    // Edit mode state
+    const [isEditing, setIsEditing] = useState(false);
+    const [editPurchaseId, setEditPurchaseId] = useState<number | null>(null);
+
     // Master Data
     const [parties, setParties] = useState<Party[]>([]);
     const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -82,17 +91,51 @@ export default function MedicinePurchaseForm() {
                 setParties(pData);
                 setMedicines(mData);
 
-                // Suggest next invoice number
-                if (lastInv) {
-                    const match = lastInv.match(/(\d+)$/);
-                    if (match) {
-                        const nextNum = parseInt(match[1]) + 1;
-                        setInvoiceNo(lastInv.replace(/\d+$/, nextNum.toString().padStart(match[1].length, '0')));
+                // Check for edit mode
+                const mode = searchParams.get('mode');
+                const ref = searchParams.get('ref');
+
+                if (mode === 'edit' && ref) {
+                    const purchaseId = parseInt(ref);
+                    setIsEditing(true);
+                    setEditPurchaseId(purchaseId);
+
+                    const res = await fetchPurchase(purchaseId);
+                    if (res.success && res.data) {
+                        setSelectedParty(res.data.party_id);
+                        setInvoiceNo(res.data.invoice_no);
+                        
+                        // Defensive check for items array
+                        const mappedItems = (res.data.items || []).map((item: any) => ({
+                            medicine_id: item.medicine_id,
+                            medicine_name: item.medicine_name,
+                            quantity: item.quantity,
+                            sub_quantity: item.sub_quantity,
+                            unit_cost: item.unit_cost,
+                            sub_unit_cost: item.sub_unit_cost,
+                            batch_number: item.batch_number,
+                            expiry_date: item.expiry_date || '',
+                            sale_price: item.sale_price,
+                            sale_sub_unit_price: item.sale_sub_unit_price,
+                        }));
+                        setItems(mappedItems);
+                        toast.success(`Loaded purchase #${res.data.invoice_no} for editing`);
+                    } else {
+                        toast.error(res.error || 'Failed to load purchase for editing');
+                    }
+                } else {
+                    // Suggest next invoice number (new purchase mode)
+                    if (lastInv) {
+                        const match = lastInv.match(/(\d+)$/);
+                        if (match) {
+                            const nextNum = parseInt(match[1]) + 1;
+                            setInvoiceNo(lastInv.replace(/\d+$/, nextNum.toString().padStart(match[1].length, '0')));
+                        } else {
+                            setInvoiceNo(`INV-${new Date().getTime().toString().slice(-4)}`);
+                        }
                     } else {
                         setInvoiceNo(`INV-${new Date().getTime().toString().slice(-4)}`);
                     }
-                } else {
-                    setInvoiceNo(`INV-${new Date().getTime().toString().slice(-4)}`);
                 }
             } catch (err) {
                 toast.error("Failed to load initial data");
@@ -101,6 +144,7 @@ export default function MedicinePurchaseForm() {
             }
         }
         init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Keyboard Navigation: Side Arrow Navigation
@@ -299,19 +343,37 @@ export default function MedicinePurchaseForm() {
                 items: items
             };
 
-            const res = await submitPurchase(invoice);
+            let res;
+            if (isEditing && editPurchaseId) {
+                res = await updatePurchase(editPurchaseId, invoice);
+            } else {
+                res = await submitPurchase(invoice);
+            }
+
             if (res.success) {
-                toast.success("Purchase invoice saved successfully!");
-                setItems([]);
-                const nextInv = await getLastInvoice();
-                if (nextInv) {
-                    const match = nextInv.match(/(\d+)$/);
-                    if (match) {
-                        const nextNum = parseInt(match[1]) + 1;
-                        setInvoiceNo(nextInv.replace(/\d+$/, nextNum.toString().padStart(match[1].length, '0')));
+                if (isEditing) {
+                    toast.success("Purchase invoice updated successfully!");
+                    // Clear edit mode and redirect back to transactions
+                    setIsEditing(false);
+                    setEditPurchaseId(null);
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set('tab', 'transactions');
+                    params.delete('mode');
+                    params.delete('ref');
+                    router.push(`${pathname}?${params.toString()}`);
+                } else {
+                    toast.success("Purchase invoice saved successfully!");
+                    setItems([]);
+                    const nextInv = await getLastInvoice();
+                    if (nextInv) {
+                        const match = nextInv.match(/(\d+)$/);
+                        if (match) {
+                            const nextNum = parseInt(match[1]) + 1;
+                            setInvoiceNo(nextInv.replace(/\d+$/, nextNum.toString().padStart(match[1].length, '0')));
+                        }
                     }
+                    setSelectedParty('');
                 }
-                setSelectedParty('');
             } else {
                 toast.error(res.error || "Failed to save invoice");
             }
@@ -577,7 +639,10 @@ export default function MedicinePurchaseForm() {
                             <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex items-start gap-3">
                                 <Save className="text-emerald-500 shrink-0 mt-1" size={16} />
                                 <p className="text-[11px] text-emerald-200/80 leading-relaxed font-medium">
-                                    Saving this invoice will immediately increase your stock and record the purchase in audit logs.
+                                    {isEditing
+                                        ? 'Updating this invoice will adjust stock based on the changes made to items.'
+                                        : 'Saving this invoice will immediately increase your stock and record the purchase in audit logs.'
+                                    }
                                 </p>
                             </div>
                         </div>
@@ -588,7 +653,7 @@ export default function MedicinePurchaseForm() {
                             className="w-full h-20 bg-emerald-600 hover:bg-emerald-500 text-white rounded-[1.5rem] text-xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
                         >
                             {isSubmitting ? <Loader2 className="animate-spin" /> : <Save size={24} />}
-                            Post Invoice
+                            {isEditing ? 'Update Invoice' : 'Post Invoice'}
                             <span className="text-[10px] font-mono opacity-50">F2</span>
                         </Button>
                     </div>

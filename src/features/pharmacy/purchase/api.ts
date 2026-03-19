@@ -60,3 +60,23 @@ export async function getMedicinePriceHistory(medicineId: number): Promise<any |
     return null;
   }
 }
+
+/**
+ * Fetches a purchase invoice by ID for editing
+ */
+export async function fetchPurchase(purchaseId: number): Promise<ApiResponse<any>> {
+  const res = await fetch(`/api/pharmacy/purchase/${purchaseId}`);
+  return await res.json();
+}
+
+/**
+ * Updates an existing purchase invoice
+ */
+export async function updatePurchase(purchaseId: number, invoice: PurchaseInvoice): Promise<ApiResponse<any>> {
+  const res = await fetch(`/api/pharmacy/purchase/${purchaseId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(invoice),
+  });
+  return await res.json();
+}

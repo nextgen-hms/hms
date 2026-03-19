@@ -28,6 +28,7 @@ type Transaction = {
   is_prescription_sale: boolean | null;
   sale_return_id: number | null;
   sale_return_reason: string | null;
+  ref_purchase_id: number | null;
 };
 
 const TYPE_CONFIG = {
@@ -248,21 +249,40 @@ export function TransactionsView() {
                           </>
                         )}
 
-                        {txn.txn_type === 'purchase' && txn.invoice_no && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => {
-                                const params = new URLSearchParams(searchParams.toString());
-                                params.set('tab', 'purchaseReturn');
-                                params.set('ref', txn.invoice_no!);
-                                router.push(`${pathname}?${params.toString()}`);
-                            }}
-                            className="h-8 px-2 justify-start gap-1.5 rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-700 bg-white shadow-sm border border-blue-100"
-                          >
-                            <RotateCcw size={14} />
-                            <span className="text-[10px] font-black uppercase tracking-wider">Return</span>
-                          </Button>
+                        {txn.txn_type === 'purchase' && txn.ref_purchase_id && (
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                  const params = new URLSearchParams(searchParams.toString());
+                                  params.set('tab', 'purchase');
+                                  params.set('mode', 'edit');
+                                  params.set('ref', txn.ref_purchase_id!.toString());
+                                  router.push(`${pathname}?${params.toString()}`);
+                              }}
+                              className="h-8 px-2 justify-start gap-1.5 rounded-lg text-amber-600 hover:bg-amber-50 hover:text-amber-700 bg-white shadow-sm border border-amber-100"
+                            >
+                              <Pencil size={14} />
+                              <span className="text-[10px] font-black uppercase tracking-wider">Edit</span>
+                            </Button>
+                            {txn.invoice_no && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => {
+                                    const params = new URLSearchParams(searchParams.toString());
+                                    params.set('tab', 'purchaseReturn');
+                                    params.set('ref', txn.invoice_no!);
+                                    router.push(`${pathname}?${params.toString()}`);
+                                }}
+                                className="h-8 px-2 justify-start gap-1.5 rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-700 bg-white shadow-sm border border-blue-100"
+                              >
+                                <RotateCcw size={14} />
+                                <span className="text-[10px] font-black uppercase tracking-wider">Return</span>
+                              </Button>
+                            )}
+                          </>
                         )}
                         
                         {txn.txn_type === 'sale_return' && txn.sale_return_id && (

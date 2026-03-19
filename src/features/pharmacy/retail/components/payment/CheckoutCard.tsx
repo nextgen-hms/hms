@@ -299,10 +299,12 @@ export const CheckoutCard = React.forwardRef<CheckoutCardHandle, CheckoutCardPro
                         className="bg-orange-500/10 border border-orange-500/20 hover:bg-orange-500/20 text-orange-500 font-bold py-4 rounded-xl flex items-center justify-center gap-2 text-xs uppercase transition-all"
                     >
                         <Trash2 size={14} />
-                        Void
+                        Clear
                     </button>
                 </div>
             </div>
         </div>
     );
 });
+
+CheckoutCard.displayName = 'CheckoutCard';

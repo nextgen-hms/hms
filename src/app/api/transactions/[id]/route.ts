@@ -59,7 +59,7 @@ export async function PUT(
 
     // 2. Fetch existing details
     const existingDetailsResult = await client.query(`
-      SELECT detail_id, medicine_id, batch_id
+      SELECT pharmacy_sale_detail_id, medicine_id, batch_id
       FROM pharmacy_sale_detail
       WHERE sale_id = $1
     `, [id]);
@@ -83,8 +83,8 @@ export async function PUT(
 
     for (const item of itemsToDelete) {
       await client.query(`
-        DELETE FROM pharmacy_sale_detail WHERE detail_id = $1
-      `, [item.detail_id]);
+        DELETE FROM pharmacy_sale_detail WHERE pharmacy_sale_detail_id = $1
+      `, [item.pharmacy_sale_detail_id]);
     }
 
     // Items to Update or Insert
@@ -112,7 +112,7 @@ export async function PUT(
             discount_percent = $5,
             discount_amount = $6,
             line_total = $7
-          WHERE detail_id = $8
+          WHERE pharmacy_sale_detail_id = $8
         `, [
           item.quantity,
           item.subQuantity,
@@ -121,7 +121,7 @@ export async function PUT(
           item.discountPercent,
           discountAmount,
           lineTotal,
-          existing.detail_id
+          existing.pharmacy_sale_detail_id
         ]);
       } else {
         // Insert
@@ -239,7 +239,7 @@ export async function GET(
 
     // Map to Transaction interface
     const items = detailsResult.rows.map(row => ({
-      id: row.detail_id.toString(),
+      id: row.pharmacy_sale_detail_id.toString(),
       medicine: {
         id: row.medicine_id,
         generic_name: row.generic_name,
@@ -247,22 +247,22 @@ export async function GET(
         dosage_value: row.dosage_value,
         dosage_unit: row.dosage_unit,
         sub_units_per_unit: row.sub_units_per_unit,
-        price: row.medicine_base_price,
-        sub_unit_price: row.medicine_base_sub_price,
+        price: Number(row.medicine_base_price ?? 0),
+        sub_unit_price: Number(row.medicine_base_sub_price ?? 0),
         batch_id: row.batch_id,
         batch_number: row.batch_number,
         expiry_date: row.expiry_date,
         batch_stock_quantity: row.batch_stock_quantity,
         batch_stock_sub_quantity: row.batch_stock_sub_quantity,
-        batch_sale_price: row.batch_sale_price,
-        batch_sale_sub_unit_price: row.batch_sale_sub_unit_price
+        batch_sale_price: Number(row.batch_sale_price ?? 0),
+        batch_sale_sub_unit_price: Number(row.batch_sale_sub_unit_price ?? 0)
       },
-      quantity: row.quantity,
-      subQuantity: row.sub_quantity,
-      price: row.unit_sale_price,
-      discountedPrice: row.unit_sale_price - (row.unit_sale_price * row.discount_percent / 100),
-      discountPercent: row.discount_percent,
-      lineTotal: row.line_total,
+      quantity: Number(row.quantity ?? 0),
+      subQuantity: Number(row.sub_quantity ?? 0),
+      price: Number(row.unit_sale_price ?? 0),
+      discountedPrice: Number(row.unit_sale_price ?? 0) - (Number(row.unit_sale_price ?? 0) * Number(row.discount_percent ?? 0) / 100),
+      discountPercent: Number(row.discount_percent ?? 0),
+      lineTotal: Number(row.line_total ?? 0),
       batchId: row.batch_id,
       batchNumber: row.batch_number
     }));

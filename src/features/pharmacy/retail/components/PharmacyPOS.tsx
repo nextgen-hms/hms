@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useRef, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { BarcodeScanner, MedicineSearch } from './search';
 import { QuantityInput, SubQuantityInput, DiscountInput, CustomPriceInput } from './product-entry';
 import { CartTable } from './cart';
@@ -12,6 +12,8 @@ import { Maximize, Minimize, Layout, ShoppingCart, Activity, RefreshCcw, ArrowRi
 import toast from 'react-hot-toast';
 
 const PharmacyPOS: React.FC = () => {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const modeParam = searchParams.get('mode');
   const initialMode: POSMode = modeParam === 'return' ? 'RETURN' : modeParam === 'edit_return' ? 'RETURN' : 'SALE';
@@ -33,6 +35,27 @@ const PharmacyPOS: React.FC = () => {
   const [editId, setEditId] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const resetPosSession = React.useCallback(() => {
+    clearCart();
+    resetPayment();
+    clearResults();
+    setItemSearched(undefined);
+    setSearchQuery('');
+    setQuantity(1);
+    setSubQuantity(0);
+    setDiscountPercent(0);
+    setCustomPrice(undefined);
+    setIsEditing(false);
+    setEditId(null);
+    setPosMode('SALE');
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('mode');
+    params.delete('ref');
+
+    router.replace(params.toString() ? `${pathname}?${params.toString()}` : pathname);
+  }, [clearCart, resetPayment, clearResults, searchParams, router, pathname]);
 
   // Load transaction for editing if ref is provided
   useEffect(() => {
@@ -87,6 +110,12 @@ const PharmacyPOS: React.FC = () => {
       };
 
       fetchReturn();
+    }
+
+    if (!mode || !ref) {
+      setIsEditing(false);
+      setEditId(null);
+      setPosMode('SALE');
     }
   }, [searchParams, loadCart, loadPayment]);
 
@@ -168,12 +197,7 @@ const PharmacyPOS: React.FC = () => {
       // F4: New Sale / Clear
       if (e.key === 'F4') {
         e.preventDefault();
-        clearCart();
-        setItemSearched(undefined);
-        setSearchQuery('');
-        setIsEditing(false);
-        setEditId(null);
-        setPosMode('SALE');
+        resetPosSession();
         toast.success('New Sale Started');
       }
       // F10: Toggle Mode
@@ -188,7 +212,7 @@ const PharmacyPOS: React.FC = () => {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [clearCart]);
+  }, [resetPosSession]);
 
   // Handle add item to cart
   const handleAddItem = (medicine: Medicine) => {
@@ -422,11 +446,10 @@ const PharmacyPOS: React.FC = () => {
               onPaymentTypeChange={setPaymentType}
               onPaidAmountChange={setPaidAmount}
               onAdjustmentChange={setAdjustment}
-              onComplete={() => {
-                clearCart();
-                resetPayment();
-              }}
-              onClear={clearCart}
+              isEditing={isEditing}
+              editId={editId}
+              onComplete={resetPosSession}
+              onClear={resetPosSession}
               onBackToSearch={() => searchInputRef.current?.focus()}
             />
           </div>

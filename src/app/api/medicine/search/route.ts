@@ -9,10 +9,13 @@ export async function GET(request: NextRequest) {
     const searchType = searchParams.get('type') || 'name';
 
     if (!searchQuery) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: 'Search query is required'
-      }, { status: 400 });
+      return NextResponse.json<ApiResponse<{ medicines: Medicine[]; total: number }>>({
+        success: true,
+        data: {
+          medicines: [],
+          total: 0
+        }
+      });
     }
 
     let sql: string;
