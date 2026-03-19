@@ -5,6 +5,7 @@ import { useFieldArray, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 
 import { usePatient } from "@/contexts/PatientIdContext";
+import { useDoctorWorkspace } from "@/src/features/doctor/workspace/DoctorWorkspaceContext";
 
 import * as api from "../api";
 import { LabOrderFormValues, LabTest } from "../types";
@@ -19,7 +20,8 @@ function buildLabDraftRow(test: LabTest) {
 }
 
 export function useLabOrderForm() {
-  const { patientId } = usePatient();
+  const { patientId, selectedVisitId } = usePatient();
+  const { selectedVisitStatus, staleVisitSelection } = useDoctorWorkspace();
   const [tests, setTests] = useState<LabTest[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,10 +89,14 @@ export function useLabOrderForm() {
   };
 
   const isDraftValid = watchTests.length > 0 && watchTests.every((test) => Boolean(test.test_id));
+  const isVisitActionable =
+    Boolean(selectedVisitId) &&
+    !staleVisitSelection &&
+    (!selectedVisitStatus || ["waiting", "seen_by_doctor"].includes(selectedVisitStatus));
 
   const onSubmit = async (data: LabOrderFormValues) => {
-    if (!patientId) {
-      toast.error("No patient selected");
+    if (!patientId || !selectedVisitId || !isVisitActionable) {
+      toast.error("Select a patient visit before ordering tests");
       return;
     }
 
@@ -102,7 +108,7 @@ export function useLabOrderForm() {
         urgency: "Routine",
       }));
 
-      await api.createLabOrder(patientId, testDetails);
+      await api.createLabOrder(patientId, selectedVisitId, testDetails);
       toast.success("Lab order created successfully!");
       clearTests();
       window.dispatchEvent(new Event("refresh-queue"));
@@ -126,6 +132,7 @@ export function useLabOrderForm() {
     remove,
     clearTests,
     isDraftValid,
+    isVisitActionable,
     selectedTestIds,
     onSubmit,
     isSubmitting,

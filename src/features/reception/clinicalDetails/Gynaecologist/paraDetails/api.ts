@@ -4,6 +4,7 @@ import { ParaDetailsFormType } from "./types";
 
 export async function getObstetricHistoryId(patientId: string | null) {
   const res = await fetch(`api/clinicalDetails/gynaecologist/obstetric/${patientId}`);
+  if (res.status === 404) return null;
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to fetch obstetric history");
   return data;
@@ -11,6 +12,7 @@ export async function getObstetricHistoryId(patientId: string | null) {
 
 export async function getPara(obstetric_history_id: string) {
   const res = await fetch(`api/clinicalDetails/gynaecologist/para/${obstetric_history_id}`);
+  if (res.status === 404) return [];
   const data = await res.json();
   if (!res.ok) throw new Error("Failed to fetch para details");
   return Array.isArray(data) ? data : [data];

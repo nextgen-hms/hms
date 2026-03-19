@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, useRef, useEffect } from "react";
 import { Medicine } from "../../types";
+import { formatStockQuantity, getMedicineAvailability } from "../../stock";
 
 interface MedicineSearchProps {
   query: string;
@@ -61,6 +62,12 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({
   };
 
   const handleSelect = (medicine: Medicine) => {
+    const isExpired = medicine.expiry_date ? new Date(medicine.expiry_date) < new Date() : false;
+    const { isOutOfStock } = getMedicineAvailability(medicine);
+    if (isExpired || isOutOfStock) {
+      return;
+    }
+
     onSelect(medicine);
     setShowResults(false);
     setFocusedIndex(-1);
@@ -121,9 +128,16 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({
           "
         >
           {results.map((medicine, index) => {
-            const expiryDate = medicine.expiry_date
-              ? new Date(medicine.expiry_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-              : 'N/A';
+            const isExpired = medicine.expiry_date ? new Date(medicine.expiry_date) < new Date() : false;
+            const { isOutOfStock, isLowStock, available } = getMedicineAvailability(medicine);
+            const isDisabled = isExpired || isOutOfStock;
+            const stockLabel = isExpired
+              ? "Expired"
+              : isOutOfStock
+                ? "Out of stock"
+                : isLowStock
+                  ? "Low stock"
+                  : "In stock";
 
             return (
               <div
@@ -133,12 +147,17 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({
                 className={`
                   mb-1.5 last:mb-0
                   px-4 py-2.5
-                  cursor-pointer rounded-xl
+                  rounded-xl
                   transition-all duration-300
                   flex items-center gap-4 border
+                  ${isDisabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}
                   ${index === focusedIndex
                     ? "bg-indigo-600 border-indigo-500 text-white shadow-lg scale-[1.01] z-10"
-                    : "bg-white/50 border-slate-100/50 hover:bg-white hover:border-indigo-100 text-slate-800 shadow-sm"}
+                    : isDisabled
+                      ? "bg-slate-100/80 border-slate-200 text-slate-500 shadow-sm"
+                      : isLowStock
+                        ? "bg-amber-50/80 border-amber-200 text-slate-800 shadow-sm hover:bg-amber-50"
+                        : "bg-white/50 border-slate-100/50 hover:bg-white hover:border-indigo-100 text-slate-800 shadow-sm"}
                 `}
               >
                 {/* 1. Main Info: Brand & Generic */}
@@ -185,11 +204,28 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({
                   <div className="flex flex-col">
                     <span className={`text-[9px] font-black uppercase tracking-widest leading-none mb-1 ${index === focusedIndex ? 'text-indigo-200' : 'text-slate-400'}`}>Stock</span>
                     <div className="flex items-center gap-1.5">
-                      <div className={`w-1.5 h-1.5 rounded-full ${(medicine.batch_stock_quantity ?? medicine.stock_quantity) > 10 ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`}></div>
+                      <div className={`w-1.5 h-1.5 rounded-full ${
+                        isExpired || isOutOfStock
+                          ? 'bg-rose-500'
+                          : isLowStock
+                            ? 'bg-amber-400 animate-pulse'
+                            : 'bg-emerald-400'
+                      }`}></div>
                       <span className="text-xs font-black">
-                        {medicine.batch_stock_quantity ?? medicine.stock_quantity}
+                        {formatStockQuantity(available, medicine)}
                       </span>
                     </div>
+                    <span className={`mt-1 text-[9px] font-black uppercase tracking-[0.18em] ${
+                      index === focusedIndex
+                        ? 'text-indigo-100'
+                        : isExpired || isOutOfStock
+                          ? 'text-rose-600'
+                          : isLowStock
+                            ? 'text-amber-600'
+                            : 'text-emerald-600'
+                    }`}>
+                      {stockLabel}
+                    </span>
                   </div>
 
                   <div className="flex flex-col">

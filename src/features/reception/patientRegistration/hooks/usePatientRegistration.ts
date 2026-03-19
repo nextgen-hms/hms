@@ -1,7 +1,7 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePatient } from "@/contexts/PatientIdContext";
-import { PatientFormData, PatientSearchResult } from "../types";
+import { PatientFormData } from "../types";
 import * as api from "../api";
 import toast from "react-hot-toast";
 
@@ -11,36 +11,6 @@ export function usePatientRegistration() {
   // Edit mode state
   const [isEditMode, setIsEditMode] = useState(false);
   const [loadedPatientId, setLoadedPatientId] = useState<string | null>(null);
-
-  // Search state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<PatientSearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Debounced search
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      setShowResults(false);
-      return;
-    }
-
-    debounceRef.current = setTimeout(async () => {
-      setIsSearching(true);
-      const results = await api.searchPatients(searchQuery);
-      setSearchResults(results);
-      setShowResults(true);
-      setIsSearching(false);
-    }, 300);
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [searchQuery]);
 
   // Sync with context patient ID
   useEffect(() => {
@@ -55,28 +25,15 @@ export function usePatientRegistration() {
       setIsEditMode(true);
       setLoadedPatientId(id);
       setPatientId(id);
-      setSearchQuery("");
-      setShowResults(false);
       return data;
     }
     toast.error("Patient not found");
     return null;
   }, [setPatientId]);
 
-  function selectSearchResult(patient: PatientSearchResult) {
-    const id = String(patient.patient_id);
-    setPatientId(id);
-    setShowResults(false);
-    setSearchQuery("");
-    return id;
-  }
-
   function clearPatient() {
     setIsEditMode(false);
     setLoadedPatientId(null);
-    setSearchQuery("");
-    setSearchResults([]);
-    setShowResults(false);
     setPatientId(null);
   }
 
@@ -108,18 +65,8 @@ export function usePatientRegistration() {
   }
 
   return {
-    // Edit mode
     isEditMode,
     loadedPatientId,
-    // Search
-    searchQuery,
-    setSearchQuery,
-    searchResults,
-    isSearching,
-    showResults,
-    setShowResults,
-    selectSearchResult,
-    // Actions
     loadPatient,
     clearPatient,
     addPatient,

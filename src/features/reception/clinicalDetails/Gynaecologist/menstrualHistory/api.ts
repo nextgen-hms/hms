@@ -1,5 +1,6 @@
 export async function getMenstrualHistory(patientId: string) {
   const res = await fetch(`/api/clinicalDetails/gynaecologist/menstrualHistory/${patientId}`);
+  if (res.status === 404) return null;
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to fetch menstrual history");
   return data;

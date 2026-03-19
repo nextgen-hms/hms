@@ -1,13 +1,16 @@
 "use client";
 
 import { usePatient } from "@/contexts/PatientIdContext";
+import { useDoctorWorkspace } from "@/src/features/doctor/workspace/DoctorWorkspaceContext";
 import { ClipboardPlus, FlaskConical, Search, ShieldAlert, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useLabOrderForm } from "../hooks/useLabOrderForm";
+import { StaleVisitNotice } from "../../../workspace/StaleVisitNotice";
 
 export default function NewLabOrderForm() {
-  const { patientId } = usePatient();
+  const { patientId, selectedVisitId } = usePatient();
+  const { staleVisitSelection, selectedVisitStatus } = useDoctorWorkspace();
   const {
     handleSubmit,
     searchQuery,
@@ -19,6 +22,7 @@ export default function NewLabOrderForm() {
     remove,
     clearTests,
     isDraftValid,
+    isVisitActionable,
     selectedTestIds,
     onSubmit,
     isSubmitting,
@@ -30,7 +34,16 @@ export default function NewLabOrderForm() {
     setActiveSearchIndex(0);
   }, [searchQuery, filteredTests]);
 
-  if (!patientId) {
+  if (staleVisitSelection) {
+    return (
+      <StaleVisitNotice
+        title="Lab ordering is blocked"
+        message={`${staleVisitSelection.message} Choose a current queue visit before ordering lab tests.`}
+      />
+    );
+  }
+
+  if (!patientId || !selectedVisitId) {
     return (
       <section className="rounded-[1.1rem] border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
         <div className="flex min-h-[16rem] flex-col items-center justify-center gap-4 rounded-[1rem] border border-dashed border-slate-200 bg-slate-50/80 px-6 text-center">
@@ -40,7 +53,7 @@ export default function NewLabOrderForm() {
               Select a patient before ordering tests
             </h3>
             <p className="mt-2 max-w-md text-sm text-slate-500">
-              Search and add lab tests only after a patient is selected from the queue.
+              Search and add lab tests only after a patient visit is selected from the queue.
             </p>
           </div>
         </div>
@@ -117,7 +130,6 @@ export default function NewLabOrderForm() {
               onKeyDown={handleSearchKeyDown}
               placeholder="Search lab tests by name, category, or price"
               aria-label="Search lab tests"
-              aria-expanded={searchQuery.trim().length > 0 && filteredTests.length > 0}
               aria-controls="lab-search-results"
               className="h-12 w-full rounded-[0.9rem] border border-slate-300 bg-white pl-12 pr-16 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10"
             />
@@ -251,13 +263,18 @@ export default function NewLabOrderForm() {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !isDraftValid}
+              disabled={isSubmitting || !isDraftValid || !isVisitActionable}
               className="inline-flex h-10 items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-black text-white shadow-[0_10px_24px_rgba(2,132,199,0.22)] transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               {isSubmitting ? "Submitting..." : "Submit Lab Order"}
             </button>
           </div>
         </div>
+        {!isVisitActionable && (
+          <div className="rounded-[0.95rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            This visit is no longer actionable for lab ordering. Current status: {selectedVisitStatus ?? "unknown"}.
+          </div>
+        )}
       </form>
     </section>
   );

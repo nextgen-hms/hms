@@ -61,10 +61,23 @@ export async function GET(request: NextRequest) {
 
     const result = await query(sql, params);
 
+    const medicines = result.rows.map((row) => ({
+      ...row,
+      min_stock_level: Number(row.min_stock_level ?? 0),
+      total_stock_quantity: Number(row.total_stock_quantity ?? 0),
+      total_stock_sub_quantity: Number(row.total_stock_sub_quantity ?? 0),
+      batch_stock_quantity: row.batch_stock_quantity == null ? undefined : Number(row.batch_stock_quantity),
+      batch_stock_sub_quantity: row.batch_stock_sub_quantity == null ? undefined : Number(row.batch_stock_sub_quantity),
+      batch_sale_price: row.batch_sale_price == null ? undefined : Number(row.batch_sale_price),
+      batch_sale_sub_unit_price: row.batch_sale_sub_unit_price == null ? undefined : Number(row.batch_sale_sub_unit_price),
+      is_low_stock: Boolean(row.is_low_stock),
+      is_out_of_stock: Boolean(row.is_out_of_stock),
+    }));
+
     return NextResponse.json<ApiResponse<{ medicines: Medicine[]; total: number }>>({
       success: true,
       data: {
-        medicines: result.rows,
+        medicines,
         total: result.rowCount || 0
       }
     });

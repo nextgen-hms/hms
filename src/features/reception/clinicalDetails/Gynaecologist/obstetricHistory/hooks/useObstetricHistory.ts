@@ -10,18 +10,22 @@ export const useObstetricHistory = (patientId: string | null, reset: (data: any)
     if (!patientId) return;
     try {
       const data = await getObstetricHistory(patientId);
-      setHasRecord(true);
-      setStatusMessage("Existing obstetric history loaded.");
-      toast.success("Successfully fetched obstetric history");
-      reset({
-        ...data,
-        last_menstrual_cycle: data.last_menstrual_cycle?.split("T")[0],
-        edd: data.edd?.split("T")[0],
-      });
+      if (data) {
+        setHasRecord(true);
+        setStatusMessage("Existing obstetric history loaded.");
+        reset({
+          ...data,
+          last_menstrual_cycle: data.last_menstrual_cycle?.split("T")[0],
+          edd: data.edd?.split("T")[0],
+        });
+      } else {
+        setHasRecord(false);
+        setStatusMessage("No obstetric history exists yet for this patient.");
+      }
     } catch (err: any) {
-      console.error(err);
       setHasRecord(false);
-      setStatusMessage("No obstetric history exists yet for this patient.");
+      setStatusMessage("Failed to load obstetric history.");
+      console.error("Fetch Error:", err);
     }
   }, [patientId, reset]);
 

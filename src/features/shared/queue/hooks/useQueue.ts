@@ -43,8 +43,25 @@ export function useQueue(queueEndpoint = "/api/queue", allowDelete = true) {
   }, [selectedQueue, queue]);
 
   function filterByName(name: string) {
-    if (!name) setFiltered(queue);
-    else setFiltered(queue.filter((q) => q.patient_name.toLowerCase().includes(name.toLowerCase())));
+    const normalized = name.trim().toLowerCase();
+    const scopedQueue =
+      selectedQueue === "ALL" ? queue : queue.filter((d) => d.visit_type === selectedQueue);
+
+    if (!normalized) {
+      setFiltered(scopedQueue);
+      return;
+    }
+
+    setFiltered(
+      scopedQueue.filter((q) =>
+        [
+          q.patient_name,
+          String(q.clinic_number ?? ""),
+          String(q.patient_id ?? ""),
+          String(q.visit_id ?? ""),
+        ].some((value) => value.toLowerCase().includes(normalized))
+      )
+    );
   }
 
   async function handleDelete(visitId: string | number) {
@@ -60,6 +77,7 @@ export function useQueue(queueEndpoint = "/api/queue", allowDelete = true) {
   }
 
   return {
+    allQueue: queue,
     queue: filtered,
     loading,
     selectedQueue,

@@ -76,27 +76,47 @@ export const useCart = () => {
 
   const updateItem = useCallback((
     itemId: string,
-    updates: Partial<Pick<CartItem, 'quantity' | 'subQuantity' | 'discountPercent' | 'customPrice'>>
+    updates: Partial<CartItem>
   ) => {
+    const currentItem = cart.find((item) => item.id === itemId);
+    if (!currentItem) {
+      return;
+    }
+
+    const updatedItem = { ...currentItem, ...updates };
+
+    if (updatedItem.isInventoryBacked !== false && updatedItem.fulfillmentMode !== 'override') {
+      const stockValidation = validateStock(
+        updatedItem.medicine,
+        updatedItem.quantity,
+        updatedItem.subQuantity
+      );
+
+      if (!stockValidation.valid) {
+        throw new Error(stockValidation.message);
+      }
+    }
+
     setCart(prev => prev.map(item => {
       if (item.id !== itemId) return item;
 
-      const updatedItem = { ...item, ...updates };
       const subUnitsPerUnit = item.medicine.sub_units_per_unit || 1;
       const subUnitPrice = item.medicine.batch_sale_sub_unit_price ?? item.medicine.sub_unit_price;
 
-      updatedItem.lineTotal = calculateLineTotal(
-        updatedItem.quantity,
-        updatedItem.subQuantity,
-        updatedItem.price,
-        updatedItem.discountPercent,
-        subUnitPrice,
-        subUnitsPerUnit
-      );
+      updatedItem.lineTotal = updatedItem.isBillable === false
+        ? 0
+        : calculateLineTotal(
+            updatedItem.quantity,
+            updatedItem.subQuantity,
+            updatedItem.price,
+            updatedItem.discountPercent,
+            subUnitPrice,
+            subUnitsPerUnit
+          );
 
       return updatedItem;
     }));
-  }, []);
+  }, [cart]);
 
   const removeItem = useCallback((itemId: string) => {
     setCart(prev => prev.filter(item => item.id !== itemId));

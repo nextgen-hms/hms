@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/database/db';
 import { ApiResponse, Transaction } from '@/src/lib/types';
 import { getCurrentStaffId } from '@/src/lib/utils';
+import { StockValidationError, validateInventoryItemsForSale } from '../stockValidation';
+
+function getIncomingSaleDetailKey(item: Transaction["items"][number]) {
+  if (item.id) {
+    return `row:${item.id}`;
+  }
+
+  return `new:${item.medicine.medicine_id ?? item.medicine.id}:${item.batchId ?? 'null'}:${item.prescriptionMedicineId ?? 'null'}:${item.overrideReasonCode ?? ''}:${item.overrideReasonNote ?? ''}`;
+}
+
+function getExistingSaleDetailKey(row: {
+  pharmacy_sale_detail_id: number;
+  medicine_id: number;
+  batch_id: number | null;
+  prescription_medicine_id?: number | null;
+  reason_code?: string | null;
+  reason_note?: string | null;
+}) {
+  return `row:${row.pharmacy_sale_detail_id}`;
+}
 
 export async function PUT(
   request: NextRequest,
@@ -23,7 +43,19 @@ export async function PUT(
     await client.query('BEGIN');
     const staffId = getCurrentStaffId();
 
-    // 1. Update the main sale record
+    // Removed the check that blocked override edits
+
+    // 1. Fetch existing details
+    const existingDetailsResult = await client.query(`
+      SELECT pharmacy_sale_detail_id, medicine_id, batch_id, quantity, sub_quantity
+      FROM pharmacy_sale_detail
+      WHERE sale_id = $1
+    `, [id]);
+    const existingDetails = existingDetailsResult.rows;
+
+    await validateInventoryItemsForSale(client, transaction.items, existingDetails);
+
+    // 2. Update the main sale record
     await client.query(`
       UPDATE pharmacy_sale SET
         visit_id = $1,
@@ -57,24 +89,15 @@ export async function PUT(
       id
     ]);
 
-    // 2. Fetch existing details
-    const existingDetailsResult = await client.query(`
-      SELECT pharmacy_sale_detail_id, medicine_id, batch_id
-      FROM pharmacy_sale_detail
-      WHERE sale_id = $1
-    `, [id]);
-    const existingDetails = existingDetailsResult.rows;
-
     // 3. Compare existing vs new
     const incomingItemsList = transaction.items.map(item => ({
       ...item,
-      // Create a unique key for each item variation (medicine + batch)
-      key: `${item.medicine.id}_${item.batchId || 'null'}`
+      key: getIncomingSaleDetailKey(item)
     }));
 
     const existingItemsList = existingDetails.map(row => ({
       ...row,
-      key: `${row.medicine_id}_${row.batch_id || 'null'}`
+      key: getExistingSaleDetailKey(row)
     }));
 
     // Items to Delete: in existing but not in incoming
@@ -89,16 +112,18 @@ export async function PUT(
 
     // Items to Update or Insert
     for (const item of transaction.items) {
-      const key = `${item.medicine.id}_${item.batchId || 'null'}`;
+      const key = getIncomingSaleDetailKey(item);
       const existing = existingItemsList.find(e => e.key === key);
 
+      const isOverride = item.isInventoryBacked === false || item.fulfillmentMode === 'override';
+      
       const subUnitsPerUnit = (item.medicine as any).sub_units_per_unit || 1;
       const subUnitPrice = item.medicine.batch_sale_sub_unit_price 
         || (item.medicine as any).sub_unit_price 
         || (item.price / subUnitsPerUnit);
       
-      const itemTotalBeforeDiscount = (item.quantity * item.price) + (item.subQuantity * subUnitPrice);
-      const discountAmount = Number(((itemTotalBeforeDiscount * item.discountPercent) / 100).toFixed(2));
+      const itemTotalBeforeDiscount = (item.quantity * item.price) + ((item.subQuantity || 0) * subUnitPrice);
+      const discountAmount = Number(((itemTotalBeforeDiscount * (item.discountPercent || 0)) / 100).toFixed(2));
       const lineTotal = Number((itemTotalBeforeDiscount - discountAmount).toFixed(2));
 
       if (existing) {
@@ -111,17 +136,23 @@ export async function PUT(
             sub_unit_sale_price = $4,
             discount_percent = $5,
             discount_amount = $6,
-            line_total = $7
+            line_total = $7,
+            reason_code = $9,
+            reason_note = $10,
+            handled_by = COALESCE(handled_by, $11)
           WHERE pharmacy_sale_detail_id = $8
         `, [
           item.quantity,
-          item.subQuantity,
+          item.subQuantity || 0,
           item.price,
           subUnitPrice,
-          item.discountPercent,
+          item.discountPercent || 0,
           discountAmount,
           lineTotal,
-          existing.pharmacy_sale_detail_id
+          existing.pharmacy_sale_detail_id,
+          isOverride ? (item.overrideReasonCode || 'other') : null,
+          isOverride ? (item.overrideReasonNote || null) : null,
+          isOverride ? staffId : null,
         ]);
       } else {
         // Insert
@@ -136,19 +167,27 @@ export async function PUT(
             sub_unit_sale_price,
             discount_percent,
             discount_amount,
-            line_total
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            line_total,
+            prescription_medicine_id,
+            reason_code,
+            reason_note,
+            handled_by
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         `, [
           id,
           item.medicine.id,
-          item.batchId || null,
+          isOverride ? null : (item.batchId || null),
           item.quantity,
-          item.subQuantity,
+          item.subQuantity || 0,
           item.price,
           subUnitPrice,
-          item.discountPercent,
+          item.discountPercent || 0,
           discountAmount,
-          lineTotal
+          lineTotal,
+          (item as any).prescriptionMedicineId || null,
+          isOverride ? (item.overrideReasonCode || 'other') : null,
+          isOverride ? (item.overrideReasonNote || null) : null,
+          isOverride ? staffId : null,
         ]);
       }
     }
@@ -178,6 +217,15 @@ export async function PUT(
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Transaction update error:', error);
+
+    if (error instanceof StockValidationError) {
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: error.message,
+        data: error.details as any,
+      }, { status: error.status });
+    }
+
     return NextResponse.json<ApiResponse>({
       success: false,
       error: 'Failed to update transaction'
@@ -222,6 +270,7 @@ export async function GET(
         m.brand_name,
         m.dosage_value,
         m.dosage_unit,
+        m.form,
         m.sub_units_per_unit,
         COALESCE(mb.sale_price, 0) as medicine_base_price,
         mb.sale_sub_unit_price as medicine_base_sub_price,
@@ -237,35 +286,57 @@ export async function GET(
       WHERE sd.sale_id = $1
     `, [id]);
 
-    // Map to Transaction interface
-    const items = detailsResult.rows.map(row => ({
-      id: row.pharmacy_sale_detail_id.toString(),
-      medicine: {
-        id: row.medicine_id,
-        generic_name: row.generic_name,
-        brand_name: row.brand_name,
-        dosage_value: row.dosage_value,
-        dosage_unit: row.dosage_unit,
-        sub_units_per_unit: row.sub_units_per_unit,
-        price: Number(row.medicine_base_price ?? 0),
-        sub_unit_price: Number(row.medicine_base_sub_price ?? 0),
-        batch_id: row.batch_id,
-        batch_number: row.batch_number,
-        expiry_date: row.expiry_date,
-        batch_stock_quantity: row.batch_stock_quantity,
-        batch_stock_sub_quantity: row.batch_stock_sub_quantity,
-        batch_sale_price: Number(row.batch_sale_price ?? 0),
-        batch_sale_sub_unit_price: Number(row.batch_sale_sub_unit_price ?? 0)
-      },
-      quantity: Number(row.quantity ?? 0),
-      subQuantity: Number(row.sub_quantity ?? 0),
-      price: Number(row.unit_sale_price ?? 0),
-      discountedPrice: Number(row.unit_sale_price ?? 0) - (Number(row.unit_sale_price ?? 0) * Number(row.discount_percent ?? 0) / 100),
-      discountPercent: Number(row.discount_percent ?? 0),
-      lineTotal: Number(row.line_total ?? 0),
-      batchId: row.batch_id,
-      batchNumber: row.batch_number
-    }));
+    const items = detailsResult.rows.map(row => {
+      const isOverride =
+        row.batch_id === null &&
+        (
+          row.prescription_medicine_id !== null ||
+          row.reason_code !== null ||
+          row.reason_note !== null ||
+          row.handled_by !== null
+        );
+      return {
+        id: row.pharmacy_sale_detail_id.toString(),
+        medicine: {
+          id: row.medicine_id,
+          medicine_id: row.medicine_id,
+          generic_name: row.generic_name,
+          brand_name: row.brand_name,
+          dosage_value: row.dosage_value,
+          dosage_unit: row.dosage_unit,
+          sub_units_per_unit: row.sub_units_per_unit,
+          form: row.form,
+          price: isOverride ? Number(row.unit_sale_price ?? 0) : Number(row.medicine_base_price ?? 0),
+          sub_unit_price: isOverride ? 0 : Number(row.medicine_base_sub_price ?? 0),
+          batch_id: row.batch_id,
+          batch_number: row.batch_number,
+          expiry_date: row.expiry_date,
+          batch_stock_quantity: row.batch_stock_quantity,
+          batch_stock_sub_quantity: row.batch_stock_sub_quantity,
+          batch_sale_price: Number(row.batch_sale_price ?? 0),
+          batch_sale_sub_unit_price: Number(row.batch_sale_sub_unit_price ?? 0)
+        },
+        quantity: Number(row.quantity ?? 0),
+        subQuantity: Number(row.sub_quantity ?? 0),
+        price: Number(row.unit_sale_price ?? 0),
+        discountedPrice: Number(row.unit_sale_price ?? 0) - (Number(row.unit_sale_price ?? 0) * Number(row.discount_percent ?? 0) / 100),
+        discountPercent: Number(row.discount_percent ?? 0),
+        lineTotal: Number(row.line_total ?? 0),
+        batchId: row.batch_id,
+        batchNumber: row.batch_number,
+        fulfillmentMode: isOverride ? 'override' : 'stock',
+        isBillable: true,
+        isInventoryBacked: !isOverride,
+        ...(isOverride ? {
+          prescriptionMedicineId: Number(row.prescription_medicine_id),
+          overrideReasonCode: row.reason_code,
+          overrideReasonNote: row.reason_note,
+          availabilityStatus: 'override_selected',
+        } : {
+          ...(row.prescription_medicine_id ? { prescriptionMedicineId: Number(row.prescription_medicine_id) } : {})
+        })
+      };
+    });
 
     const transaction = {
       id: sale.sale_id.toString(),

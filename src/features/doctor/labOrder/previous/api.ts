@@ -4,7 +4,7 @@ import { LabOrder } from "./types";
 
 // Fetch previous lab orders for a patient
 export async function fetchPreviousLabOrders(patientId: string): Promise<LabOrder[]> {
-  const res = await fetch(`/api/doctor/lab-orders/${patientId}`);
+  const res = await fetch(`/api/doctor/history/patient/${patientId}/lab-orders`);
   if (!res.ok) throw new Error(`Failed to fetch lab orders: ${res.status}`);
   const data: LabOrder[] = await res.json();
 

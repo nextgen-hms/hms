@@ -21,6 +21,8 @@ import type {
   WomenHealthSummary,
 } from "../types";
 import { usePatientForm } from "../hooks/usePatientForm";
+import { useDoctorWorkspace } from "../../workspace/DoctorWorkspaceContext";
+import { StaleVisitNotice } from "../../workspace/StaleVisitNotice";
 
 function formatVisitLabel(timestamp: string | undefined) {
   if (!timestamp) return "Date unavailable";
@@ -252,30 +254,42 @@ export default function PatientForm() {
     contextSummary,
     recentVisits,
     recentPrescriptions,
-    reasonDraft,
-    setReasonDraft,
+    doctorNoteDraft,
+    setDoctorNoteDraft,
     isLoading,
     isSaving,
     error,
-    saveVisitReason,
-    toggleVisitStatus,
+    saveDoctorNote,
+    markVisitSeen,
   } = usePatientForm();
+  const { staleVisitSelection } = useDoctorWorkspace();
 
   const patient = contextSummary?.patient;
   const visit = contextSummary?.activeVisit;
+  const encounterNote = contextSummary?.encounterNote;
   const vitals = contextSummary?.vitals;
   const womenHealthSummary = contextSummary?.womenHealthSummary;
   const isSeen = visit?.status === "seen_by_doctor";
+  const isActionable = visit ? ["waiting", "seen_by_doctor"].includes(visit.status) : false;
   const patientLabel = formatGenderAge(patient?.gender, patient?.age);
 
   const switchTab = (tab: "pharmacyOrder" | "labOrder" | "pastVisits") => {
     window.dispatchEvent(new CustomEvent("switch-doctor-tab", { detail: { tab } }));
   };
 
+  if (staleVisitSelection) {
+    return (
+      <StaleVisitNotice
+        title="Selected visit is stale"
+        message={`${staleVisitSelection.message} The patient selection stays visible so you can confirm who was being reviewed.`}
+      />
+    );
+  }
+
   if (!patient && !isLoading) {
     return (
       <div className="flex h-full items-center justify-center rounded-[2rem] border border-dashed border-slate-300 bg-white/60 text-slate-500">
-        Select a patient from your queue to review today&apos;s visit.
+        Select a patient from your queue to review the chosen visit.
       </div>
     );
   }
@@ -334,11 +348,11 @@ export default function PatientForm() {
 
               <Button
                 type="button"
-                onClick={() => toggleVisitStatus(!isSeen)}
-                disabled={!visit || isSaving}
+                onClick={markVisitSeen}
+                disabled={!visit || isSaving || isSeen || !isActionable}
                 className="h-11 rounded-2xl px-5 font-bold"
               >
-                {isSeen ? "Move Back To Waiting" : "Mark As Seen"}
+                {isSeen ? "Already Seen" : !isActionable ? "Visit Locked" : "Mark As Seen"}
               </Button>
             </div>
           </div>
@@ -388,7 +402,9 @@ export default function PatientForm() {
                   Presenting Complaint
                 </div>
                 <div className="mt-2 text-sm font-semibold leading-6 text-slate-700">
-                  {visit?.reason?.trim() || "No presenting complaint recorded yet."}
+                  {encounterNote?.reception_complaint?.trim() ||
+                    visit?.reason?.trim() ||
+                    "No presenting complaint recorded yet."}
                 </div>
               </div>
               <div className="rounded-[1.35rem] border border-slate-200 bg-slate-50/80 px-4 py-4">
@@ -423,17 +439,17 @@ export default function PatientForm() {
               </label>
               <textarea
                 id="visit-reason-note"
-                value={reasonDraft}
-                onChange={(event) => setReasonDraft(event.target.value)}
+                value={doctorNoteDraft}
+                onChange={(event) => setDoctorNoteDraft(event.target.value)}
                 rows={4}
                 className="mt-2 w-full rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                placeholder="Update the presenting complaint or short visit note"
+                placeholder="Write the doctor encounter note without overwriting reception intake"
               />
               <div className="mt-3 flex justify-end">
                 <Button
                   type="button"
-                  onClick={saveVisitReason}
-                  disabled={!visit || isSaving}
+                  onClick={saveDoctorNote}
+                  disabled={!visit || isSaving || !isActionable}
                   className="h-11 rounded-2xl px-5 font-bold"
                 >
                   {isSaving ? "Saving..." : "Save Note"}
@@ -559,7 +575,7 @@ export default function PatientForm() {
                     <div className="mt-1 text-sm text-slate-600">{item.generic_name}</div>
                     <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
                       <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1">
-                        {item.dosage_value} {item.dosage_unit}
+                        {item.dosage || "Dose not captured"}
                       </span>
                       <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1">
                         {item.frequency}

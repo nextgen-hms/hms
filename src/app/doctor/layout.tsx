@@ -32,17 +32,17 @@ function DoctorWorkspace({
   pharmacyOrder,
   labOrder,
   pastVisits,
-  reportResults,
+  dashboard,
 }: {
   queue: React.ReactNode;
   patientDetails: React.ReactNode;
   pharmacyOrder: React.ReactNode;
   labOrder: React.ReactNode;
   pastVisits: React.ReactNode;
-  reportResults: React.ReactNode;
+  dashboard: React.ReactNode;
 }) {
   const { patientId, selectedVisitId } = usePatient();
-  const { isQueueCollapsed } = useDoctorWorkspace();
+  const { isQueueCollapsed, staleVisitSelection } = useDoctorWorkspace();
   const [selectedTab, setSelectedTab] = useState<DoctorTabId>("patientDetails");
   const [activePatient, setActivePatient] = useState<PatientBadge | null>(null);
 
@@ -99,9 +99,11 @@ function DoctorWorkspace({
   );
 
   const selectedTabLabel = tabs.find((tab) => tab.id === selectedTab)?.label ?? "Workspace";
-  const workspaceSubtitle = activePatient
-    ? "Queue-driven clinical workspace for the selected patient."
-    : "Select a patient from the queue to begin clinical work.";
+  const workspaceSubtitle = staleVisitSelection
+    ? staleVisitSelection.message
+    : activePatient
+      ? "Queue-driven clinical workspace for the selected patient."
+      : "Select a patient from the queue to begin clinical work.";
 
   return (
     <div className="flex min-h-screen w-screen flex-col overflow-hidden bg-[linear-gradient(180deg,#f8fcfb_0%,#eef6f4_48%,#e7f0ef_100%)] text-slate-900">
@@ -161,7 +163,13 @@ function DoctorWorkspace({
                     </span>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 xl:max-w-sm">{workspaceSubtitle}</p>
+                <p
+                  className={`text-xs xl:max-w-sm ${
+                    staleVisitSelection ? "font-semibold text-amber-700" : "text-slate-500"
+                  }`}
+                >
+                  {workspaceSubtitle}
+                </p>
               </div>
 
               <nav className="flex min-w-0 flex-wrap items-center gap-2">
@@ -196,7 +204,7 @@ function DoctorWorkspace({
                 {selectedTab === "pharmacyOrder" && pharmacyOrder}
                 {selectedTab === "labOrder" && labOrder}
                 {selectedTab === "pastVisits" && pastVisits}
-                {selectedTab === "dashboard" && reportResults}
+                {selectedTab === "dashboard" && dashboard}
               </div>
             </div>
           </div>
@@ -212,7 +220,7 @@ export default function DoctorLayout(props: {
   pharmacyOrder: React.ReactNode;
   labOrder: React.ReactNode;
   pastVisits: React.ReactNode;
-  reportResults: React.ReactNode;
+  dashboard: React.ReactNode;
 }) {
   return (
     <PatientContextProvider>

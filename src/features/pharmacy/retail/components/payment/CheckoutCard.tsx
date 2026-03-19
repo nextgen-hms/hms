@@ -19,6 +19,12 @@ interface CheckoutCardProps {
     mode: POSMode;
     isEditing?: boolean;
     editId?: string | null;
+    transactionMeta?: {
+        visitId?: number | null;
+        billId?: number | null;
+        prescriptionId?: number | null;
+        customerId?: number;
+    };
 }
 
 export interface CheckoutCardHandle {
@@ -36,7 +42,8 @@ export const CheckoutCard = React.forwardRef<CheckoutCardHandle, CheckoutCardPro
     onBackToSearch,
     mode,
     isEditing,
-    editId
+    editId,
+    transactionMeta
 }, ref) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
@@ -73,7 +80,11 @@ export const CheckoutCard = React.forwardRef<CheckoutCardHandle, CheckoutCardPro
                 payment,
                 cashier: 'Current User',
                 status: 'completed' as const,
-                mode
+                mode,
+                visitId: transactionMeta?.visitId ?? null,
+                billId: transactionMeta?.billId ?? null,
+                prescriptionId: transactionMeta?.prescriptionId ?? null,
+                customerId: transactionMeta?.customerId,
             };
 
             const response = isEditing && editId
@@ -134,7 +145,11 @@ export const CheckoutCard = React.forwardRef<CheckoutCardHandle, CheckoutCardPro
                 payment,
                 cashier: 'Current User',
                 status: 'held' as const,
-                mode
+                mode,
+                visitId: transactionMeta?.visitId ?? null,
+                billId: transactionMeta?.billId ?? null,
+                prescriptionId: transactionMeta?.prescriptionId ?? null,
+                customerId: transactionMeta?.customerId,
             };
 
             const response = await holdTransaction(transaction);

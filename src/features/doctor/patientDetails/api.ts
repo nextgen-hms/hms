@@ -3,7 +3,6 @@ import {
   PatientContextSummary,
   RecentPrescription,
   RecentVisit,
-  VisitInfo,
 } from "./types";
 
 export async function fetchDoctorProfile(): Promise<DoctorProfile> {
@@ -13,9 +12,10 @@ export async function fetchDoctorProfile(): Promise<DoctorProfile> {
 }
 
 export async function fetchPatientContextSummary(
-  patientId: string
+  _patientId: string,
+  visitId: string
 ): Promise<PatientContextSummary> {
-  const res = await fetch(`/api/doctor/patient-context/${patientId}`);
+  const res = await fetch(`/api/doctor/visit/${visitId}`);
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     throw new Error(data?.error || "Failed to fetch patient context");
@@ -23,32 +23,29 @@ export async function fetchPatientContextSummary(
   return res.json();
 }
 
-export async function patchVisitInfo(
+export async function saveDoctorEncounterNote(
   visitId: string,
-  visit: Partial<Pick<VisitInfo, "reason" | "visit_type" | "clinic_number">>
-): Promise<VisitInfo> {
-  const res = await fetch(`/api/doctor/visit/${visitId}`, {
-    method: "PATCH",
+  doctor_note: string
+): Promise<PatientContextSummary["encounterNote"]> {
+  const res = await fetch(`/api/doctor/encounter/${visitId}`, {
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(visit),
+    body: JSON.stringify({ doctor_note }),
   });
 
   if (!res.ok) {
     const data = await res.json().catch(() => null);
-    throw new Error(data?.error || "Failed to update visit");
+    throw new Error(data?.error || "Failed to save doctor note");
   }
 
   return res.json();
 }
 
-export async function updateVisitStatus(
-  visitId: string,
-  status: "waiting" | "seen_by_doctor"
-): Promise<{ visit: VisitInfo }> {
+export async function updateVisitStatus(visitId: string): Promise<{ visit: { status: string } }> {
   const res = await fetch(`/api/doctor/visit/${visitId}/status`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status: "seen_by_doctor" }),
   });
 
   if (!res.ok) {
@@ -60,7 +57,7 @@ export async function updateVisitStatus(
 }
 
 export async function fetchPastVisits(patientId: string): Promise<RecentVisit[]> {
-  const res = await fetch(`/api/doctor/past-visits/${patientId}`);
+  const res = await fetch(`/api/doctor/history/patient/${patientId}/visits`);
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     throw new Error(data?.error || "Failed to fetch visit history");
@@ -72,7 +69,7 @@ export async function fetchPastVisits(patientId: string): Promise<RecentVisit[]>
 export async function fetchPreviousPrescriptions(
   patientId: string
 ): Promise<RecentPrescription[]> {
-  const res = await fetch(`/api/doctor/prescriptions/${patientId}`);
+  const res = await fetch(`/api/doctor/history/patient/${patientId}/prescriptions`);
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     throw new Error(data?.error || "Failed to fetch prescription history");

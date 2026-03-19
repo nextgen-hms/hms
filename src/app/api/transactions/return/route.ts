@@ -50,12 +50,28 @@ export async function POST(request: NextRequest) {
       ]);
       saleId = saleResult.rows[0].sale_id;
     } else {
-      // If linked return, update the original sale status
-      await client.query(`
-        UPDATE pharmacy_sale 
-        SET status = 'Returned' 
-        WHERE sale_id = $1
-      `, [saleId]);
+      // Check if this is a full return or partial return
+      const statusCheckResult = await client.query(`
+        SELECT 
+          (SELECT COALESCE(SUM(quantity), 0) FROM pharmacy_sale_detail WHERE sale_id = $1) as original_qty,
+          (SELECT COALESCE(SUM(srd.returned_quantity), 0) 
+           FROM sale_return_detail srd 
+           JOIN sale_return sr ON sr.return_id = srd.return_id 
+           WHERE sr.sale_id = $1) as past_returned_qty,
+          $2::numeric as current_return_qty
+      `, [saleId, transaction.items.reduce((sum, item) => sum + item.quantity, 0)]);
+
+      const { original_qty, past_returned_qty, current_return_qty } = statusCheckResult.rows[0] || { original_qty: 0, past_returned_qty: 0, current_return_qty: 0 };
+      const total_returned = Number(past_returned_qty) + Number(current_return_qty);
+
+      // If fully returned, update the original sale status
+      if (total_returned >= Number(original_qty) && Number(original_qty) > 0) {
+        await client.query(`
+          UPDATE pharmacy_sale 
+          SET status = 'Returned' 
+          WHERE sale_id = $1
+        `, [saleId]);
+      }
     }
 
     // Create sale_return record linked to the sale header

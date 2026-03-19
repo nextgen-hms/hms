@@ -4,8 +4,7 @@ export type Prescription = {
   category: string;
   generic_name: string;
   brand_name: string;
-  dosage_value: number;
-  dosage_unit: string;
+  dosage: string | null;
   instructions: string;
   prescribed_quantity: number;
   dispensed_quantity: number;

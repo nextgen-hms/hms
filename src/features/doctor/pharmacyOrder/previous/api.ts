@@ -2,7 +2,7 @@
 import { Prescription } from "./types";
 
 export async function fetchPreviousPrescriptions(patientId: string): Promise<Prescription[]> {
-  const res = await fetch(`/api/doctor/prescriptions/${patientId}`);
+  const res = await fetch(`/api/doctor/history/patient/${patientId}/prescriptions`);
   if (!res.ok) {
     throw new Error("Failed to fetch prescriptions");
   }

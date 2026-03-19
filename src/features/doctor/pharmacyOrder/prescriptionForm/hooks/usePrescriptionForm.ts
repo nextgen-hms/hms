@@ -3,6 +3,7 @@ import { useFieldArray, useForm, UseFormReturn } from "react-hook-form";
 import toast from "react-hot-toast";
 
 import { usePatient } from "@/contexts/PatientIdContext";
+import { useDoctorWorkspace } from "@/src/features/doctor/workspace/DoctorWorkspaceContext";
 
 import * as api from "../api";
 import { FormValues, MedicineSearchResult } from "../types";
@@ -23,6 +24,9 @@ function buildDefaultMedicineEntry(medicine: MedicineSearchResult) {
     frequency: "BD" as const,
     duration_value: 5,
     duration_unit: "days" as const,
+    available_quantity: medicine.available_quantity ?? medicine.stock_quantity ?? 0,
+    availability_status: medicine.availability_status ?? "available",
+    availability_note: medicine.availability_note,
   };
 }
 
@@ -39,7 +43,8 @@ function isPrescriptionRowValid(item: FormValues["prescriptions"][number]) {
 }
 
 export function usePrescriptionForm() {
-  const { patientId } = usePatient();
+  const { patientId, selectedVisitId } = usePatient();
+  const { selectedVisitStatus, staleVisitSelection } = useDoctorWorkspace();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<MedicineSearchResult[]>(EMPTY_SEARCH_RESULTS);
   const [isSearching, setIsSearching] = useState(false);
@@ -60,6 +65,10 @@ export function usePrescriptionForm() {
   const prescriptions = watch("prescriptions");
   const isDraftValid =
     prescriptions.length > 0 && prescriptions.every((prescription) => isPrescriptionRowValid(prescription));
+  const isVisitActionable =
+    Boolean(selectedVisitId) &&
+    !staleVisitSelection &&
+    (!selectedVisitStatus || ["waiting", "seen_by_doctor"].includes(selectedVisitStatus));
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -113,8 +122,8 @@ export function usePrescriptionForm() {
   };
 
   const onSubmit = async (data: FormValues) => {
-    if (!patientId) {
-      toast.error("No patient selected");
+    if (!patientId || !selectedVisitId || !isVisitActionable) {
+      toast.error("Select a patient visit before prescribing");
       return;
     }
 
@@ -149,9 +158,12 @@ export function usePrescriptionForm() {
         dispensed_quantity: item.dispensed_quantity,
         frequency: item.frequency,
         duration: `${item.duration_value} ${item.duration_unit}`.trim(),
+        available_quantity: item.available_quantity ?? 0,
+        availability_status: item.availability_status ?? 'available',
+        availability_note: item.availability_note ?? null,
       }));
 
-      await api.createPrescription(patientId, payload);
+      await api.createPrescription(patientId, payload, selectedVisitId);
       toast.success("Prescription created successfully!");
       clearPrescription();
       window.dispatchEvent(new Event("refresh-queue"));
@@ -173,6 +185,7 @@ export function usePrescriptionForm() {
     isSearching,
     isSubmitting,
     isDraftValid,
+    isVisitActionable,
     isPrescriptionRowValid,
     addMedicine,
     remove,

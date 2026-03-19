@@ -1,5 +1,6 @@
 export interface Medicine {
   id: number;
+  medicine_id?: number;
   generic_name: string;
   brand_name: string;
   category: string;
@@ -7,6 +8,7 @@ export interface Medicine {
   dosage_unit: string;
   form: string;
   stock_quantity: number;
+  stock_sub_quantity?: number;
   price: number;
   barcode?: string;
   sku?: string;
@@ -16,6 +18,9 @@ export interface Medicine {
   max_stock_level: number;
   is_active: boolean;
   requires_prescription: boolean;
+  sub_unit?: string;
+  sub_units_per_unit?: number;
+  allow_sub_unit_sale?: boolean;
 
   // Batch specific fields
   batch_id?: number;
@@ -24,9 +29,14 @@ export interface Medicine {
   batch_stock_sub_quantity?: number;
   batch_sale_price?: number;
   batch_sale_sub_unit_price?: number;
+  total_stock_quantity?: number;
+  total_stock_sub_quantity?: number;
+  is_low_stock?: boolean;
+  is_out_of_stock?: boolean;
 }
 
 export interface CartItem {
+  id?: string;
   medicine: Medicine;
   quantity: number;
   subQuantity: number;
@@ -36,6 +46,27 @@ export interface CartItem {
   lineTotal: number;
   batchId?: number;
   batchNumber?: string;
+  saleId?: number;
+  saleDetailId?: number;
+  prescriptionMedicineId?: number;
+  prescribedQuantity?: number;
+  alreadyDispensedQuantity?: number;
+  fulfillmentMode?: 'stock' | 'override';
+  availabilityStatus?:
+    | 'available'
+    | 'low_stock'
+    | 'out_of_stock'
+    | 'insufficient_stock'
+    | 'override_selected'
+    | 'fulfilled'
+    | 'override_fulfilled'
+    | 'not_fulfilled';
+  availabilityNote?: string | null;
+  availableQuantity?: number;
+  isBillable?: boolean;
+  isInventoryBacked?: boolean;
+  overrideReasonCode?: string | null;
+  overrideReasonNote?: string | null;
 }
 
 export interface PaymentDetails {

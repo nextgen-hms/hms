@@ -18,8 +18,7 @@ export type Prescription = {
   category: string;
   generic_name: string;
   brand_name: string;
-  dosage_value: number | null;
-  dosage_unit: string | null;
+  dosage: string | null;
   form: string | null;
   prescribed_quantity: number;
   dispensed_quantity: number;
@@ -28,4 +27,17 @@ export type Prescription = {
   instructions: string | null;
   prescribed_by: string;
   dispensed_by: string | null;
+};
+
+export type LabOrder = {
+  visit_id: string;
+  order_id: string;
+  order_date: string;
+  test_name: string;
+  category: string;
+  price: number;
+  status: string;
+  urgency: string | null;
+  ordered_by: string;
+  performed_by: string | null;
 };

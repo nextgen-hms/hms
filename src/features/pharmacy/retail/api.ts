@@ -3,7 +3,9 @@ import {
   Transaction,
   ApiResponse,
   SearchResponse,
-  CartItem
+  PrescriptionSaleResponse,
+  PatientSearchResult,
+  ActiveVisitOption,
 } from './types';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api';
@@ -21,7 +23,7 @@ export const searchMedicines = async (
     );
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Failed to search medicines'
@@ -39,7 +41,7 @@ export const getMedicineById = async (
     const response = await fetch(`${API_BASE_URL}/medicine/${id}`);
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Failed to fetch medicine details'
@@ -65,7 +67,7 @@ export const checkStock = async (
     );
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Failed to check stock'
@@ -87,7 +89,7 @@ export const submitTransaction = async (
     });
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Failed to submit transaction'
@@ -109,7 +111,7 @@ export const submitReturn = async (
     });
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Failed to submit return'
@@ -132,7 +134,7 @@ export const updateTransaction = async (
     });
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Failed to update transaction'
@@ -155,7 +157,7 @@ export const updateSaleReturn = async (
     });
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Failed to update sale return'
@@ -177,7 +179,7 @@ export const holdTransaction = async (
     });
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Failed to hold transaction'
@@ -193,7 +195,7 @@ export const getHeldTransactions = async (): Promise<ApiResponse<Transaction[]>>
     const response = await fetch(`${API_BASE_URL}/transactions/held`);
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Failed to fetch held transactions'
@@ -216,7 +218,7 @@ export const printReceipt = async (
     });
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Failed to print receipt'
@@ -239,7 +241,7 @@ export const emailReceipt = async (
     });
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Failed to email receipt'
@@ -257,10 +259,86 @@ export const openCashDrawer = async (): Promise<ApiResponse<{ opened: boolean }>
     });
     const data = await response.json();
     return data;
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error: 'Failed to open cash drawer'
+    };
+  }
+};
+
+export const fetchPrescriptionSale = async (
+  patientId: string,
+  visitId: string
+): Promise<ApiResponse<PrescriptionSaleResponse>> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/pharmacy/prescription-sale?patientId=${encodeURIComponent(patientId)}&visitId=${encodeURIComponent(visitId)}`
+    );
+    const data = await response.json();
+    return data;
+  } catch {
+    return {
+      success: false,
+      error: 'Failed to load prescription sale'
+    };
+  }
+};
+
+export const searchPrescriptionPatients = async (
+  query: string
+): Promise<ApiResponse<PatientSearchResult[]>> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/pharmacy/patient-search?q=${encodeURIComponent(query)}`
+    );
+    const data = await response.json();
+    return data;
+  } catch {
+    return {
+      success: false,
+      error: 'Failed to search patients'
+    };
+  }
+};
+
+export const fetchActiveVisits = async (
+  patientId: string
+): Promise<ApiResponse<ActiveVisitOption[]>> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/pharmacy/active-visits?patientId=${encodeURIComponent(patientId)}`
+    );
+    const data = await response.json();
+    return data;
+  } catch {
+    return {
+      success: false,
+      error: 'Failed to load active visits'
+    };
+  }
+};
+
+export const updateVisitWorkflowStatus = async (
+  visitId: number | string,
+  status: string
+): Promise<ApiResponse<{ status: string }>> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/visit/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visit_id: visitId, status })
+    });
+    const data = await response.json();
+    return {
+      success: response.ok,
+      data: data?.data,
+      error: response.ok ? undefined : (data?.error || 'Failed to update visit status'),
+    };
+  } catch {
+    return {
+      success: false,
+      error: 'Failed to update visit status'
     };
   }
 };

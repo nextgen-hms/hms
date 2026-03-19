@@ -9,6 +9,9 @@ export type MedicineSearchResult = {
   manufacturer?: string;
   stock_quantity?: number;
   price?: number;
+  available_quantity?: number;
+  availability_status?: "available" | "low_stock" | "out_of_stock";
+  availability_note?: string;
 };
 
 export const FREQUENCY_OPTIONS = ["OD", "BD", "TID", "QID"] as const;
@@ -36,6 +39,9 @@ export type SelectedPrescriptionMedicine = {
   frequency: FrequencyOption | "";
   duration_value: number | null;
   duration_unit: DurationUnitOption | "";
+  available_quantity?: number;
+  availability_status?: "available" | "low_stock" | "out_of_stock" | "insufficient_stock";
+  availability_note?: string;
 };
 
 export type FormValues = {

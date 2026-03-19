@@ -1,5 +1,9 @@
 import pool from "@/database/db";
 import { getAuthenticatedDoctor } from "@/src/lib/server/doctor";
+import {
+  ensureDoctorVisitWriteAccess,
+  resolveDoctorVisit,
+} from "@/src/lib/server/doctorWorkspace";
 import { NextRequest, NextResponse } from "next/server";
 
 type LabOrderPayload = {
@@ -7,46 +11,68 @@ type LabOrderPayload = {
   urgency?: string;
 };
 
+function getDoctorRouteErrorStatus(message: string) {
+  if (message === "Not authenticated") {
+    return 401;
+  }
+
+  if (message.includes("not found")) {
+    return 404;
+  }
+
+  if (message.includes("no longer actionable")) {
+    return 409;
+  }
+
+  return 403;
+}
+
 export async function POST(req: NextRequest) {
   const client = await pool.connect();
 
   try {
     const doctor = await getAuthenticatedDoctor(req);
-    const { patient_id, tests } = await req.json();
+    const { patient_id, visit_id, tests } = await req.json();
 
-    if (!patient_id || !Array.isArray(tests) || tests.length === 0) {
+    if (!patient_id || !visit_id || !Array.isArray(tests) || tests.length === 0) {
       return NextResponse.json({ error: "Invalid lab order payload" }, { status: 400 });
     }
 
     await client.query("BEGIN");
 
-    const visitResult = await client.query(
-      `
-        select visit_id
-        from visit
-        where patient_id = $1
-          and doctor_id = $2
-          and visit_timestamp >= current_date
-          and visit_timestamp < current_date + interval '1 day'
-          and is_deleted = false
-        order by visit_timestamp desc
-        limit 1
-      `,
-      [Number(patient_id), doctor.doctor_id]
-    );
+    const visit = await resolveDoctorVisit(client, {
+      visitId: Number(visit_id),
+      patientId: Number(patient_id),
+      doctorId: doctor.doctor_id,
+      lock: true,
+    });
 
-    if (visitResult.rows.length === 0) {
+    if (!visit) {
       await client.query("ROLLBACK");
       return NextResponse.json(
-        { error: "No active doctor-owned visit found for this patient" },
+        { error: "Selected visit was not found for this doctor and patient" },
         { status: 404 }
       );
     }
 
-    const visitId = visitResult.rows[0].visit_id;
+    ensureDoctorVisitWriteAccess(String(visit.status));
+    const visitId = Number(visit.visit_id);
+    const seenTestIds = new Set<number>();
     const insertedOrders = [];
 
     for (const test of tests as LabOrderPayload[]) {
+      const testId = Number(test.test_id);
+
+      if (!testId) {
+        throw new Error("Each lab order row must include a valid test_id");
+      }
+
+      if (seenTestIds.has(testId)) {
+        throw new Error("Duplicate tests are not allowed in one lab order submit");
+      }
+
+      seenTestIds.add(testId);
+
       const orderResult = await client.query(
         `
           insert into lab_order (visit_id, test_id, ordered_by, status, urgency)
@@ -55,7 +81,7 @@ export async function POST(req: NextRequest) {
         `,
         [
           visitId,
-          Number(test.test_id),
+          testId,
           doctor.doctor_id,
           "Pending",
           test.urgency ?? "Routine",
@@ -76,7 +102,7 @@ export async function POST(req: NextRequest) {
     console.error(error);
     const message =
       error instanceof Error ? error.message : "Failed to create lab orders";
-    const status = message === "Not authenticated" ? 401 : 403;
+    const status = getDoctorRouteErrorStatus(message);
     return NextResponse.json({ error: message }, { status });
   } finally {
     client.release();

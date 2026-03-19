@@ -60,6 +60,7 @@ vi.mock("@/src/features/doctor/workspace/DoctorWorkspaceContext", async () => {
   return {
     ...actual,
     useDoctorWorkspace: () => mockUseDoctorWorkspace(),
+    useOptionalDoctorWorkspace: () => mockUseDoctorWorkspace(),
   };
 });
 
@@ -92,8 +93,14 @@ describe("doctor medicines workspace", () => {
       isQueueCollapsed: false,
       toggleQueueCollapsed: vi.fn(),
       setQueueCollapsed: vi.fn(),
+      staleVisitSelection: null,
+      setStaleVisitSelection: vi.fn(),
+      clearStaleVisitSelection: vi.fn(),
+      selectedVisitStatus: "waiting",
+      setSelectedVisitStatus: vi.fn(),
     });
     mockUseQueue.mockReturnValue({
+      allQueue: [],
       queue: [],
       loading: false,
       selectedQueue: "ALL",
@@ -134,8 +141,23 @@ describe("doctor medicines workspace", () => {
       isQueueCollapsed: true,
       toggleQueueCollapsed: vi.fn(),
       setQueueCollapsed: vi.fn(),
+      staleVisitSelection: null,
+      setStaleVisitSelection: vi.fn(),
+      clearStaleVisitSelection: vi.fn(),
+      selectedVisitStatus: "waiting",
+      setSelectedVisitStatus: vi.fn(),
     });
     mockUseQueue.mockReturnValue({
+      allQueue: [
+        {
+          patient_id: "1",
+          visit_id: "47",
+          patient_name: "Alice Johnson",
+          clinic_number: "2",
+          doctor_name: "Ahmed Khan",
+          visit_type: "OPD",
+        },
+      ],
       queue: [
         {
           patient_id: "1",
@@ -170,7 +192,7 @@ describe("doctor medicines workspace", () => {
         pharmacyOrder={<div>Pharmacy Order</div>}
         labOrder={<div>Lab Order</div>}
         pastVisits={<div>Past Visits</div>}
-        reportResults={<div>Dashboard</div>}
+        dashboard={<div>Dashboard</div>}
       />
     );
 
@@ -243,9 +265,51 @@ describe("doctor medicines workspace", () => {
           dispensed_quantity: 0,
           frequency: "TID",
           duration: "7 weeks",
+          available_quantity: 20,
+          availability_status: "available",
+          availability_note: null,
         },
-      ])
+      ], "47")
     );
+  });
+
+  it("renders the renamed dashboard slot prop", async () => {
+    render(
+      <DoctorLayout
+        queue={<div>Queue Slot</div>}
+        patientDetails={<div>Patient Details</div>}
+        pharmacyOrder={<div>Pharmacy Order</div>}
+        labOrder={<div>Lab Order</div>}
+        pastVisits={<div>Past Visits</div>}
+        dashboard={<div>Dashboard Slot</div>}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Dashboard" }));
+
+    expect(await screen.findByText("Dashboard Slot")).toBeTruthy();
+  });
+
+  it("shows an explicit blocked state when the selected visit is stale", async () => {
+    mockUseDoctorWorkspace.mockReturnValue({
+      isQueueCollapsed: false,
+      toggleQueueCollapsed: vi.fn(),
+      setQueueCollapsed: vi.fn(),
+      staleVisitSelection: {
+        visitId: "47",
+        message: "The selected visit is no longer in your queue.",
+      },
+      setStaleVisitSelection: vi.fn(),
+      clearStaleVisitSelection: vi.fn(),
+      selectedVisitStatus: null,
+      setSelectedVisitStatus: vi.fn(),
+    });
+
+    render(<NewPrescriptionForm />);
+
+    expect(screen.getByText("Prescription entry is blocked")).toBeTruthy();
+    expect(screen.getByText(/no longer in your queue/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Prescribe" })).toBeNull();
   });
 
   it("shows inline validation and keeps prescribe disabled until all rows are valid", async () => {

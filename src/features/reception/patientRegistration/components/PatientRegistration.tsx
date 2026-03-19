@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { usePatient } from "@/contexts/PatientIdContext";
@@ -9,7 +9,6 @@ import { usePatientRegistration } from "../hooks/usePatientRegistration";
 import { formatCNIC, formatPhone } from "../utils";
 import { Input } from "@/src/components/ui/Input";
 import { Label } from "@/src/components/ui/Label";
-import { Button } from "@/src/components/ui/Button";
 
 export default function PatientRegistrationForm() {
   const { register, handleSubmit, control, reset, formState: { errors }, setValue } = useForm<PatientFormData>({
@@ -19,15 +18,11 @@ export default function PatientRegistrationForm() {
 
   const {
     isEditMode, loadedPatientId,
-    searchQuery, setSearchQuery, searchResults, isSearching, showResults, setShowResults,
-    selectSearchResult, loadPatient, clearPatient, addPatient, updateInfo,
+    loadPatient, clearPatient, addPatient, updateInfo,
   } = usePatientRegistration();
 
   const { patientId } = usePatient();
   const lastLoadedIdRef = useRef<string | null>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -45,17 +40,6 @@ export default function PatientRegistrationForm() {
     }
   }, [patientId, reset, loadPatient]);
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowResults(false);
-      }
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [setShowResults]);
-
   /** Populate form with patient data — handles Controller fields explicitly */
   function populateForm(data: any) {
     // Reset all register-based fields
@@ -72,44 +56,6 @@ export default function PatientRegistrationForm() {
     setValue("contact_number", data.contact_number || "", { shouldValidate: true });
     // Focus the first form field
     setTimeout(() => firstFieldRef.current?.focus(), 100);
-  }
-
-  function handleSelectResult(patient: any) {
-    selectSearchResult(patient);
-    setHighlightedIndex(-1);
-  }
-
-  function handleSearchKeyDown(e: React.KeyboardEvent) {
-    if (!showResults || searchResults.length === 0) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setHighlightedIndex((prev) => {
-        const next = prev < searchResults.length - 1 ? prev + 1 : 0;
-        scrollToItem(next);
-        return next;
-      });
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setHighlightedIndex((prev) => {
-        const next = prev > 0 ? prev - 1 : searchResults.length - 1;
-        scrollToItem(next);
-        return next;
-      });
-    } else if (e.key === "Enter" && highlightedIndex >= 0) {
-      e.preventDefault();
-      handleSelectResult(searchResults[highlightedIndex]);
-    } else if (e.key === "Escape") {
-      setShowResults(false);
-      setHighlightedIndex(-1);
-    }
-  }
-
-  function scrollToItem(index: number) {
-    const container = dropdownRef.current;
-    if (!container) return;
-    const item = container.children[index] as HTMLElement;
-    if (item) item.scrollIntoView({ block: "nearest" });
   }
 
   function handleNewPatient() {
@@ -139,7 +85,6 @@ export default function PatientRegistrationForm() {
     const active = document.activeElement as HTMLInputElement | HTMLTextAreaElement;
 
     // For text inputs and textareas: only navigate when cursor is at the boundary
-    // Number inputs don't support selectionStart, so always allow navigation
     if ((active?.tagName === "INPUT" && (active as HTMLInputElement).type !== "number") || active?.tagName === "TEXTAREA") {
       const pos = active.selectionStart ?? 0;
       const len = (active.value || "").length;
@@ -166,69 +111,6 @@ export default function PatientRegistrationForm() {
 
   return (
     <div className="w-full h-full p-2 space-y-4">
-      {/* ═══════ SEARCH PANEL ═══════ */}
-      <div ref={searchRef} className="max-w-4xl mx-auto relative z-10">
-        <div className="bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl shadow-lg shadow-slate-200/40 p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-8 w-8 bg-indigo-100 rounded-xl flex items-center justify-center text-lg">🔍</div>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Find Existing Patient</p>
-          </div>
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setHighlightedIndex(-1); }}
-              onFocus={() => searchResults.length > 0 && setShowResults(true)}
-              onKeyDown={handleSearchKeyDown}
-              placeholder="Search by name, CNIC, or patient ID..."
-              autoComplete="off"
-              className="w-full h-12 bg-slate-50 border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 px-4 pr-24 rounded-xl outline-none text-sm font-medium transition-all placeholder:text-slate-400"
-            />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              {isSearching && (
-                <div className="h-4 w-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-              )}
-              <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">
-                LIVE SEARCH
-              </span>
-            </div>
-          </div>
-
-          {/* Search Results Dropdown */}
-          {showResults && searchResults.length > 0 && (
-            <div ref={dropdownRef} className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-2xl shadow-slate-300/50 max-h-60 overflow-y-auto">
-              {searchResults.map((p, index) => (
-                <button
-                  key={p.patient_id}
-                  type="button"
-                  onClick={() => handleSelectResult(p)}
-                  onMouseEnter={() => setHighlightedIndex(index)}
-                  className={`w-full flex items-center gap-4 px-4 py-3 transition-colors text-left border-b border-slate-50 last:border-0 ${index === highlightedIndex ? "bg-indigo-50" : "hover:bg-indigo-50"}`}
-                >
-                  <div className="h-9 w-9 bg-emerald-100 rounded-full flex items-center justify-center text-xs font-black text-emerald-700 shrink-0">
-                    {p.patient_name?.charAt(0)?.toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 truncate">{p.patient_name}</p>
-                    <p className="text-[10px] text-slate-400 font-medium">
-                      ID: {p.patient_id} · {p.gender} · Age {p.age} · CNIC: {p.cnic || "N/A"}
-                    </p>
-                  </div>
-                  <span className="text-[9px] font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md shrink-0">
-                    SELECT
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-          {showResults && searchResults.length === 0 && !isSearching && searchQuery.trim() && (
-            <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-lg p-4 text-center">
-              <p className="text-sm text-slate-400">No patients found</p>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* ═══════ REGISTRATION FORM ═══════ */}
       <form
         ref={formRef}
@@ -395,10 +277,7 @@ export default function PatientRegistrationForm() {
           <div className="col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
             <button
               type="submit"
-              className={`h-14 rounded-2xl font-bold text-lg transition-all active:scale-95 ${isEditMode
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100"
-                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100"
-                }`}
+              className={`h-14 rounded-2xl font-bold text-lg transition-all active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100`}
             >
               {isEditMode ? "Update Patient" : "Add Patient"}
             </button>

@@ -34,7 +34,7 @@ export async function searchMedicines(query: string): Promise<MedicineSearchResu
   const medicines = payload.data?.medicines ?? [];
 
   return medicines.map((medicine) => ({
-    medicine_id: String(medicine.id),
+    medicine_id: String(medicine.medicine_id ?? medicine.id),
     generic_name: medicine.generic_name,
     brand_name: medicine.brand_name,
     category: medicine.category,
@@ -42,19 +42,35 @@ export async function searchMedicines(query: string): Promise<MedicineSearchResu
     dosage_unit: medicine.dosage_unit,
     form: medicine.form,
     manufacturer: medicine.manufacturer,
-    stock_quantity: medicine.batch_stock_quantity ?? medicine.stock_quantity,
+    stock_quantity: medicine.total_stock_quantity ?? medicine.batch_stock_quantity ?? medicine.stock_quantity,
+    available_quantity: medicine.total_stock_quantity ?? medicine.batch_stock_quantity ?? medicine.stock_quantity,
+    availability_status:
+      (medicine.total_stock_quantity ?? medicine.batch_stock_quantity ?? medicine.stock_quantity ?? 0) <= 0
+        ? "out_of_stock"
+        : (medicine.total_stock_quantity ?? medicine.batch_stock_quantity ?? medicine.stock_quantity ?? 0) <= 5
+          ? "low_stock"
+          : "available",
+    availability_note:
+      (medicine.total_stock_quantity ?? medicine.batch_stock_quantity ?? medicine.stock_quantity ?? 0) <= 0
+        ? "Out of stock in pharmacy"
+        : undefined,
     price: medicine.batch_sale_price ?? medicine.price,
   }));
 }
 
 export async function createPrescription(
   patientId: string,
-  prescriptions: PrescriptionCreateItem[]
+  prescriptions: PrescriptionCreateItem[],
+  visitId?: string | null
 ) {
+  if (!visitId) {
+    throw new Error("Select a visit before submitting prescriptions");
+  }
+
   const res = await fetch("/api/doctor/prescriptions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ patient_id: patientId, prescriptions }),
+    body: JSON.stringify({ patient_id: patientId, visit_id: visitId, prescriptions }),
   });
 
   if (!res.ok) {

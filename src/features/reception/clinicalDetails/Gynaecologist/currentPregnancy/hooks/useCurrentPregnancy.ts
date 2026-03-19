@@ -13,12 +13,18 @@ export function useCurrentPregnancy(patientId: string | null, visitId: string | 
     if (!visitId) return null;
     try {
       const data = await api.getCurrentPregnancy(visitId);
-      setMode("update");
-      setStatusMessage(`Loaded current pregnancy details for visit #${visitId}.`);
+      if (data) {
+        setMode("update");
+        setStatusMessage(`Loaded current pregnancy details for visit #${visitId}.`);
+      } else {
+        setMode("create");
+        setStatusMessage(`No current pregnancy record found for visit #${visitId}.`);
+      }
       return data;
-    } catch {
+    } catch (err) {
       setMode("create");
-      setStatusMessage(`No current pregnancy record found for visit #${visitId}.`);
+      setStatusMessage(`Error loading current pregnancy details for visit #${visitId}.`);
+      console.error("Fetch Error:", err);
       return null;
     }
   }, [visitId]);

@@ -29,9 +29,9 @@ export type PatientVitalsForm = z.infer<typeof PatientVitalsSchema>;
 
 export function usePatientVitals() {
   const { patientId, selectedVisitId, setPatientId } = usePatient();
-  const [pId, setpId] = useState("");
   const [mode, setMode] = useState<"create" | "update">("create");
   const [statusMessage, setStatusMessage] = useState("Select a queued visit to record vitals.");
+  
   const {
     register,
     handleSubmit,
@@ -40,11 +40,6 @@ export function usePatientVitals() {
   } = useForm<PatientVitalsForm>({
     resolver: zodResolver(PatientVitalsSchema),
   });
-
-  useEffect(() => {
-    if (!patientId) return;
-    setpId(patientId);
-  }, [patientId]);
 
   const getPatientInfo = useCallback(async () => {
     reset({
@@ -65,7 +60,7 @@ export function usePatientVitals() {
       setStatusMessage(`Loaded vitals for visit #${selectedVisitId}.`);
       reset({
         ...data,
-        patient_id: patientId,
+        patient_id: patientId || "",
         visit_id: selectedVisitId,
       });
     } catch {
@@ -123,8 +118,6 @@ export function usePatientVitals() {
   }
 
   return {
-    pId,
-    setpId,
     patientId,
     selectedVisitId,
     setPatientId,

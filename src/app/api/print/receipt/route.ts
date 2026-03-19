@@ -19,23 +19,11 @@ export async function POST(request: NextRequest) {
       SELECT 
         ps.*,
         s.name as staff_name,
-        p.patient_name,
-        json_agg(
-          json_build_object(
-            'medicine_name', m.brand_name,
-            'generic_name', m.generic_name,
-            'qty', psd.quantity,
-            'unit_price', psd.unit_sale_price,
-            'discount_percent', psd.discount_percent,
-            'total_price', psd.line_total
-          )
-        ) as items
+        p.patient_name
       FROM pharmacy_sale ps
       LEFT JOIN staff s ON ps.handled_by = s.staff_id
       LEFT JOIN visit v ON ps.visit_id = v.visit_id
       LEFT JOIN patient p ON v.patient_id = p.patient_id
-      LEFT JOIN pharmacy_sale_detail psd ON ps.sale_id = psd.sale_id
-      LEFT JOIN medicine m ON psd.medicine_id = m.medicine_id
       WHERE ps.sale_id = $1
       GROUP BY ps.sale_id, s.name, p.patient_name
     `, [transactionId]);
@@ -48,6 +36,27 @@ export async function POST(request: NextRequest) {
     }
 
     const transaction = saleResult.rows[0];
+    const detailItemsResult = await query(`
+      SELECT
+        m.brand_name as medicine_name,
+        m.generic_name,
+        psd.quantity as qty,
+        psd.unit_sale_price as unit_price,
+        psd.discount_percent,
+        psd.line_total as total_price,
+        (
+          psd.batch_id IS NULL
+          AND (
+            psd.prescription_medicine_id IS NOT NULL
+            OR psd.reason_code IS NOT NULL
+            OR psd.reason_note IS NOT NULL
+          )
+        ) as is_override
+      FROM pharmacy_sale_detail psd
+      JOIN medicine m ON psd.medicine_id = m.medicine_id
+      WHERE psd.sale_id = $1
+    `, [transactionId]);
+    transaction.items = detailItemsResult.rows;
 
     // Get receipt config
     const configResult = await query(`

@@ -1,5 +1,6 @@
 export interface Medicine {
   id: number; // Standardized to match v_medicine_pos
+  medicine_id?: number;
   brand_name: string;
   generic_name: string; // Critical for medical accuracy
   barcode: string;
@@ -30,7 +31,26 @@ export interface Medicine {
   global_price?: number;
   total_stock_quantity?: number;
   total_stock_sub_quantity?: number;
+  min_stock_level?: number;
+  is_low_stock?: boolean;
+  is_out_of_stock?: boolean;
 }
+
+export type AvailabilityStatus =
+  | 'available'
+  | 'low_stock'
+  | 'out_of_stock'
+  | 'insufficient_stock'
+  | 'override_selected'
+  | 'fulfilled'
+  | 'override_fulfilled'
+  | 'not_fulfilled';
+
+export type OverrideReasonCode =
+  | 'purchased_from_other_store'
+  | 'later_came_in_stock'
+  | 'manual_local_arrangement'
+  | 'other';
 
 // Cart Item Types
 export interface CartItem {
@@ -45,6 +65,19 @@ export interface CartItem {
   lineTotal: number;
   batchId?: number;
   batchNumber?: string;
+  saleId?: number;
+  saleDetailId?: number;
+  prescriptionMedicineId?: number;
+  prescribedQuantity?: number;
+  alreadyDispensedQuantity?: number;
+  fulfillmentMode?: 'stock' | 'override';
+  availabilityStatus?: AvailabilityStatus;
+  availabilityNote?: string | null;
+  availableQuantity?: number;
+  isBillable?: boolean;
+  isInventoryBacked?: boolean;
+  overrideReasonCode?: OverrideReasonCode | null;
+  overrideReasonNote?: string | null;
 }
 
 // Payment Types
@@ -79,9 +112,13 @@ export interface Transaction {
   timestamp: Date;
   cashier: string;
   customer?: Customer;
+  customerId?: number;
   status: 'completed' | 'pending' | 'cancelled' | 'held';
   mode: POSMode;
   ref_sale_id?: number; // Link to original sale for returns
+  visitId?: number | null;
+  billId?: number | null;
+  prescriptionId?: number | null;
 }
 
 export interface Customer {
@@ -112,4 +149,63 @@ export interface ApiResponse<T> {
 export interface SearchResponse {
   medicines: Medicine[];
   total: number;
+}
+
+export interface PrescriptionSaleItem {
+  prescriptionMedicineId: number;
+  prescribedQuantity: number;
+  alreadyDispensedQuantity: number;
+  frequency: string | null;
+  duration: string | null;
+  instructions: string | null;
+  medicine: Medicine;
+  availableQuantity: number;
+  availabilityStatus: AvailabilityStatus;
+  availabilityNote?: string | null;
+}
+
+export interface PrescriptionUnavailableItem {
+  prescriptionMedicineId: number;
+  prescribedQuantity: number;
+  alreadyDispensedQuantity: number;
+  frequency: string | null;
+  duration: string | null;
+  instructions: string | null;
+  medicine: Medicine;
+  availableQuantity: number;
+  availabilityStatus: 'out_of_stock' | 'insufficient_stock';
+  availabilityNote?: string | null;
+}
+
+export interface PrescriptionSaleResponse {
+  visitId: number;
+  patientId: number;
+  billId: number | null;
+  prescriptionId: number;
+  clinicNumber: string | number | null;
+  visitType: string | null;
+  status: string | null;
+  availableItems: PrescriptionSaleItem[];
+  unavailableItems: PrescriptionUnavailableItem[];
+}
+
+export interface PatientSearchResult {
+  patient_id: number;
+  patient_name: string;
+  age: string | number | null;
+  gender: string | null;
+  cnic?: string | null;
+  contact_number?: string | null;
+  active_visit_count: number;
+}
+
+export interface ActiveVisitOption {
+  visit_id: number;
+  patient_id: number;
+  clinic_number: string | number | null;
+  visit_type: string;
+  status: string;
+  doctor_id: number;
+  doctor_name: string;
+  visit_timestamp: string;
 }

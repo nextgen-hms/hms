@@ -3,16 +3,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import PatientForm from "@/src/features/doctor/patientDetails/components/PatientForm";
 
-const { mockUsePatientForm } = vi.hoisted(() => ({
+const { mockUsePatientForm, mockUseDoctorWorkspace } = vi.hoisted(() => ({
   mockUsePatientForm: vi.fn(),
+  mockUseDoctorWorkspace: vi.fn(),
 }));
 
 vi.mock("@/src/features/doctor/patientDetails/hooks/usePatientForm", () => ({
   usePatientForm: () => mockUsePatientForm(),
 }));
 
+vi.mock("@/src/features/doctor/workspace/DoctorWorkspaceContext", () => ({
+  useDoctorWorkspace: () => mockUseDoctorWorkspace(),
+}));
+
 describe("doctor patient overview", () => {
   beforeEach(() => {
+    mockUseDoctorWorkspace.mockReturnValue({
+      staleVisitSelection: null,
+    });
     mockUsePatientForm.mockReturnValue({
       doctor: {
         doctor_id: 1,
@@ -41,6 +49,13 @@ describe("doctor patient overview", () => {
           reason: "High fever and cough for 2 days",
           status: "waiting",
           visit_timestamp: "2026-03-18T12:30:00.000Z",
+        },
+        encounterNote: {
+          visit_id: "47",
+          patient_id: "1",
+          doctor_id: "1",
+          reception_complaint: "High fever and cough for 2 days",
+          doctor_note: "Hydrate and monitor temperature",
         },
         vitals: {
           visit_id: "47",
@@ -92,8 +107,7 @@ describe("doctor patient overview", () => {
           category: "Analgesic",
           generic_name: "Paracetamol",
           brand_name: "Panadol",
-          dosage_value: 500,
-          dosage_unit: "mg",
+          dosage: "500 mg",
           form: "Tablet",
           prescribed_quantity: 10,
           dispensed_quantity: 10,
@@ -104,13 +118,13 @@ describe("doctor patient overview", () => {
           dispensed_by: "Pharmacy",
         },
       ],
-      reasonDraft: "High fever and cough for 2 days",
-      setReasonDraft: vi.fn(),
+      doctorNoteDraft: "Hydrate and monitor temperature",
+      setDoctorNoteDraft: vi.fn(),
       isLoading: false,
       isSaving: false,
       error: null,
-      saveVisitReason: vi.fn(),
-      toggleVisitStatus: vi.fn(),
+      saveDoctorNote: vi.fn(),
+      markVisitSeen: vi.fn(),
     });
   });
 
@@ -154,5 +168,19 @@ describe("doctor patient overview", () => {
         detail: { tab: "pharmacyOrder" },
       })
     );
+  });
+
+  it("shows a blocked stale-selection state when the selected visit disappears", () => {
+    mockUseDoctorWorkspace.mockReturnValue({
+      staleVisitSelection: {
+        visitId: "47",
+        message: "The selected visit is no longer available for active doctor work.",
+      },
+    });
+
+    render(<PatientForm />);
+
+    expect(screen.getByText("Selected visit is stale")).toBeTruthy();
+    expect(screen.getByText(/no longer available for active doctor work/i)).toBeTruthy();
   });
 });

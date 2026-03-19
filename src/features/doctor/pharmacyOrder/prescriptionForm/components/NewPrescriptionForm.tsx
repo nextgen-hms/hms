@@ -1,11 +1,13 @@
 "use client";
 
 import { usePatient } from "@/contexts/PatientIdContext";
+import { useDoctorWorkspace } from "@/src/features/doctor/workspace/DoctorWorkspaceContext";
 import { ClipboardCheck, Pill, Search, ShieldAlert, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { usePrescriptionForm } from "../hooks/usePrescriptionForm";
 import { DURATION_UNIT_OPTIONS, FREQUENCY_LABELS, FREQUENCY_OPTIONS } from "../types";
+import { StaleVisitNotice } from "../../../workspace/StaleVisitNotice";
 
 function getPrescriptionIssues(
   prescription: {
@@ -44,8 +46,41 @@ function inputTone(isDirty: boolean, hasIssue: boolean) {
   return "border-slate-200 bg-white text-slate-700 focus:border-emerald-300 focus:ring-emerald-500/10";
 }
 
+function getAvailabilityBadge(
+  status?: "available" | "low_stock" | "out_of_stock" | "insufficient_stock",
+  availableQuantity?: number
+) {
+  switch (status) {
+    case "out_of_stock":
+      return {
+        tone: "bg-rose-100 text-rose-700",
+        label: "Out of stock",
+        detail: "No pharmacy stock available",
+      };
+    case "insufficient_stock":
+      return {
+        tone: "bg-amber-100 text-amber-700",
+        label: "Insufficient stock",
+        detail: `${availableQuantity ?? 0} in stock`,
+      };
+    case "low_stock":
+      return {
+        tone: "bg-amber-100 text-amber-700",
+        label: "Low stock",
+        detail: `${availableQuantity ?? 0} in stock`,
+      };
+    default:
+      return {
+        tone: "bg-emerald-100 text-emerald-700",
+        label: "In stock",
+        detail: `${availableQuantity ?? 0} available`,
+      };
+  }
+}
+
 export default function NewPrescriptionForm() {
-  const { patientId } = usePatient();
+  const { patientId, selectedVisitId } = usePatient();
+  const { staleVisitSelection, selectedVisitStatus } = useDoctorWorkspace();
   const {
     formMethods,
     fields,
@@ -56,6 +91,7 @@ export default function NewPrescriptionForm() {
     isSearching,
     isSubmitting,
     isDraftValid,
+    isVisitActionable,
     isPrescriptionRowValid,
     addMedicine,
     remove,
@@ -144,7 +180,16 @@ export default function NewPrescriptionForm() {
     }
   };
 
-  if (!patientId) {
+  if (staleVisitSelection) {
+    return (
+      <StaleVisitNotice
+        title="Prescription entry is blocked"
+        message={`${staleVisitSelection.message} Choose a current queue visit before prescribing medicines.`}
+      />
+    );
+  }
+
+  if (!patientId || !selectedVisitId) {
     return (
       <section className="rounded-[1.1rem] border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
         <div className="flex min-h-[16rem] flex-col items-center justify-center gap-4 rounded-[1rem] border border-dashed border-slate-200 bg-slate-50/80 px-6 text-center">
@@ -154,7 +199,7 @@ export default function NewPrescriptionForm() {
               Select a patient before prescribing
             </h3>
             <p className="mt-2 max-w-md text-sm text-slate-500">
-              Search and add medicines only after a patient is selected from the queue.
+              Search and add medicines only after a patient visit is selected from the queue.
             </p>
           </div>
         </div>
@@ -188,7 +233,6 @@ export default function NewPrescriptionForm() {
               onKeyDown={handleSearchKeyDown}
               placeholder="Search medicines by category, generic, brand, or dosage"
               aria-label="Search medicines"
-              aria-expanded={searchQuery.trim().length > 0 && searchResults.length > 0}
               aria-controls="medicine-search-results"
               className="h-12 w-full rounded-[0.9rem] border border-slate-300 bg-white pl-12 pr-20 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10"
             />
@@ -210,6 +254,7 @@ export default function NewPrescriptionForm() {
                   {searchResults.map((medicine, index) => {
                     const isActive = index === activeSearchIndex;
                     const alreadyAdded = addedMedicineIds.has(String(medicine.medicine_id));
+                    const availability = getAvailabilityBadge(medicine.availability_status, medicine.available_quantity);
 
                     const detailParts = [
                       medicine.generic_name,
@@ -246,17 +291,18 @@ export default function NewPrescriptionForm() {
                                 {medicine.form}
                               </span>
                             )}
-                            {medicine.stock_quantity != null && (
-                              <span className="text-[11px] font-semibold text-slate-500">
-                                {medicine.stock_quantity} in stock
-                              </span>
-                            )}
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${availability.tone}`}>
+                              {availability.label}
+                            </span>
                           </div>
                           <div className="mt-1 truncate text-sm font-black tracking-tight text-slate-900">
                             {medicine.brand_name}
                           </div>
                           <div className="truncate text-xs text-slate-500">
                             {detailParts.join(" • ")}
+                          </div>
+                          <div className="mt-1 text-[11px] font-semibold text-slate-500">
+                            {availability.detail}
                           </div>
                         </div>
 
@@ -299,6 +345,15 @@ export default function NewPrescriptionForm() {
                     const isRowValid = isPrescriptionRowValid(current);
                     const issues = getPrescriptionIssues(current, isRowValid);
                     const dirtyRow = dirtyFields.prescriptions?.[index];
+                    const quantityAvailabilityStatus =
+                      (current.available_quantity ?? 0) <= 0
+                        ? "out_of_stock"
+                        : (current.prescribed_quantity ?? 0) > (current.available_quantity ?? 0)
+                          ? "insufficient_stock"
+                          : current.availability_status === "low_stock"
+                            ? "low_stock"
+                            : "available";
+                    const availability = getAvailabilityBadge(quantityAvailabilityStatus, current.available_quantity);
 
                     return (
                       <tr
@@ -316,6 +371,14 @@ export default function NewPrescriptionForm() {
                               {current.brand_name}
                             </div>
                             <div className="truncate text-xs text-slate-500">{current.generic_name}</div>
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${availability.tone}`}>
+                                {availability.label}
+                              </span>
+                              <span className="text-[11px] font-semibold text-slate-500">
+                                {availability.detail}
+                              </span>
+                            </div>
                             {!isRowValid && (
                               <div className="mt-1.5 flex flex-wrap gap-1.5" role="alert" aria-live="polite">
                                 {issues.map((issue) => (
@@ -435,13 +498,18 @@ export default function NewPrescriptionForm() {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !isDraftValid}
+              disabled={isSubmitting || !isDraftValid || !isVisitActionable}
               className="inline-flex h-10 items-center justify-center rounded-lg bg-emerald-600 px-5 text-sm font-black text-white shadow-[0_10px_24px_rgba(5,150,105,0.22)] transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               {isSubmitting ? "Prescribing..." : "Prescribe"}
             </button>
           </div>
         </div>
+        {!isVisitActionable && (
+          <div className="rounded-[0.95rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            This visit is no longer actionable for prescribing. Current status: {selectedVisitStatus ?? "unknown"}.
+          </div>
+        )}
       </form>
     </section>
   );

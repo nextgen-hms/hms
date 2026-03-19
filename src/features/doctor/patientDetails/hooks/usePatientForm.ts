@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { usePatient } from "@/contexts/PatientIdContext";
+import { useDoctorWorkspace } from "@/src/features/doctor/workspace/DoctorWorkspaceContext";
 import {
   PatientContextSummary,
   DoctorProfile,
@@ -12,12 +13,17 @@ import {
 import * as api from "../api";
 
 export function usePatientForm() {
-  const { patientId } = usePatient();
+  const { patientId, selectedVisitId } = usePatient();
+  const {
+    clearStaleVisitSelection,
+    setSelectedVisitStatus,
+    setStaleVisitSelection,
+  } = useDoctorWorkspace();
   const [doctor, setDoctor] = useState<DoctorProfile | null>(null);
   const [contextSummary, setContextSummary] = useState<PatientContextSummary | null>(null);
   const [recentVisits, setRecentVisits] = useState<RecentVisit[]>([]);
   const [recentPrescriptions, setRecentPrescriptions] = useState<RecentPrescription[]>([]);
-  const [reasonDraft, setReasonDraft] = useState("");
+  const [doctorNoteDraft, setDoctorNoteDraft] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,12 +43,14 @@ export function usePatientForm() {
 
   useEffect(() => {
     async function loadPatientContext() {
-      if (!patientId) {
+      if (!patientId || !selectedVisitId) {
         setContextSummary(null);
         setRecentVisits([]);
         setRecentPrescriptions([]);
-        setReasonDraft("");
+        setDoctorNoteDraft("");
         setError(null);
+        setSelectedVisitStatus(null);
+        clearStaleVisitSelection();
         return;
       }
 
@@ -51,7 +59,7 @@ export function usePatientForm() {
 
       try {
         const [summary, visits, prescriptions] = await Promise.all([
-          api.fetchPatientContextSummary(patientId),
+          api.fetchPatientContextSummary(patientId, selectedVisitId),
           api.fetchPastVisits(patientId).catch(() => []),
           api.fetchPreviousPrescriptions(patientId).catch(() => []),
         ]);
@@ -61,7 +69,9 @@ export function usePatientForm() {
           visits.filter((item) => item.visit_id !== summary.activeVisit.visit_id).slice(0, 3)
         );
         setRecentPrescriptions(prescriptions.slice(0, 4));
-        setReasonDraft(summary.activeVisit.reason ?? "");
+        setDoctorNoteDraft(summary.encounterNote?.doctor_note ?? "");
+        setSelectedVisitStatus(summary.activeVisit.status);
+        clearStaleVisitSelection();
       } catch (err) {
         console.error(err);
         const message =
@@ -69,49 +79,67 @@ export function usePatientForm() {
         setContextSummary(null);
         setRecentVisits([]);
         setRecentPrescriptions([]);
-        setReasonDraft("");
+        setDoctorNoteDraft("");
         setError(message);
+
+        if (message.toLowerCase().includes("visit not found")) {
+          setSelectedVisitStatus(null);
+          setStaleVisitSelection({
+            visitId: selectedVisitId,
+            message:
+              "The selected visit is no longer available for active doctor work. Refresh the queue or choose another visit.",
+          });
+          return;
+        }
+
+        setSelectedVisitStatus(null);
       } finally {
         setIsLoading(false);
       }
     }
 
     loadPatientContext();
-  }, [patientId]);
+  }, [
+    clearStaleVisitSelection,
+    patientId,
+    selectedVisitId,
+    setSelectedVisitStatus,
+    setStaleVisitSelection,
+  ]);
 
-  async function saveVisitReason() {
+  async function saveDoctorNote() {
     if (!contextSummary?.activeVisit) return;
 
     setIsSaving(true);
     try {
-      const updatedVisit = await api.patchVisitInfo(contextSummary.activeVisit.visit_id, {
-        reason: reasonDraft,
-      });
+      const encounterNote = await api.saveDoctorEncounterNote(
+        contextSummary.activeVisit.visit_id,
+        doctorNoteDraft
+      );
 
       setContextSummary((current) =>
         current
           ? {
               ...current,
-              activeVisit: { ...current.activeVisit, ...updatedVisit },
+              encounterNote,
             }
           : current
       );
-      toast.success("Visit details updated");
+      toast.success("Doctor note updated");
     } catch (err) {
       console.error(err);
-      toast.error(err instanceof Error ? err.message : "Failed to update visit");
+      toast.error(err instanceof Error ? err.message : "Failed to save doctor note");
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function toggleVisitStatus(nextSeen: boolean) {
+  async function markVisitSeen() {
     if (!contextSummary?.activeVisit) return;
 
     setIsSaving(true);
     try {
-      const nextStatus = nextSeen ? "seen_by_doctor" : "waiting";
-      const response = await api.updateVisitStatus(contextSummary.activeVisit.visit_id, nextStatus);
+      const response = await api.updateVisitStatus(contextSummary.activeVisit.visit_id);
       setContextSummary((current) =>
         current
           ? {
@@ -120,6 +148,7 @@ export function usePatientForm() {
             }
           : current
       );
+      setSelectedVisitStatus(response.visit.status);
       window.dispatchEvent(new Event("refresh-queue"));
       toast.success("Visit status updated");
     } catch (err) {
@@ -135,12 +164,12 @@ export function usePatientForm() {
     contextSummary,
     recentVisits,
     recentPrescriptions,
-    reasonDraft,
-    setReasonDraft,
+    doctorNoteDraft,
+    setDoctorNoteDraft,
     isLoading,
     isSaving,
     error,
-    saveVisitReason,
-    toggleVisitStatus,
+    saveDoctorNote,
+    markVisitSeen,
   };
 }

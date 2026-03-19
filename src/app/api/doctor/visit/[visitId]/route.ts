@@ -1,6 +1,46 @@
 import { query } from "@/database/db";
 import { getAuthenticatedDoctor } from "@/src/lib/server/doctor";
+import { getDoctorVisitContext } from "@/src/lib/server/doctorWorkspace";
 import { NextRequest, NextResponse } from "next/server";
+
+function getDoctorRouteErrorStatus(message: string) {
+  if (message === "Not authenticated") {
+    return 401;
+  }
+
+  if (message.includes("not found")) {
+    return 404;
+  }
+
+  if (message.includes("no longer actionable")) {
+    return 409;
+  }
+
+  return 403;
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ visitId: string }> }
+) {
+  try {
+    const doctor = await getAuthenticatedDoctor(req);
+    const { visitId } = await params;
+
+    const context = await getDoctorVisitContext(query as typeof query, {
+      doctorId: doctor.doctor_id,
+      visitId: Number(visitId),
+    });
+
+    return NextResponse.json(context, { status: 200 });
+  } catch (error) {
+    console.error(error);
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch doctor visit context";
+    const status = getDoctorRouteErrorStatus(message);
+    return NextResponse.json({ error: message }, { status });
+  }
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -13,11 +53,6 @@ export async function PATCH(
 
     const fields: string[] = [];
     const values: Array<string | number> = [];
-
-    if (typeof body.reason === "string") {
-      fields.push(`reason = $${fields.length + 1}`);
-      values.push(body.reason.trim());
-    }
 
     if (typeof body.visit_type === "string") {
       fields.push(`visit_type = $${fields.length + 1}`);
@@ -62,7 +97,7 @@ export async function PATCH(
     console.error(error);
     const message =
       error instanceof Error ? error.message : "Failed to update doctor visit";
-    const status = message === "Not authenticated" ? 401 : 403;
+    const status = getDoctorRouteErrorStatus(message);
     return NextResponse.json({ error: message }, { status });
   }
 }

@@ -9,6 +9,8 @@ interface CartTableProps {
   onSelectItem: (itemId: string | null) => void;
   onUpdateItem: (itemId: string, updates: Partial<CartItemType>) => void;
   onRemoveItem: (itemId: string) => void;
+  prescriptionMode?: boolean;
+  onResolveUnavailable?: (item: CartItemType) => void;
 }
 
 export const CartTable: React.FC<CartTableProps> = ({
@@ -17,6 +19,8 @@ export const CartTable: React.FC<CartTableProps> = ({
   onSelectItem,
   onUpdateItem,
   onRemoveItem,
+  prescriptionMode = false,
+  onResolveUnavailable,
 }) => {
   return (
     <div className="flex flex-col flex-1 bg-white/50 backdrop-blur-xl border border-slate-200/50 rounded-2xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
@@ -35,6 +39,8 @@ export const CartTable: React.FC<CartTableProps> = ({
               onSelect={() => onSelectItem(item.id)}
               onUpdate={(updates) => onUpdateItem(item.id, updates)}
               onRemove={() => onRemoveItem(item.id)}
+              prescriptionMode={prescriptionMode}
+              onResolveUnavailable={onResolveUnavailable}
             />
           ))
         )}

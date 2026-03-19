@@ -2,18 +2,36 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/database/db';
 import { ApiResponse, Transaction } from '@/src/lib/types';
 import { generateReference, getCurrentStaffId } from '@/src/lib/utils';
+import { StockValidationError, validateInventoryItemsForSale } from './stockValidation';
+
+function getLivePrescriptionAvailabilityStatus(availableQuantity: number, isOverride: boolean) {
+  if (isOverride) {
+    return 'override_fulfilled' as const;
+  }
+
+  if (availableQuantity <= 0) {
+    return 'out_of_stock' as const;
+  }
+
+  if (availableQuantity <= 5) {
+    return 'low_stock' as const;
+  }
+
+  return 'available' as const;
+}
 
 export async function POST(request: NextRequest) {
   const client = await pool.connect();
 
   try {
     const transaction: Transaction = await request.json();
+    const billableItems = transaction.items?.filter((item) => item.isBillable !== false) ?? [];
 
     // Validate request
-    if (!transaction.items || transaction.items.length === 0) {
+    if (!transaction.items || transaction.items.length === 0 || billableItems.length === 0) {
       return NextResponse.json<ApiResponse>({
         success: false,
-        error: 'Transaction must contain at least one item'
+        error: 'Transaction must contain at least one billable item'
       }, { status: 400 });
     }
 
@@ -23,6 +41,64 @@ export async function POST(request: NextRequest) {
     // Generate reference if not provided
     const reference = transaction.reference || generateReference();
     const staffId = getCurrentStaffId();
+
+    let resolvedBillId = transaction.billId || null;
+
+    if (transaction.prescriptionId && !transaction.visitId) {
+      await client.query('ROLLBACK');
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: 'Prescription sales must include a visitId'
+      }, { status: 400 });
+    }
+
+    if (transaction.prescriptionId) {
+      const prescriptionLinkResult = await client.query(`
+        SELECT prescription_id, visit_id
+        FROM prescription
+        WHERE prescription_id = $1
+        LIMIT 1
+      `, [transaction.prescriptionId]);
+
+      if (prescriptionLinkResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: 'Prescription not found'
+        }, { status: 404 });
+      }
+
+      const linkedVisitId = Number(prescriptionLinkResult.rows[0].visit_id);
+      if (Number(transaction.visitId) !== linkedVisitId) {
+        await client.query('ROLLBACK');
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: 'Prescription does not belong to the supplied visit'
+        }, { status: 400 });
+      }
+
+      if (!resolvedBillId) {
+        const billResult = await client.query(`
+          SELECT bill_id
+          FROM bill
+          WHERE visit_id = $1
+          LIMIT 1
+        `, [linkedVisitId]);
+
+        resolvedBillId = billResult.rows[0]?.bill_id || null;
+      }
+
+      const hasInvalidItems = billableItems.some((item) => !('prescriptionMedicineId' in item) || !(item as any).prescriptionMedicineId);
+      if (hasInvalidItems) {
+        await client.query('ROLLBACK');
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: 'Prescription sales must keep item linkage to prescription medicines'
+        }, { status: 400 });
+      }
+    }
+
+    await validateInventoryItemsForSale(client, transaction.items);
 
     // Insert into pharmacy_sale
     const saleResult = await client.query(`
@@ -46,7 +122,7 @@ export async function POST(request: NextRequest) {
       RETURNING sale_id, sale_timestamp
     `, [
       transaction.visitId || null,
-      transaction.billId || null,
+      resolvedBillId,
       staffId,
       transaction.payment.payableAmount,
       'Completed',
@@ -67,14 +143,21 @@ export async function POST(request: NextRequest) {
 
 
     // Insert sale details
-    for (const item of transaction.items) {
+    for (const item of billableItems) {
+      const isOverride = item.isInventoryBacked === false || item.fulfillmentMode === 'override';
       const subUnitsPerUnit = (item.medicine as any).sub_units_per_unit || 1;
       const subUnitPrice = item.medicine.batch_sale_sub_unit_price
         || (item.medicine as any).sub_unit_price
         || (item.price / subUnitsPerUnit);
+      const requestedUnits = Number(item.quantity || 0);
+      const liveAvailableQuantity = Math.max(
+        isOverride ? Number(item.availableQuantity || 0) : Number(item.availableQuantity || 0) - requestedUnits,
+        0
+      );
+      const liveAvailabilityStatus = getLivePrescriptionAvailabilityStatus(liveAvailableQuantity, isOverride);
 
-      const itemTotalBeforeDiscount = (item.quantity * item.price) + (item.subQuantity * subUnitPrice);
-      const discountAmount = Number(((itemTotalBeforeDiscount * item.discountPercent) / 100).toFixed(2));
+      const itemTotalBeforeDiscount = (item.quantity * item.price) + ((item.subQuantity || 0) * subUnitPrice);
+      const discountAmount = Number(((itemTotalBeforeDiscount * (item.discountPercent || 0)) / 100).toFixed(2));
       const lineTotal = Number((itemTotalBeforeDiscount - discountAmount).toFixed(2));
 
       await client.query(`
@@ -88,19 +171,111 @@ export async function POST(request: NextRequest) {
           sub_unit_sale_price,
           discount_percent,
           discount_amount,
-          line_total
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          line_total,
+          prescription_medicine_id,
+          reason_code,
+          reason_note,
+          handled_by
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       `, [
         saleId,
-        item.medicine.id,
-        item.batchId || null,
+        item.medicine.medicine_id ?? item.medicine.id,
+        isOverride ? null : (item.batchId || null),
         item.quantity,
-        item.subQuantity,
+        item.subQuantity || 0,
         item.price,
         subUnitPrice,
-        item.discountPercent,
+        item.discountPercent || 0,
         discountAmount,
-        lineTotal
+        lineTotal,
+        (item as any).prescriptionMedicineId || null,
+        isOverride ? (item.overrideReasonCode || 'other') : null,
+        isOverride ? (item.overrideReasonNote || null) : null,
+        isOverride ? staffId : null,
+      ]);
+
+      if (isOverride && (item as any).prescriptionMedicineId) {
+        await client.query(`
+          INSERT INTO prescription_fulfillment_action (
+            prescription_medicine_id,
+            prescription_id,
+            visit_id,
+            patient_id,
+            available_quantity_at_action,
+            action_type,
+            reason_code,
+            reason_note,
+            override_sale_price,
+            override_quantity,
+            handled_by
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        `, [
+          (item as any).prescriptionMedicineId,
+          transaction.prescriptionId || null,
+          transaction.visitId || null,
+          transaction.customerId || null,
+          item.availableQuantity || 0,
+          item.overrideReasonCode === 'later_came_in_stock'
+            ? 'override_billed_late_stock'
+            : 'override_billed_external_source',
+          item.overrideReasonCode || 'other',
+          item.overrideReasonNote || null,
+          item.price,
+          item.quantity,
+          staffId,
+        ]);
+      }
+
+      if (transaction.prescriptionId && (item as any).prescriptionMedicineId) {
+        await client.query(`
+          UPDATE prescription_medicines
+          SET
+            dispensed_by = $1,
+            dispensed_quantity = $2,
+            dispensed_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP,
+            available_quantity_snapshot = $5,
+            availability_status = $6
+          WHERE prescription_medicine_id = $3
+            AND prescription_id = $4
+        `, [
+          staffId,
+          item.quantity,
+          (item as any).prescriptionMedicineId,
+          transaction.prescriptionId,
+          liveAvailableQuantity,
+          liveAvailabilityStatus
+        ]);
+      }
+    }
+
+    const nonBillablePrescriptionItems = transaction.items.filter(
+      (item) => item.isBillable === false && !!item.prescriptionMedicineId
+    );
+
+    for (const item of nonBillablePrescriptionItems) {
+      await client.query(`
+        INSERT INTO prescription_fulfillment_action (
+          prescription_medicine_id,
+          prescription_id,
+          visit_id,
+          patient_id,
+          available_quantity_at_action,
+          action_type,
+          reason_code,
+          reason_note,
+          handled_by
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      `, [
+        item.prescriptionMedicineId,
+        transaction.prescriptionId || null,
+        transaction.visitId || null,
+        transaction.customerId || null,
+        item.availableQuantity || 0,
+        'not_fulfilled',
+        item.availabilityStatus || 'out_of_stock',
+        item.availabilityNote || null,
+        staffId,
       ]);
     }
 
@@ -116,8 +291,15 @@ export async function POST(request: NextRequest) {
       staffId,
       'SALE_COMPLETED',
       saleId,
-      `Completed sale ${reference} with ${transaction.items.length} items`
+      `Completed sale ${reference} with ${billableItems.length} billable item(s)`
     ]);
+
+    if (transaction.prescriptionId && transaction.visitId) {
+      await client.query(
+        `call update_and_log_visit_status($1,$2,$3,$4)`,
+        [transaction.visitId, 'medicines_dispensed', null, staffId]
+      );
+    }
 
     // Commit transaction
     await client.query('COMMIT');
@@ -137,6 +319,14 @@ export async function POST(request: NextRequest) {
     // Rollback on error
     await client.query('ROLLBACK');
     console.error('Transaction error:', error);
+
+    if (error instanceof StockValidationError) {
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: error.message,
+        data: error.details as any,
+      }, { status: error.status });
+    }
 
     return NextResponse.json<ApiResponse>({
       success: false,

@@ -25,47 +25,56 @@ export default function ParaDetailsForm() {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto h-full flex flex-col">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-emerald-200">
-            🔢
+    <div className="w-full flex flex-col">
+      {/* Action Header */}
+      {/* Premium Status Header */}
+      <div className="flex items-center justify-between mb-8 gap-4">
+        <div className={`flex-1 flex items-center justify-between gap-4 px-5 py-3 rounded-2xl border transition-all duration-500 ease-in-out ${
+          hasExistingRecords 
+            ? "border-emerald-200 bg-emerald-50/20 text-emerald-800 shadow-sm shadow-emerald-900/5" 
+            : "border-slate-200 bg-slate-50/40 text-slate-600 shadow-sm"
+        }`}>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+               <div className={`size-2.5 rounded-full ${hasExistingRecords ? "bg-emerald-500" : "bg-slate-300"}`}  />
+               {hasExistingRecords && <div className="absolute inset-0 size-2.5 rounded-full bg-emerald-400 animate-ping opacity-75" />}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-widest leading-none mb-0.5">
+                {hasExistingRecords ? "Pregnancy Ledger Synced" : "Multi-Record Initialization"}
+              </span>
+              <span className="text-[11px] font-bold opacity-80 leading-none">
+                {statusMessage}
+              </span>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Para Details</h2>
-            <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Childbirth History Records</p>
+          <div className="flex items-center gap-2">
+            <span className={`px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-tighter ${
+              hasExistingRecords 
+                ? "bg-emerald-100/50 border-emerald-200 text-emerald-700" 
+                : "bg-white border-slate-200 text-slate-500"
+            }`}>
+              {hasExistingRecords ? "Batch Update Active" : "Fresh Batch Entry"}
+            </span>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="px-4 py-2 bg-slate-100/80 backdrop-blur-sm rounded-xl border border-slate-200">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">Obstetric History ID</span>
-            <span className="text-sm font-bold text-slate-700">#{obstetricHistoryId || 'New'}</span>
-          </div>
-          <button
-            type="button"
-            onClick={addNewPara}
-            className="h-11 px-6 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg active:scale-95 flex items-center gap-2"
-          >
-            <span>➕</span> Add Record
-          </button>
-        </div>
+        
+        <button
+          type="button"
+          onClick={addNewPara}
+          className="h-11 px-6 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-900/20 active:scale-95 flex items-center gap-2 shrink-0 group"
+        >
+          <span className="text-sm group-hover:rotate-90 transition-transform duration-300">+</span> 
+          Add Pregnancy Record
+        </button>
       </div>
 
-      <div className={`mb-6 rounded-2xl border px-4 py-3 text-sm font-medium ${hasExistingRecords ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
-        <div className="flex items-center justify-between gap-3">
-          <span>{statusMessage}</span>
-          <span className="shrink-0 rounded-xl bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-widest">
-            {hasExistingRecords ? "Update Mode" : "Create Mode"}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex-1 min-h-0  overflow-y-auto custom-scrollbar pr-2 space-y-8 pb-32">
+      <div className="space-y-6 pb-20">
         {fields.map((field, index) => (
-          <div key={field.id} className="relative bg-white/50 backdrop-blur-sm border border-slate-200 rounded-[2rem] p-8 shadow-sm group hover:shadow-md transition-all">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-black text-slate-700 flex items-center gap-3">
-                <span className="h-8 w-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-black text-slate-500">
+          <div key={field.id} className="relative bg-white/40 backdrop-blur-sm border border-slate-100 rounded-[1.5rem] p-6 shadow-sm group hover:shadow-md transition-all hover:bg-white/60">
+            <div className="flex items-center justify-between mb-4 border-b border-slate-100/50 pb-3">
+              <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-3">
+                <span className="size-6 bg-slate-800 text-white rounded-lg flex items-center justify-center text-[10px] font-black shadow-lg shadow-slate-900/10">
                   {index + 1}
                 </span>
                 Para Record Details
@@ -73,13 +82,13 @@ export default function ParaDetailsForm() {
               <button
                 type="button"
                 onClick={() => remove(index)}
-                className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
+                className="size-7 flex items-center justify-center rounded-lg text-slate-300 hover:bg-red-50 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-red-100"
               >
                 🗑️
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3">
               <InputField
                 label="Birth Year"
                 placeholder="Ex: 2020"
@@ -108,35 +117,33 @@ export default function ParaDetailsForm() {
                 <option value="AssistedVD">Assisted Vd</option>
               </InputField>
               <InputField
-                label="Is Child Alive?"
+                label="Status"
                 as="select"
                 {...register(`para.${index}.alive`)}
               >
-                <option value="true">Yes</option>
-                <option value="false">No</option>
+                <option value="true">Alive</option>
+                <option value="false">Not Alive</option>
               </InputField>
               <InputField
-                label="Birth Weight (Grams)"
+                label="Weight (g)"
                 placeholder="Ex: 3200"
                 {...register(`para.${index}.birth_weight_grams`)}
               />
               <InputField
-                label="Gestational Age (Weeks)"
+                label="Gest. Age (w)"
                 placeholder="Ex: 38"
                 {...register(`para.${index}.gestational_age_weeks`)}
               />
-              <div className="md:col-span-2">
+              <InputField
+                label="Complications"
+                placeholder="Specify if any"
+                {...register(`para.${index}.complications`)}
+              />
+              <div className="md:col-span-full">
                 <InputField
-                  label="Complications"
-                  placeholder="Specify any birth complications..."
-                  {...register(`para.${index}.complications`)}
-                />
-              </div>
-              <div className="md:col-span-3 lg:col-span-3">
-                <InputField
-                  label="Notes"
+                  label="Clinical Notes"
                   as="textarea"
-                  placeholder="General history notes, congenital issues, etc..."
+                  placeholder="Notes, congenital issues, etc..."
                   {...register(`para.${index}.notes`)}
                 />
               </div>
@@ -146,20 +153,22 @@ export default function ParaDetailsForm() {
         ))}
 
         {fields.length === 0 && (
-          <div className="h-64 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-[2rem] opacity-40">
-            <span className="text-6xl mb-4">📭</span>
-            <p className="text-lg font-black text-slate-400 uppercase tracking-tighter">No Para records added yet</p>
+          <div className="h-40 flex flex-col items-center justify-center border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/30 text-slate-300">
+            <span className="text-4xl mb-2 opacity-50">📭</span>
+            <p className="text-[10px] font-black uppercase tracking-widest">No records added yet</p>
           </div>
         )}
       </div>
 
-      <div className="sticky bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-slate-100 flex items-center justify-end gap-4 z-10">
-        <FormButton
-          text={hasExistingRecords ? "Update Information" : "Submit All"}
-          variant="primary"
-          onClick={handleSubmit(hasExistingRecords ? updateParaData : addPara)}
-        />
-      </div>
+      {fields.length > 0 && (
+         <div className="fixed bottom-10 right-10 z-50">
+           <FormButton
+             text={hasExistingRecords ? "Update All Records" : "Submit Pregnancy History"}
+             variant="primary"
+             onClick={handleSubmit(hasExistingRecords ? updateParaData : addPara)}
+           />
+         </div>
+      )}
     </div>
   );
 }
@@ -167,8 +176,8 @@ export default function ParaDetailsForm() {
 function InputField({ label, err, as = "input", children, placeholder, autoComplete = "off", ...rest }: any) {
   const Component = as;
   return (
-    <div className="space-y-1 group">
-      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 group-focus-within:text-emerald-600 transition-colors">
+    <div className="space-y-0.5 group">
+      <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 group-focus-within:text-emerald-600 transition-colors">
         {label}
       </label>
       <div className="relative">
@@ -176,24 +185,24 @@ function InputField({ label, err, as = "input", children, placeholder, autoCompl
           placeholder={placeholder}
           autoComplete={autoComplete}
           rows={as === "textarea" ? 2 : undefined}
-          className={`w-full ${as === "textarea" ? "py-3 min-h-[80px]" : "h-11"} px-4 bg-slate-50 border rounded-xl text-xs font-bold transition-all outline-none resize-none
+          className={`w-full ${as === "textarea" ? "py-2 min-h-[60px]" : "h-9"} px-3 bg-white/50 border rounded-xl text-[11px] font-bold transition-all outline-none resize-none
             ${err
               ? "border-red-200 bg-red-50 text-red-900 placeholder:text-red-300"
-              : "border-slate-200 text-slate-700 placeholder:text-slate-400 focus:bg-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10"
+              : "border-slate-100 text-slate-700 placeholder:text-slate-400 focus:bg-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 shadow-sm"
             }`}
           {...rest}
         >
           {children}
         </Component>
       </div>
-      {err && <p className="text-[9px] font-bold text-red-500 ml-2">{err}</p>}
+      {err && <p className="text-[9px] font-bold text-red-500 ml-1.5 mt-0.5">{err}</p>}
     </div>
   );
 }
 
 function FormButton({ text, onClick, variant = "primary" }: { text: string; onClick?: () => void; variant?: "primary" | "secondary" | "ghost" }) {
   const styles = {
-    primary: "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200",
+    primary: "bg-slate-900 text-white hover:bg-black shadow-xl shadow-slate-900/20",
     secondary: "bg-white text-emerald-600 border border-emerald-200 hover:bg-emerald-50 shadow-emerald-200/50",
     ghost: "bg-transparent text-slate-400 hover:bg-slate-50 hover:text-slate-600",
   };
@@ -202,9 +211,10 @@ function FormButton({ text, onClick, variant = "primary" }: { text: string; onCl
     <button
       type="button"
       onClick={onClick}
-      className={`h-11 px-8 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 shadow-lg active:scale-95 ${styles[variant]}`}
+      className={`h-11 px-8 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 active:scale-95 flex items-center gap-3 ${styles[variant]}`}
     >
       {text}
+      <span className="size-5 bg-white/10 rounded-lg flex items-center justify-center text-xs">→</span>
     </button>
   );
 }

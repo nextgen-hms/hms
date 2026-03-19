@@ -13,9 +13,10 @@ export async function fetchAllLabTests(): Promise<LabTest[]> {
 // Create a new lab order
 export async function createLabOrder(
   patientId: string,
+  visitId: string,
   tests: { test_id?: string; urgency?: string }[]
 ) {
-  const payload = { patient_id: patientId, tests };
+  const payload = { patient_id: patientId, visit_id: visitId, tests };
   const res = await fetch("/api/doctor/lab-orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

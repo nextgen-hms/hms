@@ -33,11 +33,11 @@ export default function PreviousPrescriptions() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
-              Medication History
+              Prescriptions by you
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <h3 className="text-xl font-black tracking-tight text-slate-900">
-                Previous prescriptions
+                Prescriptions by you
               </h3>
               <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
                 {patientId ? `${prescriptions.length} recent lines` : "Waiting for patient"}
@@ -151,7 +151,7 @@ export default function PreviousPrescriptions() {
                           Dose
                         </div>
                         <div className="mt-1 font-semibold">
-                          {item.dosage_value} {item.dosage_unit}
+                          {item.dosage || "-"}
                         </div>
                       </div>
                       <div>

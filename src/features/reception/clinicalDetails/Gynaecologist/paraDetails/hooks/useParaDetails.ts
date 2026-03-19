@@ -22,22 +22,28 @@ export function useParaDetails() {
   const fetchObstetricHistoryId = useCallback(async () => {
     try {
       const data = await api.getObstetricHistoryId(patientId!);
-      setObstetricHistoryId(data.obstetric_history_id);
-      if (data.para && data.para.length > 0) {
-        reset({ para: data.para });
-        setHasExistingRecords(true);
-        setStatusMessage("Existing para details loaded.");
-        toast.success("Fetched para details successfully");
+      if (data) {
+        setObstetricHistoryId(data.obstetric_history_id);
+        if (data.para && data.para.length > 0) {
+          reset({ para: data.para });
+          setHasExistingRecords(true);
+          setStatusMessage("Existing para details loaded.");
+        } else {
+          reset({ para: [] });
+          setHasExistingRecords(false);
+          setStatusMessage("No para details exist yet for this patient.");
+        }
       } else {
+        setObstetricHistoryId(null);
         reset({ para: [] });
         setHasExistingRecords(false);
-        setStatusMessage("No para details exist yet for this patient.");
+        setStatusMessage("Create obstetric history first to manage para details.");
       }
     } catch (err: any) {
-      toast.error(err.message);
       reset({ para: [] });
       setHasExistingRecords(false);
-      setStatusMessage("Create obstetric history first to manage para details.");
+      setStatusMessage("Error loading obstetric history context.");
+      console.error("Fetch Error:", err);
     }
   }, [patientId, reset]);
 

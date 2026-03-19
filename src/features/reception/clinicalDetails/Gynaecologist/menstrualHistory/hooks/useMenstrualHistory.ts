@@ -10,14 +10,18 @@ export const useMenstrualHistory = (patientId: string | null, reset: (data: any)
     if (!patientId) return;
     try {
       const data = await getMenstrualHistory(patientId);
-      setHasRecord(true);
-      setStatusMessage("Existing menstrual history loaded.");
-      toast.success("Successfully fetched menstrual history");
-      reset(data);
+      if (data) {
+        setHasRecord(true);
+        setStatusMessage("Existing menstrual history loaded.");
+        reset(data);
+      } else {
+        setHasRecord(false);
+        setStatusMessage("No menstrual history exists yet for this patient.");
+      }
     } catch (err: any) {
-      console.error(err);
       setHasRecord(false);
-      setStatusMessage("No menstrual history exists yet for this patient.");
+      setStatusMessage("Failed to load menstrual history.");
+      console.error("Fetch Error:", err);
     }
   }, [patientId, reset]);
 

@@ -1,4 +1,5 @@
 import { CartItem, PaymentDetails, Medicine } from './types';
+import { validateRequestedStock } from './stock';
 
 /**
  * Calculate line total for a cart item
@@ -28,9 +29,10 @@ export const calculatePaymentDetails = (
   globalDiscountPercent: number = 0,
   paidAmount: number = 0
 ): PaymentDetails => {
-  const itemsTotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
+  const billableItems = items.filter((item) => item.isBillable !== false);
+  const itemsTotal = billableItems.reduce((sum, item) => sum + item.lineTotal, 0);
 
-  const itemsDiscount = items.reduce((sum, item) => {
+  const itemsDiscount = billableItems.reduce((sum, item) => {
     const subUnitsPerUnit = item.medicine.sub_units_per_unit || 1;
     const subUnitPrice = item.medicine.batch_sale_sub_unit_price ?? item.medicine.sub_unit_price ?? (item.price / subUnitsPerUnit);
     const totalBeforeDiscount = (item.quantity * item.price) + (item.subQuantity * subUnitPrice);
@@ -88,44 +90,13 @@ export const validateStockClientSide = (
   totalAvailable?: number;
   totalRequested?: number;
 } => {
-
-  const subUnitsPerUnit = medicine.sub_units_per_unit || 1;
-
-  // Use batch stock if it's a batch-specific medicine object, otherwise use global stock
-  const availableQty = medicine.batch_stock_quantity ?? medicine.stock_quantity;
-  const availableSubQty = medicine.batch_stock_sub_quantity ?? medicine.stock_sub_quantity;
-
-  const totalAvailable =
-    (availableQty * subUnitsPerUnit) + (availableSubQty || 0);
-
-  const totalRequested =
-    (requestedQty * subUnitsPerUnit) + requestedSubQty;
-
-  if (totalRequested > totalAvailable) {
-    const totalShortage = totalRequested - totalAvailable;
-    const shortageQty = Math.floor(totalShortage / subUnitsPerUnit);
-    const shortageSubQty = totalShortage % subUnitsPerUnit;
-
-    const availableDisplay = availableSubQty > 0
-      ? `${availableQty} ${medicine.form || 'units'} + ${availableSubQty} ${medicine.sub_unit || 'sub-units'}`
-      : `${availableQty} ${medicine.form || 'units'}`;
-
-    const shortageDisplay = shortageSubQty > 0
-      ? `${shortageQty} ${medicine.form || 'units'} + ${shortageSubQty} ${medicine.sub_unit || 'sub-units'}`
-      : `${shortageQty} ${medicine.form || 'units'}`;
-
-    return {
-      valid: false,
-      message: `Insufficient stock${medicine.batch_number ? ' for batch ' + medicine.batch_number : ''}. Available: ${availableDisplay}. Short by: ${shortageDisplay}`,
-      totalAvailable,
-      totalRequested
-    };
-  }
+  const result = validateRequestedStock(medicine, requestedQty, requestedSubQty);
 
   return {
-    valid: true,
-    totalAvailable,
-    totalRequested
+    valid: result.valid,
+    message: result.message,
+    totalAvailable: result.available.totalSubUnits,
+    totalRequested: result.requested.totalSubUnits
   };
 };
 

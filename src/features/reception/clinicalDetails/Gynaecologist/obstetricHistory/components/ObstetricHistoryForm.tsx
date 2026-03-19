@@ -17,30 +17,42 @@ export default function ObstetricHistoryForm() {
   const { addInfo, updateInfo, hasRecord, statusMessage } = useObstetricHistory(patientId, reset);
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
-      <div className="flex items-center gap-4 mb-8">
-        <div className="h-12 w-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-emerald-200">
-          📋
+    <div className="w-full">
+      {/* Premium Status Header */}
+      <div className={`mb-6 flex items-center justify-between gap-4 px-5 py-3 rounded-2xl border transition-all duration-500 ease-in-out ${
+        hasRecord 
+          ? "border-emerald-200 bg-emerald-50/20 text-emerald-800 shadow-sm shadow-emerald-900/5" 
+          : "border-slate-200 bg-slate-50/40 text-slate-600 shadow-sm"
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+             <div className={`size-2.5 rounded-full ${hasRecord ? "bg-emerald-500" : "bg-slate-300"}`}  />
+             {hasRecord && <div className="absolute inset-0 size-2.5 rounded-full bg-emerald-400 animate-ping opacity-75" />}
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black uppercase tracking-widest leading-none mb-0.5">
+              {hasRecord ? "Obstetric Ledger Active" : "New History Pipeline"}
+            </span>
+            <span className="text-[11px] font-bold opacity-80 leading-none">
+              {statusMessage}
+            </span>
+          </div>
         </div>
-        <div>
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight">Obstetric History</h2>
-          <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Comprehensive Pregnancy Records</p>
-        </div>
-      </div>
-
-      <div className={`mb-6 rounded-2xl border px-4 py-3 text-sm font-medium ${hasRecord ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
-        <div className="flex items-center justify-between gap-3">
-          <span>{statusMessage}</span>
-          <span className="shrink-0 rounded-xl bg-white/80 px-3 py-1 text-[10px] font-black uppercase tracking-widest">
-            {hasRecord ? "Update Mode" : "Create Mode"}
+        <div className="flex items-center gap-2">
+          <span className={`px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-tighter ${
+            hasRecord 
+              ? "bg-emerald-100/50 border-emerald-200 text-emerald-700" 
+              : "bg-white border-slate-200 text-slate-500"
+          }`}>
+            {hasRecord ? "Sync Mode" : "Initial Entry"}
           </span>
         </div>
       </div>
 
-      <form className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+      <form className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-4">
         <InputField
           label="First Pregnancy?"
-          id="isFirstPregnancy"
+          id="is_first_pregnancy"
           as="select"
           err={errors.is_first_pregnancy?.message}
           {...register("is_first_pregnancy")}
@@ -57,41 +69,41 @@ export default function ObstetricHistoryForm() {
         />
 
         <InputField
-          label="Gravida (No. of Pregnancies)"
+          label="Gravida (Pregnancies)"
           placeholder="Ex: 2"
           err={errors.gravida?.message}
           {...register("gravida")}
         />
 
         <InputField
-          label="Para (No. of Live Births)"
+          label="Para (Live Births)"
           placeholder="Ex: 1"
           err={errors.para?.message}
           {...register("para")}
         />
 
         <InputField
-          label="Last Menstrual Period (LMP)"
+          label="LMP"
           type="date"
           err={errors.last_menstrual_cycle?.message}
           {...register("last_menstrual_cycle")}
         />
 
         <InputField
-          label="Abortions / Miscarriages"
+          label="Abortions"
           placeholder="Ex: 0"
           err={errors.abortions?.message}
           {...register("abortions")}
         />
 
         <InputField
-          label="Estimated Delivery Date (EDD)"
+          label="EDD"
           type="date"
           err={errors.edd?.message}
           {...register("edd")}
         />
 
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 lg:col-span-2">
           <InputField
             label="Additional Notes"
             as="textarea"
@@ -101,14 +113,14 @@ export default function ObstetricHistoryForm() {
           />
         </div>
 
-        <div className="md:col-span-2 flex items-center justify-end gap-4 pt-6 border-t border-slate-100 mt-4">
+        <div className="md:col-span-2 lg:col-span-3 flex items-center justify-end gap-3 pt-6 border-t border-slate-100 mt-2">
           <FormButton
             text="Reset"
             variant="ghost"
             onClick={() => reset()}
           />
           <FormButton
-            text={hasRecord ? "Update Record" : "Save History"}
+            text={hasRecord ? "Update History" : "Save Record"}
             variant="primary"
             onClick={handleSubmit(hasRecord ? updateInfo : addInfo)}
           />
@@ -121,8 +133,8 @@ export default function ObstetricHistoryForm() {
 function InputField({ label, id, err, as = "input", children, placeholder, autoComplete = "off", ...rest }: any) {
   const Component = as;
   return (
-    <div className="space-y-1.5 group">
-      <label htmlFor={id} className="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 group-focus-within:text-emerald-600 transition-colors">
+    <div className="space-y-1 group">
+      <label htmlFor={id} className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 group-focus-within:text-emerald-600 transition-colors">
         {label}
       </label>
       <div className="relative">
@@ -130,8 +142,8 @@ function InputField({ label, id, err, as = "input", children, placeholder, autoC
           id={id}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          rows={as === "textarea" ? 3 : undefined}
-          className={`w-full ${as === "textarea" ? "py-3 min-h-[100px]" : "h-12"} px-4 bg-slate-50 border rounded-2xl text-sm font-bold transition-all outline-none resize-none
+          rows={as === "textarea" ? 2 : undefined}
+          className={`w-full ${as === "textarea" ? "py-2.5 min-h-[80px]" : "h-10"} px-3 bg-slate-50/50 border rounded-xl text-xs font-bold transition-all outline-none resize-none
             ${err
               ? "border-red-200 bg-red-50 text-red-900 placeholder:text-red-300"
               : "border-slate-200 text-slate-700 placeholder:text-slate-400 focus:bg-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10"
@@ -141,15 +153,15 @@ function InputField({ label, id, err, as = "input", children, placeholder, autoC
           {children}
         </Component>
       </div>
-      {err && <p className="text-[10px] font-bold text-red-500 ml-2 animate-in fade-in slide-in-from-top-1">{err}</p>}
+      {err && <p className="text-[9px] font-bold text-red-500 ml-1.5 mt-0.5">{err}</p>}
     </div>
   );
 }
 
 function FormButton({ text, onClick, variant = "primary" }: { text: string; onClick?: () => void; variant?: "primary" | "secondary" | "ghost" }) {
   const styles = {
-    primary: "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200",
-    secondary: "bg-white text-emerald-600 border border-emerald-200 hover:bg-emerald-50 shadow-emerald-200/50",
+    primary: "bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-900/10",
+    secondary: "bg-white text-emerald-600 border border-emerald-200 hover:bg-emerald-50",
     ghost: "bg-transparent text-slate-400 hover:bg-slate-50 hover:text-slate-600",
   };
 
@@ -157,7 +169,7 @@ function FormButton({ text, onClick, variant = "primary" }: { text: string; onCl
     <button
       type="button"
       onClick={onClick}
-      className={`h-11 px-8 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 shadow-lg active:scale-95 ${styles[variant]}`}
+      className={`h-9 px-6 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${styles[variant]}`}
     >
       {text}
     </button>

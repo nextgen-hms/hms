@@ -33,6 +33,10 @@ export async function middleware(req: NextRequest) {
             url.pathname = "/";
             return NextResponse.redirect(url);
         }
+        if (url.pathname.startsWith("/admin") && role !== "Admin") {
+            url.pathname = "/";
+            return NextResponse.redirect(url);
+        }
     }
     catch (err) {
         console.error("Invalid or expired token:", err);
@@ -44,4 +48,4 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
 }
 
-export const config = { matcher: ["/doctor/:path*", "/lab/:path*", "/pharmacy/:path*", "/receptionist/:path*"], };
+export const config = { matcher: ["/doctor/:path*", "/lab/:path*", "/pharmacy/:path*", "/receptionist/:path*", "/admin/:path*"], };

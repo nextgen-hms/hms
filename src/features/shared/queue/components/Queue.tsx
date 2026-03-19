@@ -3,6 +3,7 @@
 import { usePatient } from "@/contexts/PatientIdContext";
 import { useOptionalDoctorWorkspace } from "@/src/features/doctor/workspace/DoctorWorkspaceContext";
 import { Clock3, PanelLeftOpen, Search, Stethoscope } from "lucide-react";
+import { useEffect } from "react";
 import { useQueue } from "../hooks/useQueue";
 
 type QueueProps = {
@@ -21,6 +22,7 @@ export function Queue({
   const isQueueCollapsed = workspace?.isQueueCollapsed ?? false;
   const toggleQueueCollapsed = workspace?.toggleQueueCollapsed ?? (() => {});
   const {
+    allQueue,
     queue,
     loading,
     selectedQueue,
@@ -29,11 +31,39 @@ export function Queue({
     deleteVisit,
     allowDelete: deleteEnabled,
   } = useQueue(endpoint, allowDelete);
-  const activeQueueItem = queue.find(
+  const activeQueueItem = allQueue.find(
     (item) =>
       String(item.patient_id) === String(patientId) &&
       (!selectedVisitId || String(item.visit_id) === String(selectedVisitId))
   );
+
+  useEffect(() => {
+    if (!workspace) {
+      return;
+    }
+
+    if (!selectedVisitId) {
+      workspace.clearStaleVisitSelection();
+      return;
+    }
+
+    if (loading) {
+      return;
+    }
+
+    const selectedItem = allQueue.find((item) => String(item.visit_id) === String(selectedVisitId));
+
+    if (!selectedItem) {
+      workspace.setStaleVisitSelection({
+        visitId: String(selectedVisitId),
+        message:
+          "The selected visit is no longer in your queue. Refresh or choose another queued visit before continuing.",
+      });
+      return;
+    }
+
+    workspace.clearStaleVisitSelection();
+  }, [allQueue, loading, selectedVisitId, workspace]);
 
   if (isQueueCollapsed) {
     return (
@@ -112,7 +142,7 @@ export function Queue({
         <input
           type="text"
           className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/10"
-          placeholder="Search patient or clinic number"
+          placeholder="Search patient, clinic #, patient ID, or visit ID"
           onChange={(event) => filterByName(event.target.value)}
         />
       </label>
@@ -186,6 +216,8 @@ export function Queue({
                         Dr. {item.doctor_name}
                       </span>
                       <span>{item.visit_type}</span>
+                      <span>Patient #{item.patient_id}</span>
+                      <span>Visit #{item.visit_id}</span>
                     </div>
                   </div>
 

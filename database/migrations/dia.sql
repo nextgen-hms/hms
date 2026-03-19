@@ -299,13 +299,7 @@ begin
 	set status =p_status
 	where visit_id =p_visit_id;
 
-	insert into visit_status_history(visit_id,status,updated_by_staff,updated_by_doctor)
-	values(
-		p_visit_id,
-		p_status,
-		p_updated_by_doctor,
-		p_updated_by_staff
-	);
+	insert into visit_status_history(visit_id,status,updated_by_staff,updated_by_doctor) values(p_visit_id, p_status, p_updated_by_staff, p_updated_by_doctor);
 end;
 $$;
 

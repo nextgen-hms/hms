@@ -32,10 +32,10 @@ export default function PreviousLabOrders() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
-              Lab History
+              Lab orders by you
             </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
-              <h3 className="text-lg font-black tracking-tight text-slate-900">Previous lab orders</h3>
+              <h3 className="text-lg font-black tracking-tight text-slate-900">Lab orders by you</h3>
               <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-600">
                 {patientId ? `${previousData.length} recent orders` : "Waiting for patient"}
               </span>

@@ -82,6 +82,15 @@ export type WomenHealthSummary = {
 export type PatientContextSummary = {
   patient: PatientInfo;
   activeVisit: VisitInfo;
+  encounterNote: {
+    visit_id: string | number;
+    patient_id: string | number;
+    doctor_id: string | number;
+    reception_complaint: string | null;
+    doctor_note: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+  } | null;
   vitals: PatientVitals | null;
   womenHealthSummary: WomenHealthSummary | null;
 };
@@ -106,8 +115,7 @@ export type RecentPrescription = {
   category: string;
   generic_name: string;
   brand_name: string;
-  dosage_value: number | null;
-  dosage_unit: string | null;
+  dosage: string | null;
   form: string | null;
   prescribed_quantity: number;
   dispensed_quantity: number;

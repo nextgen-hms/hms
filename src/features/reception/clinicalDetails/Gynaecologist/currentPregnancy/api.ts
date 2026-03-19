@@ -2,6 +2,7 @@ import { CurrentPregnancyFormData } from "./types";
 
 export async function getCurrentPregnancy(visitId: string) {
   const res = await fetch(`/api/clinicalDetails/gynaecologist/currentPregnancy/${visitId}`);
+  if (res.status === 404) return null;
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to fetch current pregnancy");
   return data;

@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
           and v.visit_timestamp >= current_date
           and v.visit_timestamp < current_date + interval '1 day'
           and v.is_deleted = false
-          and v.status not in ('completed', 'discharged')
+          and v.status in ('waiting', 'seen_by_doctor', 'medicines_dispensed', 'lab_tests_done', 'payment_done')
         order by
           case when v.visit_type = 'Emergency' then 0 else 1 end,
           v.clinic_number asc nulls last,
